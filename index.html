@@ -48,6 +48,9 @@
       <button class="nav-btn" data-screen="rhythms">
         <span class="nav-ico">🥁</span> מקצבים יווניים
       </button>
+      <button class="nav-btn" data-screen="game">
+        <span class="nav-ico">🎮</span> מאסטר הפנייה
+      </button>
       <button class="nav-btn" data-screen="listen">
         <span class="nav-ico">🎤</span> מאמן מאזין
       </button>
@@ -314,6 +317,47 @@
       </div>
     </section>
 
+    <!-- ========== מסך: מאסטר הפנייה (משחק) ========== -->
+    <section class="screen" id="screen-game">
+      <header class="screen-head">
+        <h1>מאסטר הפנייה</h1>
+        <p class="lead">משחק קצב דו-כיווני: חיצים זורמים אל קו הפגיעה — הקישו ↓ או ↑ בתזמון מושלם.</p>
+        <p style="margin:10px 0 4px"><a href="penia-master/index.html" class="btn gold" style="display:inline-block;text-decoration:none;font-size:14px">🎮 גרסה מלאה לשיתוף בקבוצות →</a></p>
+      </header>
+
+      <div class="card">
+        <div class="game-controls">
+          <select id="game-level"></select>
+          <div class="tempo-ctl">
+            <button class="btn small" id="game-bpm-down">−</button>
+            <div class="bpm-display"><span id="game-bpm">60</span><small>BPM</small></div>
+            <button class="btn small" id="game-bpm-up">+</button>
+          </div>
+          <button class="btn gold" id="game-start">▶ שחק</button>
+          <button class="btn" id="game-calib">⚙ כיול תזמון</button>
+          <span class="ls-progress" id="game-best"></span>
+        </div>
+        <p class="game-tip" id="game-tip"></p>
+        <div class="game-pattern" id="game-pattern" dir="ltr"></div>
+
+        <div class="game-hud" dir="ltr">
+          <div class="game-score-box">ניקוד: <b id="game-score">0</b></div>
+          <div class="game-combo" id="game-combo"></div>
+          <div class="game-keys">⌨ ↓/↑ או J/K &nbsp;·&nbsp; 📱 הקשה על חצי תחתון/עליון</div>
+        </div>
+
+        <div class="game-lane-wrap" dir="ltr">
+          <div class="game-zone-label up">↑ למעלה</div>
+          <canvas id="game-canvas"></canvas>
+          <div class="game-zone-label down">↓ למטה</div>
+        </div>
+
+        <div class="ls-results" id="game-results"></div>
+
+        <p class="hint">💡 איך מתאמנים נכון: שבו עם הבוזוקי ופרטו על מיתר מושתק בזמן שאתם מקישים עם הרגל/יד השנייה — או שחקו קודם בלי כלי כדי להטמיע את התבנית, ואז עברו לתרגיל המקביל במאמן הפנייה. לחצו "כיול תזמון" פעם אחת כדי לפצות על השהיית המסך והאוזניות שלכם.</p>
+      </div>
+    </section>
+
     <!-- ========== מסך: מאמן מאזין ========== -->
     <section class="screen" id="screen-listen">
       <header class="screen-head">
@@ -421,5 +465,6 @@
 <script src="js/app.js"></script>
 <script src="js/exercises.js"></script>
 <script src="js/listen.js"></script>
+<script src="js/game.js"></script>
 </body>
 </html>

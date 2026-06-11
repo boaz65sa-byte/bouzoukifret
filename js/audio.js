@@ -124,7 +124,7 @@ const AudioEngine = (() => {
     src.start(when);
   }
 
-  /* קליק רגיל (ספירה) */
+  /* קליק רגיל (ספירה) — מחזיר את האוסילטור כדי לאפשר ביטול */
   function click(when, accent = false) {
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
@@ -133,6 +133,7 @@ const AudioEngine = (() => {
     g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
     osc.connect(g).connect(masterGain);
     osc.start(when); osc.stop(when + 0.05);
+    return osc;
   }
 
   /* ---------- צליל פריטה (למאמן הפנייה) ----------

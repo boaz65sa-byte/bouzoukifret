@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080f18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="מאסטר הפנייה — משחק לימודי לתרגול פריטה יוונית על בוזוקי. 8 שלבים, ניקוד, קומבו, לוח תוצאות לקבוצות.">
+<title>מאסטר הפנייה | Penia Master — תרגול פריטה יוונית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- ===== SPLASH ===== -->
+<div id="splash" class="splash">
+  <svg class="splash-logo" viewBox="0 0 120 120" aria-hidden="true">
+    <circle cx="60" cy="60" r="54" fill="none" stroke="#e3b341" stroke-width="2" opacity="0.4"/>
+    <path d="M35 75 L55 35 L75 75 Z" fill="#e3b341" opacity="0.9"/>
+    <path d="M35 75 L55 35 L75 75 Z" fill="none" stroke="#fff0c8" stroke-width="1.5" transform="translate(0,-28) scale(0.55)" opacity="0.7"/>
+    <text x="60" y="98" fill="#4fb3d9" font-size="11" text-anchor="middle" font-family="Heebo">↓ ↑</text>
+  </svg>
+  <h1>מאסטר הפנייה</h1>
+  <p>Penia Master · Πενιά</p>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<div class="app">
+
+  <!-- ===== ONBOARDING ===== -->
+  <section class="screen" id="screen-onboard">
+    <div class="ob-wrap">
+      <div class="ob-step active">
+        <div class="ob-icon">🎸</div>
+        <h2>ברוכים הבאים!</h2>
+        <p>משחק לימודי שמלמד את <b>פנייה</b> — טכניקת הפריטה היוונית. חיצים זורמים, אתם מקישים ↓ או ↑ בדיוק בזמן — כמו Guitar Hero, אבל לבוזוקי.</p>
+      </div>
+      <div class="ob-step">
+        <div class="ob-icon">📱</div>
+        <h2>איך משחקים?</h2>
+        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם כלי:</b> נגנו על מיתר מושתק בזמן ההקשה</p>
+      </div>
+      <div class="ob-step">
+        <div class="ob-icon">👥</div>
+        <h2>לקבוצות בוזוקי</h2>
+        <p>צרו פרופיל לכל נגן, התחרו בלוח התוצאות, ושתפו את הציון בקבוצת הוואטסאפ. 8 שלבים מהיסוד ועד טזנה 7/8.</p>
+      </div>
+      <div class="ob-dots"><span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span></div>
+      <div class="ob-btns">
+        <button class="btn ghost" id="ob-skip">דלג</button>
+        <button class="btn gold" id="ob-next">הבא →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOME ===== -->
+  <section class="screen" id="screen-home">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-icon">🎸</span>
+        <div><b>מאסטר הפנייה</b><small>Penia Master</small></div>
+      </div>
+      <button class="player-chip" id="player-chip" type="button" data-screen="players"></button>
+    </header>
+
+    <div class="comm-panel" id="comm-local"></div>
+    <div id="comm-global"></div>
+
+    <h2 class="section-title">בחר שלב</h2>
+    <div class="level-map" id="level-map"></div>
+
+    <p class="footer-note">מומלץ: כיול תזמון לפני המשחק הראשון · פריטה על מיתר מושתק</p>
+  </section>
+
+  <!-- ===== PLAY ===== -->
+  <section class="screen" id="screen-play">
+    <header class="play-top">
+      <button class="btn icon" id="btn-back-play">→</button>
+      <div>
+        <h2 id="play-title"></h2>
+        <small id="play-sub"></small>
+      </div>
+      <span id="play-best" class="best-tag"></span>
+    </header>
+
+    <div class="teach-box">
+      <p id="play-teach"></p>
+      <p class="tip" id="play-tip"></p>
+    </div>
+
+    <div class="pattern-row" id="play-pattern" dir="ltr"></div>
+
+    <div class="play-hud" dir="ltr">
+      <div>ניקוד <b id="hud-score">0</b></div>
+      <div class="hud-combo" id="hud-combo"></div>
+    </div>
+
+    <div class="lane-box" dir="ltr">
+      <span class="zone up">↑ למעלה</span>
+      <canvas id="game-canvas"></canvas>
+      <span class="zone down">↓ למטה</span>
+    </div>
+
+    <div class="play-controls">
+      <button class="btn small" id="btn-bpm-down">−</button>
+      <span class="bpm-box"><b id="play-bpm-val">60</b> BPM</span>
+      <button class="btn small" id="btn-bpm-up">+</button>
+      <button class="btn gold" id="btn-play">▶ שחק</button>
+      <button class="btn" id="btn-calib">⚙ כיול</button>
+    </div>
+    <p class="calib-msg" id="calib-msg"></p>
+
+    <div class="results-panel" id="results-panel"></div>
+  </section>
+
+  <!-- ===== LEADERBOARD ===== -->
+  <section class="screen" id="screen-leaderboard">
+    <h2 class="section-title">🏆 לוח תוצאות</h2>
+    <p class="lead">התחרות בין הנגנים במכשיר — מושלם לשיעור קבוצתי</p>
+    <select id="lb-level" class="select-full"></select>
+    <div class="lb-list" id="lb-list"></div>
+  </section>
+
+  <!-- ===== PLAYERS ===== -->
+  <section class="screen" id="screen-players">
+    <h2 class="section-title">👥 שחקנים</h2>
+    <p class="lead">כל נגן בקבוצה מקבל פרופיל, התקדמות ושיאים משלו</p>
+    <div class="players-list" id="players-list"></div>
+    <div class="add-player card-inner">
+      <h3>הוסף נגן חדש</h3>
+      <input type="text" id="new-player-name" placeholder="שם הנגן" maxlength="20">
+      <div class="avatar-pick" id="avatar-pick"></div>
+      <button class="btn gold full" id="btn-add-player">+ הוסף</button>
+    </div>
+  </section>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="home"><span>🏠</span> בית</button>
+    <button class="nav-item" data-screen="leaderboard"><span>🏆</span> תוצאות</button>
+    <button class="nav-item" data-screen="players"><span>👥</span> שחקנים</button>
+  </nav>
+</div>
+
+<!-- config.js אופציונלי — העתק מ-config.example.js -->
+<script src="config.js" onerror="void 0"></script>
+<script src="js/levels.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/community.js"></script>
+<script src="js/players.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

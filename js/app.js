@@ -36,6 +36,7 @@ function stopAllPlayback() {
   stopDrone();
   if (typeof stopExercise === 'function') stopExercise();
   if (typeof Listen !== 'undefined') Listen.stopAll();
+  if (typeof Game !== 'undefined') Game.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
@@ -204,42 +205,97 @@ function initHome() {
 function drawAnatomy() {
   const svg = $('#anatomy-svg');
   svg.innerHTML = '';
-  // גוף
-  svgEl('ellipse', { cx: 120, cy: 130, rx: 95, ry: 88, fill: '#7a5230', stroke: '#4a2f18', 'stroke-width': 3 }, svg);
-  svgEl('ellipse', { cx: 120, cy: 130, rx: 95, ry: 88, fill: 'none', stroke: '#9c6b3e', 'stroke-width': 1, opacity: 0.6, transform: 'translate(0,-6)' }, svg);
-  // פתח קול
-  svgEl('circle', { cx: 138, cy: 118, r: 26, fill: '#16100a', stroke: '#e3b341', 'stroke-width': 2.5 }, svg);
-  svgEl('circle', { cx: 138, cy: 118, r: 31, fill: 'none', stroke: '#c79a2e', 'stroke-width': 1, opacity: 0.65 }, svg);
-  // גשר
-  svgEl('rect', { x: 76, y: 148, width: 52, height: 8, rx: 3, fill: '#2c1c0e' }, svg);
-  // צוואר
-  svgEl('rect', { x: 196, y: 96, width: 300, height: 30, fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2 }, svg);
-  // סריגים על הצוואר
-  for (let i = 1; i <= 12; i++) {
-    const x = 196 + 300 * (1 - Math.pow(2, -i / 9)) / (1 - Math.pow(2, -12 / 9));
-    svgEl('line', { x1: x, y1: 96, x2: x, y2: 126, stroke: '#8a8378', 'stroke-width': 1.6 }, svg);
+  svg.setAttribute('viewBox', '0 0 560 250');
+
+  const NUT_X = 468, NECK_JOIN = 202;
+  const lbl = (x, y, text, anchor = 'middle') =>
+    svgEl('text', { x, y, fill: '#9db2c7', 'font-size': 12.5, 'text-anchor': anchor, 'font-family': 'Heebo' }, svg).textContent = text;
+  const leader = (x1, y1, x2, y2) =>
+    svgEl('line', { x1, y1, x2, y2, stroke: '#5a7187', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, svg);
+
+  // גוף — צורת אגס (כיפת צלעות)
+  svgEl('path', {
+    d: `M${NECK_JOIN + 6} 90
+        C 130 56, 44 66, 22 118
+        C 44 172, 130 182, ${NECK_JOIN + 6} 144 Z`,
+    fill: '#7a5230', stroke: '#4a2f18', 'stroke-width': 3, 'stroke-linejoin': 'round'
+  }, svg);
+  // צלעות הגוף (פסי עץ)
+  [0.78, 0.58, 0.38].forEach(k => {
+    svgEl('path', {
+      d: `M${NECK_JOIN} ${117 - 26 * k} C ${130} ${117 - 56 * k}, ${52} ${117 - 48 * k}, ${24 + 14 * (1 - k)} 117`,
+      fill: 'none', stroke: '#9c6b3e', 'stroke-width': 1, opacity: 0.55
+    }, svg);
+  });
+
+  // זנב (מחזיק המיתרים בקצה הגוף)
+  svgEl('rect', { x: 16, y: 104, width: 9, height: 28, rx: 3, fill: '#2c1c0e', stroke: '#1a120a' }, svg);
+
+  // פתח קול מעוטר
+  svgEl('circle', { cx: 148, cy: 117, r: 21, fill: '#16100a', stroke: '#e3b341', 'stroke-width': 2.2 }, svg);
+  svgEl('circle', { cx: 148, cy: 117, r: 26, fill: 'none', stroke: '#c79a2e', 'stroke-width': 1, opacity: 0.6 }, svg);
+
+  // צוואר + לוח סריגים
+  svgEl('rect', { x: NECK_JOIN, y: 100, width: NUT_X - NECK_JOIN, height: 34, fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2 }, svg);
+
+  // אום (nut)
+  svgEl('rect', { x: NUT_X - 2, y: 99, width: 5, height: 36, rx: 1.5, fill: '#e8d9b0' }, svg);
+
+  // סריגים — צפופים יותר ככל שמתקרבים לגוף
+  const scaleLen = (NUT_X - NECK_JOIN) / (1 - Math.pow(2, -13 / 12));
+  for (let i = 1; i <= 13; i++) {
+    const x = NUT_X - scaleLen * (1 - Math.pow(2, -i / 12));
+    svgEl('line', { x1: x, y1: 100, x2: x, y2: 134, stroke: '#8a8378', 'stroke-width': 1.5 }, svg);
   }
-  // ראש
-  svgEl('path', { d: 'M496 92 L548 80 Q560 82 558 96 L558 126 Q560 140 548 142 L496 130 Z', fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2 }, svg);
-  // מפתחות כיוון
-  [86, 100, 114, 128].forEach(y => {
-    svgEl('circle', { cx: 552, cy: y - 2, r: 5, fill: '#d8c9a0' }, svg);
+  // נקודות סימון על הלוח
+  [3, 5, 7, 10].forEach(i => {
+    const x1 = NUT_X - scaleLen * (1 - Math.pow(2, -(i - 1) / 12));
+    const x2 = NUT_X - scaleLen * (1 - Math.pow(2, -i / 12));
+    svgEl('circle', { cx: (x1 + x2) / 2, cy: 117, r: 2.6, fill: '#d8c9a0', opacity: 0.8 }, svg);
   });
-  // מיתרים
-  [104, 110, 116, 122].forEach(y => {
-    svgEl('line', { x1: 102, y1: y + 42 - (y - 104) * 0.72, x2: 548, y2: y - 6, stroke: '#d6cfc0', 'stroke-width': 1.1, opacity: 0.9 }, svg);
+
+  // ראש — טרפז מתרחב עם 4+4 מפתחות
+  svgEl('path', {
+    d: `M${NUT_X + 2} 99 L546 86 Q554 88 554 96 L554 138 Q554 146 546 148 L${NUT_X + 2} 135 Z`,
+    fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2
+  }, svg);
+  // מפתחות: 4 למעלה, 4 למטה
+  [486, 502, 518, 534].forEach(x => {
+    svgEl('line', { x1: x, y1: 92, x2: x, y2: 76, stroke: '#6b5a3e', 'stroke-width': 2.5 }, svg);
+    svgEl('circle', { cx: x, cy: 72, r: 4.5, fill: '#d8c9a0', stroke: '#8a7a5c' }, svg);
+    svgEl('line', { x1: x, y1: 142, x2: x, y2: 158, stroke: '#6b5a3e', 'stroke-width': 2.5 }, svg);
+    svgEl('circle', { cx: x, cy: 162, r: 4.5, fill: '#d8c9a0', stroke: '#8a7a5c' }, svg);
   });
-  // תוויות
+
+  // גשר — עומד על לוח הקול, המיתרים עוברים מעליו
+  svgEl('rect', { x: 70, y: 101, width: 7, height: 33, rx: 2.5, fill: '#2c1c0e', stroke: '#1a120a' }, svg);
+
+  // מיתרים — מהזנב, מעל הגשר ופתח הקול, לאורך הצוואר עד האום
+  [0, 1, 2, 3].forEach(i => {
+    const yTail = 108 + i * 6.5;
+    const yNut = 104 + i * 8.8;
+    svgEl('line', { x1: 25, y1: yTail, x2: NUT_X, y2: yNut, stroke: '#d6cfc0', 'stroke-width': 1.15, opacity: 0.95 }, svg);
+    // המשך מהאום אל המפתחות
+    const pegX = [486, 502, 518, 534][i];
+    const pegY = i < 2 ? 90 : 144;
+    svgEl('line', { x1: NUT_X + 3, y1: yNut, x2: pegX, y2: pegY, stroke: '#d6cfc0', 'stroke-width': 0.9, opacity: 0.75 }, svg);
+  });
+
+  // תוויות עם קווים מנחים
+  leader(110, 178, 110, 196); lbl(110, 212, 'גוף');
+  leader(148, 91, 148, 60); lbl(148, 50, 'פתח קול');
+  leader(73, 138, 60, 196); lbl(56, 212, 'גשר');
+  leader(335, 97, 335, 64); lbl(335, 54, 'צוואר ולוח סריגים');
+  leader(540, 152, 540, 180); lbl(528, 196, 'ראש ומפתחות');
+  leader(20, 135, 20, 165); lbl(30, 181, 'זנב');
+
   const legend = $('#anatomy-legend');
   legend.innerHTML = `
     <span><b>גוף</b> — תיבת תהודה מגולפת מצלעות עץ</span>
     <span><b>פתח קול</b> — מעוטר בסגנון מסורתי</span>
-    <span><b>גשר</b> — מעביר את רטט המיתרים לגוף</span>
-    <span><b>צוואר</b> — ארוך במיוחד, 26-27 סריגים</span>
-    <span><b>ראש</b> — 8 מפתחות, מיתר לכל זוג</span>`;
-  svgEl('text', { x: 120, y: 234, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'גוף';
-  svgEl('text', { x: 346, y: 86, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'צוואר ולוח סריגים';
-  svgEl('text', { x: 527, y: 66, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'ראש';
+    <span><b>גשר</b> — מעביר את רטט המיתרים ללוח הקול</span>
+    <span><b>צוואר</b> — ארוך במיוחד, סריגים צפופים לכיוון הגוף</span>
+    <span><b>ראש</b> — 8 מפתחות, 4+4, מפתח לכל מיתר</span>`;
 }
 
 /* ===================== מסך דרומוסים ===================== */
