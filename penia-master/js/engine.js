@@ -357,5 +357,9 @@ const Engine = (() => {
     });
   }
 
-  return { start, stop, calibrate, bindInput, handleInput };
+  function resize(canvasEl) {
+    if (canvasEl) setupCanvas(canvasEl);
+  }
+
+  return { start, stop, calibrate, bindInput, handleInput, resize };
 })();
