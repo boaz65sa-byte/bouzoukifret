@@ -1,0 +1,859 @@
+/* ============================================================
+   בוזוקי אקדמי — לוגיקת האפליקציה
+   ============================================================ */
+'use strict';
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs = {}, parent = null) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+/* ===================== ניווט ===================== */
+$$('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    $('#screen-' + btn.dataset.screen).classList.add('active');
+    stopAllPlayback();
+  });
+});
+
+let activeSchedulers = [];
+function stopAllPlayback() {
+  activeSchedulers.forEach(s => s.stop());
+  activeSchedulers = [];
+  clearTimeout(scaleTimer);
+  stopPenia();
+  stopRhythm();
+  stopMet();
+  stopDrone();
+  if (typeof stopExercise === 'function') stopExercise();
+  if (typeof Listen !== 'undefined') Listen.stopAll();
+  $('#dr-drone').classList.remove('playing');
+}
+
+/* ============================================================
+   לוח סריגים — רינדור SVG אינטראקטיבי
+   ============================================================ */
+const FB = {
+  left: 56, right: 18, top: 30, bottom: 26,
+  width: 1040, height: 190,
+};
+
+function fretX(fret) {
+  // מרווחים מתכווצים כמו בכלי אמיתי
+  const usable = FB.width - FB.left - FB.right;
+  const ratio = (1 - Math.pow(2, -fret / 12)) / (1 - Math.pow(2, -NUM_FRETS / 12));
+  return FB.left + usable * ratio;
+}
+function fretCenterX(fret) {
+  if (fret === 0) return FB.left - 26;
+  return (fretX(fret - 1) + fretX(fret)) / 2;
+}
+function courseY(ci) {
+  const usable = FB.height - FB.top - FB.bottom;
+  return FB.top + (ci / (TUNING.length - 1)) * usable;
+}
+
+/* מצייר לוח סריגים. getNoteState(courseIdx, fret, midi) מחזיר:
+   null = לא להציג, {type:'root'|'note', label} = להציג */
+function drawFretboard(svg, getNoteState, opts = {}) {
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `0 0 ${FB.width} ${FB.height}`);
+
+  // רקע עץ
+  const defs = svgEl('defs', {}, svg);
+  const grad = svgEl('linearGradient', { id: 'wood' + svg.id, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  svgEl('stop', { offset: '0%', 'stop-color': '#3a2a1c' }, grad);
+  svgEl('stop', { offset: '50%', 'stop-color': '#2c1f14' }, grad);
+  svgEl('stop', { offset: '100%', 'stop-color': '#241a11' }, grad);
+  svgEl('rect', {
+    x: FB.left - 4, y: FB.top - 16, width: FB.width - FB.left - FB.right + 8,
+    height: FB.height - FB.top - FB.bottom + 32, rx: 6, fill: `url(#wood${svg.id})`,
+    stroke: '#1a120a', 'stroke-width': 1.5
+  }, svg);
+
+  // אינליי נקודות (סריגים 3,5,7,10,12,15)
+  [3, 5, 7, 10, 12, 15].forEach(f => {
+    if (f > NUM_FRETS) return;
+    const cx = fretCenterX(f);
+    const cy = (FB.top + FB.height - FB.bottom) / 2;
+    if (f === 12) {
+      svgEl('circle', { cx, cy: cy - 22, r: 4.5, fill: '#d8c9a0', opacity: 0.5 }, svg);
+      svgEl('circle', { cx, cy: cy + 22, r: 4.5, fill: '#d8c9a0', opacity: 0.5 }, svg);
+    } else {
+      svgEl('circle', { cx, cy, r: 4.5, fill: '#d8c9a0', opacity: 0.45 }, svg);
+    }
+  });
+
+  // סריגים
+  for (let f = 0; f <= NUM_FRETS; f++) {
+    const x = fretX(f);
+    svgEl('line', {
+      x1: x, y1: FB.top - 14, x2: x, y2: FB.height - FB.bottom + 14,
+      stroke: f === 0 ? '#e8d9b0' : '#8a8378',
+      'stroke-width': f === 0 ? 7 : 2.5,
+    }, svg);
+    // מספרי סריגים
+    if (f > 0) {
+      svgEl('text', {
+        x: fretCenterX(f), y: FB.height - 4, fill: '#7d92a8',
+        'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo, sans-serif'
+      }, svg).textContent = f;
+    }
+  }
+
+  // מיתרים (כל קורס = זוג קווים)
+  TUNING.forEach((c, ci) => {
+    const y = courseY(ci);
+    const w = 1 + ci * 0.5;
+    svgEl('line', { x1: FB.left - 4, y1: y - 2, x2: FB.width - FB.right, y2: y - 2, stroke: '#c9c2b4', 'stroke-width': w * 0.8, opacity: 0.85 }, svg);
+    svgEl('line', { x1: FB.left - 4, y1: y + 2, x2: FB.width - FB.right, y2: y + 2, stroke: '#b8b0a0', 'stroke-width': w, opacity: 0.95 }, svg);
+    // תווית קורס
+    svgEl('text', {
+      x: 16, y: y + 5, fill: '#e3b341', 'font-size': 15, 'font-weight': 700,
+      'text-anchor': 'middle', 'font-family': 'Heebo, sans-serif'
+    }, svg).textContent = c.note;
+  });
+
+  // נקודות צלילים
+  TUNING.forEach((c, ci) => {
+    const y = courseY(ci);
+    for (let f = 0; f <= NUM_FRETS; f++) {
+      const midi = c.midi + f;
+      const state = getNoteState ? getNoteState(ci, f, midi) : null;
+      if (!state) continue;
+      const cx = fretCenterX(f);
+      const g = svgEl('g', { class: 'fb-dot', 'data-course': ci, 'data-fret': f }, svg);
+      const isRoot = state.type === 'root';
+      svgEl('circle', {
+        cx, cy: y, r: 11,
+        fill: isRoot ? '#e3b341' : '#2a7fa8',
+        stroke: isRoot ? '#fff0c8' : '#7fd0ef',
+        'stroke-width': 1.5,
+      }, g);
+      const t = svgEl('text', {
+        x: cx, y: y + 4, fill: isRoot ? '#1a1408' : '#eaf6fc',
+        'font-size': 10.5, 'font-weight': 700, 'text-anchor': 'middle',
+        class: 'fb-note-label', 'font-family': 'Heebo, sans-serif'
+      }, g);
+      t.textContent = state.label;
+      g.addEventListener('click', () => {
+        AudioEngine.pluckCourse(ci, f, 0, 0.55);
+        flashDot(svg, ci, f);
+      });
+    }
+  });
+}
+
+function flashDot(svg, ci, fret) {
+  const y = courseY(ci);
+  const cx = fretCenterX(fret);
+  const halo = svgEl('circle', {
+    cx, cy: y, r: 17, fill: 'none', stroke: '#f0cc74', 'stroke-width': 3,
+    class: 'fb-glow', opacity: 0.9
+  }, svg);
+  setTimeout(() => halo.remove(), 500);
+}
+
+/* הילה לכל המופעים של גובה צליל מסוים (pitch class + octave) */
+function flashMidiOnBoard(svg, midi) {
+  TUNING.forEach((c, ci) => {
+    const f = midi - c.midi;
+    if (f >= 0 && f <= NUM_FRETS) flashDot(svg, ci, f);
+  });
+}
+
+/* ===================== מסך הבית ===================== */
+function initHome() {
+  // טיונר
+  const tuner = $('#tuner');
+  [...TUNING].reverse().forEach(c => {
+    const ci = TUNING.indexOf(c);
+    const div = document.createElement('div');
+    div.className = 'tuner-course';
+    div.innerHTML = `
+      <div class="tuner-note">${c.note}</div>
+      <div class="tuner-solfege">${SOLFEGE[c.note]}</div>
+      <div class="tuner-pair">${c.pair === 'octave' ? 'זוג אוקטבה' : 'זוג יוניסון'}</div>`;
+    div.addEventListener('click', () => {
+      AudioEngine.pluckCourse(ci, 0, 0, 0.6);
+      div.classList.add('ringing');
+      setTimeout(() => div.classList.remove('ringing'), 900);
+    });
+    tuner.appendChild(div);
+  });
+
+  // איור אנטומיה
+  drawAnatomy();
+
+  // לוח סריגים מלא — כל הצלילים
+  drawFretboard($('#fb-home'), (ci, f, midi) => {
+    const name = midiToName(midi);
+    return { type: f === 0 ? 'root' : 'note', label: name };
+  });
+}
+
+function drawAnatomy() {
+  const svg = $('#anatomy-svg');
+  svg.innerHTML = '';
+  // גוף
+  svgEl('ellipse', { cx: 120, cy: 130, rx: 95, ry: 88, fill: '#7a5230', stroke: '#4a2f18', 'stroke-width': 3 }, svg);
+  svgEl('ellipse', { cx: 120, cy: 130, rx: 95, ry: 88, fill: 'none', stroke: '#9c6b3e', 'stroke-width': 1, opacity: 0.6, transform: 'translate(0,-6)' }, svg);
+  // פתח קול
+  svgEl('circle', { cx: 138, cy: 118, r: 26, fill: '#16100a', stroke: '#e3b341', 'stroke-width': 2.5 }, svg);
+  svgEl('circle', { cx: 138, cy: 118, r: 31, fill: 'none', stroke: '#c79a2e', 'stroke-width': 1, opacity: 0.65 }, svg);
+  // גשר
+  svgEl('rect', { x: 76, y: 148, width: 52, height: 8, rx: 3, fill: '#2c1c0e' }, svg);
+  // צוואר
+  svgEl('rect', { x: 196, y: 96, width: 300, height: 30, fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2 }, svg);
+  // סריגים על הצוואר
+  for (let i = 1; i <= 12; i++) {
+    const x = 196 + 300 * (1 - Math.pow(2, -i / 9)) / (1 - Math.pow(2, -12 / 9));
+    svgEl('line', { x1: x, y1: 96, x2: x, y2: 126, stroke: '#8a8378', 'stroke-width': 1.6 }, svg);
+  }
+  // ראש
+  svgEl('path', { d: 'M496 92 L548 80 Q560 82 558 96 L558 126 Q560 140 548 142 L496 130 Z', fill: '#3a2a1c', stroke: '#241808', 'stroke-width': 2 }, svg);
+  // מפתחות כיוון
+  [86, 100, 114, 128].forEach(y => {
+    svgEl('circle', { cx: 552, cy: y - 2, r: 5, fill: '#d8c9a0' }, svg);
+  });
+  // מיתרים
+  [104, 110, 116, 122].forEach(y => {
+    svgEl('line', { x1: 102, y1: y + 42 - (y - 104) * 0.72, x2: 548, y2: y - 6, stroke: '#d6cfc0', 'stroke-width': 1.1, opacity: 0.9 }, svg);
+  });
+  // תוויות
+  const legend = $('#anatomy-legend');
+  legend.innerHTML = `
+    <span><b>גוף</b> — תיבת תהודה מגולפת מצלעות עץ</span>
+    <span><b>פתח קול</b> — מעוטר בסגנון מסורתי</span>
+    <span><b>גשר</b> — מעביר את רטט המיתרים לגוף</span>
+    <span><b>צוואר</b> — ארוך במיוחד, 26-27 סריגים</span>
+    <span><b>ראש</b> — 8 מפתחות, מיתר לכל זוג</span>`;
+  svgEl('text', { x: 120, y: 234, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'גוף';
+  svgEl('text', { x: 346, y: 86, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'צוואר ולוח סריגים';
+  svgEl('text', { x: 527, y: 66, fill: '#9db2c7', 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'ראש';
+}
+
+/* ===================== מסך דרומוסים ===================== */
+let currentDromos = DROMOI[0];
+let currentRoot = 2; // D = pitch class 2
+let droneNodes = null;
+
+function initDromoi() {
+  const list = $('#dromoi-list');
+  DROMOI.forEach((d, i) => {
+    const item = document.createElement('div');
+    item.className = 'dromos-item' + (i === 0 ? ' active' : '');
+    item.innerHTML = `<div class="di-name">${d.nameHe}</div><div class="di-gr">${d.nameGr} · ${d.degrees}</div>`;
+    item.addEventListener('click', () => {
+      $$('.dromos-item').forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      currentDromos = d;
+      renderDromos();
+    });
+    list.appendChild(item);
+  });
+
+  const rootSel = $('#dr-root');
+  NOTE_NAMES.forEach((n, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${n} (${SOLFEGE[n]})`;
+    if (i === 2) opt.selected = true;
+    rootSel.appendChild(opt);
+  });
+  rootSel.addEventListener('change', () => {
+    currentRoot = parseInt(rootSel.value, 10);
+    renderDromos();
+  });
+
+  $('#dr-play').addEventListener('click', () => playScale(140));
+  $('#dr-play-slow').addEventListener('click', () => playScale(320));
+  $('#dr-play-single').addEventListener('click', playSingleString);
+  $('#dr-drone').addEventListener('click', toggleDrone);
+
+  renderDromos();
+  renderAjnas();
+}
+
+/* ---------- ג׳ינס (אבני הבניין של המאקאם) ---------- */
+function renderAjnas() {
+  const grid = $('#ajnas-grid');
+  AJNAS.forEach(jins => {
+    const card = document.createElement('div');
+    card.className = 'jins-card';
+    const span = jins.intervals[jins.intervals.length - 1];
+    // פס מרווחים: תא לכל חצי טון, מסומן אם הצליל בג׳ינס
+    let bar = '<div class="jins-bar">';
+    for (let st = 0; st <= span; st++) {
+      const on = jins.intervals.includes(st);
+      bar += `<div class="jins-step${on ? ' on' : ''}" style="${on ? `background:${jins.color}` : ''}"></div>`;
+    }
+    bar += '</div>';
+    card.innerHTML = `
+      <div class="jins-head"><b style="color:${jins.color}">${jins.nameHe}</b><span>${jins.nameAr}</span></div>
+      ${bar}
+      <p>${jins.desc}</p>`;
+    card.addEventListener('click', () => {
+      AudioEngine.ensureCtx();
+      jins.intervals.forEach((iv, i) => {
+        AudioEngine.pluckMidi(62 + iv, AudioEngine.ctx.currentTime + 0.05 + i * 0.32, 0.5);
+      });
+    });
+    grid.appendChild(card);
+  });
+
+  const tbody = $('#ajnas-table tbody');
+  DROMOS_AJNAS.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><b>${row.dromos}</b></td><td>${row.lower}</td><td>${row.upper}</td><td dir="ltr">${row.maqam}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function scaleMidisFromRoot() {
+  /* מוצא את הטוניקה הנמוכה ביותר הניתנת לנגינה ובונה אוקטבה */
+  let base = 48 + ((currentRoot - 0 + 12) % 12); // מ-C3 ומעלה
+  const midis = currentDromos.intervals.map(iv => base + iv);
+  midis.push(base + 12);
+  return midis;
+}
+
+function renderDromos() {
+  const d = currentDromos;
+  $('#dr-name').textContent = d.nameHe;
+  $('#dr-greek').textContent = `${d.nameGr} · ${d.nameEn} · ${d.degrees}`;
+  $('#dr-mood').textContent = d.mood;
+  $('#dr-desc').textContent = d.desc;
+  $('#dr-maqam').textContent = d.maqam;
+  $('#dr-chords').textContent = d.chords;
+  $('#dr-songs').textContent = d.songs.join(' · ');
+  $('#dr-tips').textContent = d.tips;
+
+  // שורת דרגות
+  const degRow = $('#dr-degrees');
+  degRow.innerHTML = '';
+  const degLabels = d.degrees.split(' ');
+  d.intervals.forEach((iv, i) => {
+    const pc = (currentRoot + iv) % 12;
+    const cell = document.createElement('div');
+    cell.className = 'degree-cell' + (i === 0 ? ' root' : '');
+    cell.innerHTML = `<div class="dg">${degLabels[i]}</div><div class="nt">${NOTE_NAMES[pc]}</div><div class="sf">${SOLFEGE[NOTE_NAMES[pc]]}</div>`;
+    degRow.appendChild(cell);
+  });
+
+  // לוח סריגים — צלילי הדרומוס
+  const pcs = d.intervals.map(iv => (currentRoot + iv) % 12);
+  drawFretboard($('#fb-dromos'), (ci, f, midi) => {
+    const pc = midi % 12;
+    const idx = pcs.indexOf(pc);
+    if (idx === -1) return null;
+    return { type: idx === 0 ? 'root' : 'note', label: NOTE_NAMES[pc] };
+  });
+
+  // תרגיל מיתר בודד
+  renderSingleString();
+}
+
+function renderSingleString() {
+  const wrap = $('#dr-single');
+  wrap.innerHTML = '';
+  const d = currentDromos;
+  // על מיתר D (קורס 0): הסריג של הטוניקה
+  const openPc = TUNING[0].midi % 12;
+  let rootFret = ((currentRoot - openPc) + 12) % 12;
+  const fretsUp = d.intervals.map(iv => rootFret + iv);
+  fretsUp.push(rootFret + 12);
+  const seq = [...fretsUp, ...[...fretsUp].reverse().slice(1)];
+  seq.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'ss-note';
+    div.dataset.idx = i;
+    div.innerHTML = `<div class="ss-fret">${f}</div><div class="ss-dir">${i % 2 === 0 ? '↓' : '↑'}</div>`;
+    wrap.appendChild(div);
+  });
+  wrap.dataset.seq = JSON.stringify(seq);
+}
+
+let scaleTimer = null;
+function playScale(msPerNote) {
+  AudioEngine.ensureCtx();
+  clearTimeout(scaleTimer);
+  const midis = scaleMidisFromRoot();
+  const seq = [...midis, ...[...midis].reverse().slice(1)];
+  const svg = $('#fb-dromos');
+  let i = 0;
+  function step() {
+    if (i >= seq.length) return;
+    AudioEngine.pluckMidi(seq[i], 0, 0.5);
+    flashMidiOnBoard(svg, seq[i]);
+    i++;
+    scaleTimer = setTimeout(step, msPerNote);
+  }
+  step();
+}
+
+function playSingleString() {
+  AudioEngine.ensureCtx();
+  clearTimeout(scaleTimer);
+  const wrap = $('#dr-single');
+  const seq = JSON.parse(wrap.dataset.seq || '[]');
+  const cells = wrap.querySelectorAll('.ss-note');
+  let i = 0;
+  function step() {
+    cells.forEach(c => c.classList.remove('lit'));
+    if (i >= seq.length) return;
+    AudioEngine.pluckCourse(0, seq[i], 0, 0.55);
+    cells[i].classList.add('lit');
+    i++;
+    scaleTimer = setTimeout(step, 380);
+  }
+  step();
+}
+
+function toggleDrone() {
+  const btn = $('#dr-drone');
+  if (droneNodes) { stopDrone(); btn.classList.remove('playing'); return; }
+  AudioEngine.ensureCtx();
+  const ctx = AudioEngine.ctx;
+  const freq = 440 * Math.pow(2, (48 + currentRoot - 69) / 12) * 2; // אוקטבה נוחה
+  const g = ctx.createGain();
+  g.gain.value = 0.0;
+  g.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.6);
+  g.connect(ctx.destination);
+  const oscs = [0, 7].map(iv => {
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = freq * Math.pow(2, iv / 12) / 2;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 900;
+    o.connect(f).connect(g);
+    o.start();
+    return o;
+  });
+  droneNodes = { oscs, g };
+  btn.classList.add('playing');
+}
+function stopDrone() {
+  if (!droneNodes) return;
+  const ctx = AudioEngine.ctx;
+  droneNodes.g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+  const nodes = droneNodes;
+  setTimeout(() => nodes.oscs.forEach(o => o.stop()), 400);
+  droneNodes = null;
+}
+
+/* ===================== מסך פנייה ===================== */
+let peniaPattern = PENIA_PATTERNS[0];
+let peniaBpm = 80;
+let peniaScheduler = null;
+
+function initPenia() {
+  // כרטיסי טכניקה
+  const grid = $('#technique-grid');
+  TECHNIQUE_PRINCIPLES.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'tech-card';
+    card.innerHTML = `<h3>${t.title}</h3>
+      <svg viewBox="0 0 300 110" data-illu="${t.svg}"></svg>
+      <ul>${t.points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+    grid.appendChild(card);
+    drawTechIllustration(card.querySelector('svg'), t.svg);
+  });
+
+  // בורר תבניות
+  const sel = $('#penia-select');
+  PENIA_PATTERNS.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = p.nameHe;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    peniaPattern = PENIA_PATTERNS[parseInt(sel.value, 10)];
+    peniaBpm = peniaPattern.bpm;
+    stopPenia();
+    renderPenia();
+  });
+
+  $('#penia-bpm-down').addEventListener('click', () => { peniaBpm = Math.max(40, peniaBpm - 5); renderPeniaBpm(); });
+  $('#penia-bpm-up').addEventListener('click', () => { peniaBpm = Math.min(240, peniaBpm + 5); renderPeniaBpm(); });
+  $('#penia-play').addEventListener('click', togglePenia);
+
+  renderPenia();
+}
+
+function renderPeniaBpm() {
+  $('#penia-bpm').textContent = peniaBpm;
+  if (peniaScheduler && peniaScheduler.running) peniaScheduler.stepDur = peniaStepDur();
+}
+
+function peniaStepDur() {
+  const p = peniaPattern;
+  const beat = 60 / peniaBpm;
+  if (p.subdivision.includes('טריול')) return beat / 3;
+  if (p.subdivision.includes('שש-עשר')) return beat / 4;
+  if (p.subdivision.includes('רבעים')) return beat;
+  return beat / 2; // שמיניות
+}
+
+function renderPenia() {
+  const p = peniaPattern;
+  renderPeniaBpm();
+  $('#penia-level').textContent = p.level;
+  $('#penia-subdiv').textContent = p.subdivision;
+  $('#penia-desc').textContent = p.desc;
+
+  const strip = $('#penia-strip');
+  strip.innerHTML = '';
+  p.strokes.forEach((s, i) => {
+    const cell = document.createElement('div');
+    const isRest = s === '-';
+    const isAccent = s === 'D' || s === 'U';
+    const isDown = s.toLowerCase() === 'd';
+    cell.className = 'stroke-cell' + (isAccent ? ' accent' : '') + (isRest ? ' rest' : '');
+    cell.innerHTML = `<div class="stroke-arrow">${isRest ? '·' : isDown ? '↓' : '↑'}</div><div class="stroke-num">${i + 1}</div>`;
+    strip.appendChild(cell);
+  });
+}
+
+function togglePenia() {
+  const btn = $('#penia-play');
+  if (peniaScheduler && peniaScheduler.running) { stopPenia(); return; }
+  AudioEngine.ensureCtx();
+  const cells = $('#penia-strip').querySelectorAll('.stroke-cell');
+  peniaScheduler = new AudioEngine.Scheduler(
+    (step, time) => {
+      const s = peniaPattern.strokes[step];
+      if (s === '-') return;
+      const accent = s === 'D' || s === 'U';
+      AudioEngine.strum(time, s.toLowerCase(), accent);
+    },
+    (step) => {
+      cells.forEach(c => c.classList.remove('lit'));
+      if (cells[step]) cells[step].classList.add('lit');
+    }
+  );
+  peniaScheduler.numSteps = peniaPattern.strokes.length;
+  peniaScheduler.stepDur = peniaStepDur();
+  peniaScheduler.start();
+  activeSchedulers.push(peniaScheduler);
+  btn.classList.add('playing');
+  btn.textContent = '⏹ עצור';
+}
+
+function stopPenia() {
+  if (peniaScheduler) peniaScheduler.stop();
+  $('#penia-play').classList.remove('playing');
+  $('#penia-play').textContent = '▶ נגן';
+  $$('#penia-strip .stroke-cell').forEach(c => c.classList.remove('lit'));
+}
+
+/* איורי טכניקה ב-SVG */
+function drawTechIllustration(svg, kind) {
+  const gold = '#e3b341', aeg = '#4fb3d9', dim = '#5a7187';
+  if (kind === 'pick-grip') {
+    // אגודל + אצבע אוחזים מפרט
+    svgEl('ellipse', { cx: 110, cy: 60, rx: 55, ry: 34, fill: '#2a4258', transform: 'rotate(-18 110 60)' }, svg); // כף יד
+    svgEl('ellipse', { cx: 152, cy: 48, rx: 34, ry: 15, fill: '#33506c', transform: 'rotate(-30 152 48)' }, svg); // אצבע
+    svgEl('ellipse', { cx: 148, cy: 66, rx: 30, ry: 13, fill: '#3c5d7d', transform: 'rotate(-8 148 66)' }, svg); // אגודל
+    svgEl('path', { d: 'M172 50 L196 58 L178 74 Z', fill: gold, stroke: '#fff0c8', 'stroke-width': 1.5 }, svg); // מפרט
+    svgEl('text', { x: 215, y: 66, fill: dim, 'font-size': 11, 'font-family': 'Heebo' }, svg).textContent = '3-4 מ"מ בלבד';
+    svgEl('line', { x1: 188, y1: 62, x2: 210, y2: 62, stroke: dim, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, svg);
+  }
+  if (kind === 'wrist-motion') {
+    // קשת תנועה מעל מיתרים
+    for (let i = 0; i < 4; i++) {
+      svgEl('line', { x1: 30, y1: 38 + i * 14, x2: 270, y2: 38 + i * 14, stroke: '#8a8378', 'stroke-width': 1.4 }, svg);
+    }
+    svgEl('path', { d: 'M150 18 A 46 46 0 0 1 150 98', fill: 'none', stroke: aeg, 'stroke-width': 2.5, 'stroke-dasharray': '6 4', 'marker-end': '' }, svg);
+    svgEl('path', { d: 'M146 92 L150 100 L156 94', fill: 'none', stroke: aeg, 'stroke-width': 2.5 }, svg);
+    svgEl('path', { d: 'M154 24 L150 16 L144 22', fill: 'none', stroke: aeg, 'stroke-width': 2.5 }, svg);
+    svgEl('ellipse', { cx: 196, cy: 58, rx: 40, ry: 26, fill: '#2a4258', opacity: 0.9, transform: 'rotate(-14 196 58)' }, svg);
+    svgEl('path', { d: 'M163 52 L150 58 L166 66 Z', fill: gold }, svg);
+    svgEl('text', { x: 150, y: 110, fill: dim, 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'תנועה מהשורש — המרפק נח';
+  }
+  if (kind === 'down-up') {
+    // חץ למטה גדול, חץ למעלה קטן
+    svgEl('line', { x1: 95, y1: 20, x2: 95, y2: 80, stroke: gold, 'stroke-width': 7, 'stroke-linecap': 'round' }, svg);
+    svgEl('path', { d: 'M78 66 L95 90 L112 66 Z', fill: gold }, svg);
+    svgEl('text', { x: 95, y: 107, fill: gold, 'font-size': 12, 'text-anchor': 'middle', 'font-weight': 700, 'font-family': 'Heebo' }, svg).textContent = 'למטה = חזק';
+    svgEl('line', { x1: 205, y1: 82, x2: 205, y2: 38, stroke: aeg, 'stroke-width': 4, 'stroke-linecap': 'round' }, svg);
+    svgEl('path', { d: 'M193 46 L205 28 L217 46 Z', fill: aeg }, svg);
+    svgEl('text', { x: 205, y: 107, fill: aeg, 'font-size': 12, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'למעלה = קל';
+  }
+  if (kind === 'taximi') {
+    // קו מלודי עולה ויורד עם נקודות מנוחה
+    const pts = 'M20 90 Q50 88 65 74 Q72 66 88 66 Q108 66 118 50 Q126 38 150 36 Q178 34 196 26 Q224 36 240 58 Q258 80 282 88';
+    svgEl('path', { d: pts, fill: 'none', stroke: gold, 'stroke-width': 2.5 }, svg);
+    [[65, 74], [118, 50], [196, 26], [240, 58]].forEach(([x, y], i) => {
+      svgEl('circle', { cx: x, cy: y, r: 5, fill: i === 2 ? '#d96459' : aeg }, svg);
+    });
+    svgEl('text', { x: 196, y: 14, fill: '#d96459', 'font-size': 10.5, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = 'שיא באוקטבה';
+    svgEl('text', { x: 90, y: 104, fill: dim, 'font-size': 10.5, 'font-family': 'Heebo' }, svg).textContent = 'מנוחות בדרך';
+  }
+}
+
+/* ===================== מסך מקצבים ===================== */
+let currentRhythm = RHYTHMS[0];
+let rhythmBpm = RHYTHMS[0].tempo[2];
+let rhythmScheduler = null;
+
+function initRhythms() {
+  const tabs = $('#rhythm-tabs');
+  RHYTHMS.forEach((r, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'rhythm-tab' + (i === 0 ? ' active' : '');
+    tab.innerHTML = `${r.nameHe} <small>${r.meter}</small>`;
+    tab.addEventListener('click', () => {
+      $$('.rhythm-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      stopRhythm();
+      currentRhythm = r;
+      rhythmBpm = r.tempo[2];
+      renderRhythm();
+    });
+    tabs.appendChild(tab);
+  });
+
+  $('#rh-bpm-down').addEventListener('click', () => setRhythmBpm(rhythmBpm - 5));
+  $('#rh-bpm-up').addEventListener('click', () => setRhythmBpm(rhythmBpm + 5));
+  $('#rh-bpm-slider').addEventListener('input', (e) => setRhythmBpm(parseInt(e.target.value, 10)));
+  $('#rh-play').addEventListener('click', toggleRhythm);
+
+  renderRhythm();
+}
+
+function setRhythmBpm(v) {
+  rhythmBpm = Math.max(40, Math.min(240, v));
+  $('#rh-bpm').textContent = rhythmBpm;
+  $('#rh-bpm-slider').value = rhythmBpm;
+  if (rhythmScheduler && rhythmScheduler.running) {
+    rhythmScheduler.stepDur = rhythmStepDur();
+  }
+}
+
+function rhythmStepDur() {
+  return (60 / rhythmBpm) * currentRhythm.beatsPerCell;
+}
+
+function renderRhythm() {
+  const r = currentRhythm;
+  $('#rh-name').textContent = r.nameHe;
+  $('#rh-greek').textContent = r.nameGr;
+  $('#rh-meter').textContent = r.meter;
+  $('#rh-grouping').textContent = 'חלוקה: ' + r.grouping;
+  $('#rh-desc').textContent = r.desc;
+  $('#rh-dance').textContent = r.dance;
+  $('#rh-tip').textContent = r.tip;
+  setRhythmBpm(rhythmBpm);
+  $('#rh-bpm-slider').min = Math.max(40, r.tempo[0] - 15);
+  $('#rh-bpm-slider').max = r.tempo[1] + 25;
+
+  // נקודות התחלה של קבוצות
+  const groupStarts = new Set([0]);
+  let acc = 0;
+  r.grouping.split('+').forEach(g => {
+    acc += parseInt(g, 10);
+    if (acc < r.cells) groupStarts.add(acc);
+  });
+
+  const strip = $('#beat-strip');
+  strip.innerHTML = '';
+  r.grid.forEach((cell, i) => {
+    const div = document.createElement('div');
+    const cls = cell === 'D' ? 'dum' : cell === 't' ? 'tek' : 'rest';
+    div.className = `beat-cell ${cls}` + (groupStarts.has(i) ? ' group-start' : '');
+    div.innerHTML = `<div class="b-sym">${cell === 'D' ? 'דום' : cell === 't' ? 'טק' : '·'}</div><div class="b-num">${i + 1}</div>`;
+    strip.appendChild(div);
+  });
+
+  const peniaRow = $('#beat-penia');
+  peniaRow.innerHTML = '';
+  r.penia.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'bp-cell';
+    div.textContent = p === 'd' ? '↓' : p === 'u' ? '↑' : '·';
+    peniaRow.appendChild(div);
+  });
+}
+
+function toggleRhythm() {
+  const btn = $('#rh-play');
+  if (rhythmScheduler && rhythmScheduler.running) { stopRhythm(); return; }
+  AudioEngine.ensureCtx();
+  const cells = $('#beat-strip').querySelectorAll('.beat-cell');
+  rhythmScheduler = new AudioEngine.Scheduler(
+    (step, time) => {
+      const r = currentRhythm;
+      const v = r.grid[step];
+      if (v === 'D') AudioEngine.dum(time);
+      else if (v === 't') AudioEngine.tek(time);
+      if ($('#rh-strum').checked) {
+        const p = r.penia[step];
+        if (p) AudioEngine.strum(time, p, v === 'D');
+      }
+    },
+    (step) => {
+      cells.forEach(c => c.classList.remove('lit'));
+      if (cells[step]) cells[step].classList.add('lit');
+    }
+  );
+  rhythmScheduler.numSteps = currentRhythm.cells;
+  rhythmScheduler.stepDur = rhythmStepDur();
+  rhythmScheduler.start();
+  activeSchedulers.push(rhythmScheduler);
+  btn.classList.add('playing');
+  btn.textContent = '⏹ עצור';
+}
+
+function stopRhythm() {
+  if (rhythmScheduler) rhythmScheduler.stop();
+  $('#rh-play').classList.remove('playing');
+  $('#rh-play').textContent = '▶ נגן מקצב';
+  $$('#beat-strip .beat-cell').forEach(c => c.classList.remove('lit'));
+}
+
+/* ===================== חדר תרגול ===================== */
+let metScheduler = null;
+let metBpm = 90;
+
+function todayKey() {
+  const d = new Date();
+  return `routine-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function initPractice() {
+  const wrap = $('#routine');
+  const saved = JSON.parse(localStorage.getItem(todayKey()) || '{}');
+
+  PRACTICE_ROUTINE.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'routine-item' + (saved[item.id] ? ' done' : '');
+    div.innerHTML = `
+      <div class="routine-check">✓</div>
+      <div class="routine-label">${item.label}</div>
+      <div class="routine-min">${item.minutes} דק׳</div>`;
+    div.addEventListener('click', () => {
+      div.classList.toggle('done');
+      const state = JSON.parse(localStorage.getItem(todayKey()) || '{}');
+      state[item.id] = div.classList.contains('done');
+      localStorage.setItem(todayKey(), JSON.stringify(state));
+      updateStreak();
+    });
+    wrap.appendChild(div);
+  });
+
+  $('#routine-reset').addEventListener('click', () => {
+    localStorage.removeItem(todayKey());
+    $$('.routine-item').forEach(d => d.classList.remove('done'));
+    updateStreak();
+  });
+
+  updateStreak();
+
+  // מטרונום חופשי
+  $('#met-bpm-down').addEventListener('click', () => setMetBpm(metBpm - 5));
+  $('#met-bpm-up').addEventListener('click', () => setMetBpm(metBpm + 5));
+  $('#met-play').addEventListener('click', toggleMet);
+  $('#met-sig').addEventListener('change', () => { stopMet(); renderMetDots(); });
+  renderMetDots();
+}
+
+function updateStreak() {
+  const state = JSON.parse(localStorage.getItem(todayKey()) || '{}');
+  const done = PRACTICE_ROUTINE.filter(i => state[i.id]).length;
+  const total = PRACTICE_ROUTINE.length;
+  const el = $('#streak');
+  if (done === total) {
+    el.textContent = '🏆 כל הכבוד! סיימתם את השגרה של היום — Γεια σου, μάστορα!';
+  } else if (done > 0) {
+    el.textContent = `${done} מתוך ${total} — ממשיכים!`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+function metConfig() {
+  const v = $('#met-sig').value;
+  if (v === '7') return { steps: 7, accents: [0, 3, 5] };
+  if (v === '9') return { steps: 9, accents: [0, 2, 4, 6] };
+  const n = parseInt(v, 10);
+  return { steps: n, accents: [0] };
+}
+
+function renderMetDots() {
+  const cfg = metConfig();
+  const wrap = $('#met-dots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < cfg.steps; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'met-dot' + (cfg.accents.includes(i) ? ' accent-dot' : '');
+    wrap.appendChild(dot);
+  }
+}
+
+function setMetBpm(v) {
+  metBpm = Math.max(30, Math.min(260, v));
+  $('#met-bpm').textContent = metBpm;
+  if (metScheduler && metScheduler.running) {
+    const v2 = $('#met-sig').value;
+    metScheduler.stepDur = (v2 === '7' || v2 === '9') ? (60 / metBpm) / 2 : 60 / metBpm;
+  }
+}
+
+function toggleMet() {
+  const btn = $('#met-play');
+  if (metScheduler && metScheduler.running) { stopMet(); return; }
+  AudioEngine.ensureCtx();
+  const cfg = metConfig();
+  const dots = $('#met-dots').querySelectorAll('.met-dot');
+  const v = $('#met-sig').value;
+  metScheduler = new AudioEngine.Scheduler(
+    (step, time) => AudioEngine.click(time, cfg.accents.includes(step)),
+    (step) => {
+      dots.forEach(d => d.classList.remove('lit'));
+      if (dots[step]) dots[step].classList.add('lit');
+    }
+  );
+  metScheduler.numSteps = cfg.steps;
+  metScheduler.stepDur = (v === '7' || v === '9') ? (60 / metBpm) / 2 : 60 / metBpm;
+  metScheduler.start();
+  activeSchedulers.push(metScheduler);
+  btn.classList.add('playing');
+  btn.textContent = '⏹ עצור';
+}
+
+function stopMet() {
+  if (metScheduler) metScheduler.stop();
+  $('#met-play').classList.remove('playing');
+  $('#met-play').textContent = '▶ הפעל';
+  $$('#met-dots .met-dot').forEach(d => d.classList.remove('lit'));
+}
+
+/* ===================== מילון ===================== */
+function initGlossary() {
+  const wrap = $('#glossary');
+  GLOSSARY.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'gloss-item';
+    div.innerHTML = `<div class="gloss-term">${g.term}</div><div class="gloss-def">${g.def}</div>`;
+    wrap.appendChild(div);
+  });
+}
+
+/* ===================== אתחול ===================== */
+initHome();
+initDromoi();
+initPenia();
+initRhythms();
+initPractice();
+initGlossary();

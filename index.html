@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1623">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="בוזוקי אקדמי — כלי לימוד אינטראקטיבי לבוזוקי יווני: דרומוסים, פנייה, מקצבים, תרגילים ומאמן מאזין">
+<title>בוזוקי אקדמי — בית הספר לבוזוקי יווני</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== סרגל ניווט צד ===== -->
+  <aside class="sidebar">
+    <div class="logo">
+      <svg viewBox="0 0 64 64" class="logo-icon" aria-hidden="true">
+        <ellipse cx="22" cy="44" rx="16" ry="17" fill="var(--gold)" opacity="0.9"/>
+        <ellipse cx="22" cy="44" rx="6.5" ry="7" fill="var(--bg-deep)"/>
+        <rect x="26" y="6" width="5.5" height="34" rx="2" transform="rotate(38 29 23)" fill="var(--gold)"/>
+        <rect x="40" y="2" width="9" height="7" rx="2" transform="rotate(38 44 5)" fill="var(--gold)"/>
+      </svg>
+      <div>
+        <div class="logo-title">בוזוקי אקדמי</div>
+        <div class="logo-sub">Μπουζούκι · בית ספר דיגיטלי</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-screen="home">
+        <span class="nav-ico">🏛️</span> הכלי והכיוונון
+      </button>
+      <button class="nav-btn" data-screen="dromoi">
+        <span class="nav-ico">🛤️</span> דרומוסים (סולמות)
+      </button>
+      <button class="nav-btn" data-screen="penia">
+        <span class="nav-ico">🤘</span> פנייה — יד ימין
+      </button>
+      <button class="nav-btn" data-screen="exercises">
+        <span class="nav-ico">🎼</span> ספריית תרגילים
+      </button>
+      <button class="nav-btn" data-screen="rhythms">
+        <span class="nav-ico">🥁</span> מקצבים יווניים
+      </button>
+      <button class="nav-btn" data-screen="listen">
+        <span class="nav-ico">🎤</span> מאמן מאזין
+      </button>
+      <button class="nav-btn" data-screen="practice">
+        <span class="nav-ico">⏱️</span> חדר תרגול
+      </button>
+      <button class="nav-btn" data-screen="glossary">
+        <span class="nav-ico">📜</span> מילון רבטיקו
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="meander"></div>
+      <p>כיוונון טטראחורדו<br><b>C · F · A · D</b></p>
+    </div>
+  </aside>
+
+  <!-- ===== תוכן ===== -->
+  <main class="main">
+
+    <!-- ========== מסך: הכלי ========== -->
+    <section class="screen active" id="screen-home">
+      <header class="screen-head">
+        <h1>הבוזוקי הטטראחורדו</h1>
+        <p class="lead">8 מיתרים · 4 זוגות · הכלי שהמציא מאנוליס חיוטיס ושינה את המוזיקה היוונית</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>הכיוונון שלך: C–F–A–D</h2>
+          <p>הבוזוקי בן 8 המיתרים מכוון <b>דו–פה–לה–רה</b> (מהנמוך לגבוה). שני הזוגות הנמוכים (C, F) כוללים מיתר עבה + מיתר דק באוקטבה מעליו — זה מקור הצליל הנוצץ. שני הזוגות הגבוהים (A, D) הם יוניסון — שני מיתרים זהים.</p>
+          <p>לחצו על כל קורס כדי לשמוע את צליל הכיוון — כפי שהוא נשמע בכלי אמיתי, כולל מיתר האוקטבה:</p>
+          <div class="tuner" id="tuner"></div>
+          <p class="hint">💡 טיפ כיוונון: כוונו קודם את מיתר ה-D לפי מכוון, ואז כוונו כל קורס לפי אוזן ביחס אליו — זה מפתח את השמיעה.</p>
+        </div>
+
+        <div class="card">
+          <h2>מבנה הכלי</h2>
+          <svg viewBox="0 0 560 240" class="anatomy-svg" id="anatomy-svg" aria-label="איור מבנה הבוזוקי"></svg>
+          <div class="anatomy-legend" id="anatomy-legend"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>רגע של היסטוריה</h2>
+        <div class="grid-3">
+          <div class="hist">
+            <div class="hist-era">שנות ה-20–30</div>
+            <p>פליטי סמירנה (1922) מביאים את המקאמים והאמאנדס לפיראוס. הבוזוקי הטריחורדו (3 זוגות) הופך לקול של עולם הרבטיקו — מרקוס ואמוואקריס ו"הרביעייה המפורסמת של פיראוס".</p>
+          </div>
+          <div class="hist">
+            <div class="hist-era">שנות ה-40–50</div>
+            <p>ואסיליס ציצאניס מעדן את הרבטיקו ופותח אותו לקהל הרחב. ב-1956 מאנוליס חיוטיס מוסיף זוג מיתרים רביעי ועובר לכיוונון C-F-A-D — נולד הבוזוקי המודרני, מהיר ווירטואוזי.</p>
+          </div>
+          <div class="hist">
+            <div class="hist-era">שנות ה-60 ועד היום</div>
+            <p>הלאיקו פורח: זמבטאס, חיוטיס וממשיכיהם הופכים את הבוזוקי לסמל לאומי. היום הוא מתחבר גם לג'אז, לקלאסי ולמוזיקת עולם — והרבטיקו הוכר כמורשת תרבות של אונסק"ו (2017).</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>מפת הצלילים על לוח הסריגים</h2>
+        <p>כל הצלילים בכיוונון C-F-A-D עד סריג 15. לחצו על כל נקודה כדי לשמוע. זו המפה שתשמש אתכם בכל מסך הדרומוסים.</p>
+        <div class="fretboard-wrap" dir="ltr"><svg id="fb-home" class="fretboard"></svg></div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: דרומוסים ========== -->
+    <section class="screen" id="screen-dromoi">
+      <header class="screen-head">
+        <h1>הדרומוסים — Οι Δρόμοι</h1>
+        <p class="lead">"דרכים" — הסולמות של הרבטיקו והלאיקו. כל דרומוס הוא עולם רגשי שלם</p>
+      </header>
+
+      <div class="dromoi-layout">
+        <div class="dromoi-list" id="dromoi-list"></div>
+
+        <div class="dromos-detail card" id="dromos-detail">
+          <div class="dromos-header">
+            <div>
+              <h2 id="dr-name"></h2>
+              <div class="dromos-greek" id="dr-greek"></div>
+            </div>
+            <div class="root-pick">
+              <label>טוניקה:</label>
+              <select id="dr-root"></select>
+            </div>
+          </div>
+
+          <div class="degree-row" id="dr-degrees"></div>
+
+          <div class="dromos-actions">
+            <button class="btn gold" id="dr-play">▶ נגן עלייה וירידה</button>
+            <button class="btn" id="dr-play-slow">▶ נגן לאט</button>
+            <button class="btn" id="dr-drone">🎵 צליל רקע (איזון)</button>
+          </div>
+
+          <div class="fretboard-wrap" dir="ltr"><svg id="fb-dromos" class="fretboard"></svg></div>
+          <p class="hint">🟡 = טוניקה · 🔵 = צלילי הדרומוס · לחצו על נקודה לשמיעה. ההילה מסמנת את הצליל המתנגן.</p>
+
+          <div class="grid-2">
+            <div class="info-block">
+              <h3>אופי ושימוש</h3>
+              <p id="dr-mood" class="mood-line"></p>
+              <p id="dr-desc"></p>
+            </div>
+            <div class="info-block">
+              <h3>בשטח</h3>
+              <p><b>מקאם מקביל:</b> <span id="dr-maqam"></span></p>
+              <p><b>אקורדים אופייניים:</b> <span id="dr-chords"></span></p>
+              <p><b>דוגמאות:</b> <span id="dr-songs"></span></p>
+              <div class="tip-box"><b>💡 טיפ לטקסימי:</b> <span id="dr-tips"></span></div>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <h3>תרגיל: הדרומוס על מיתר בודד (בסגנון טקסימי)</h3>
+            <p>הדרך האותנטית ללמוד דרומוס — עלייה וירידה על מיתר ה-D בלבד, עם פנייה מתחלפת (התחילו למטה ↓). המספרים = סריגים:</p>
+            <div class="single-string" id="dr-single" dir="ltr"></div>
+            <button class="btn" id="dr-play-single">▶ נגן את התרגיל</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>מאקאם והבוזוקי — איך חושבים נגני עוד</h2>
+        <p>במוזיקה המזרחית הסולם אינו "רשימת צלילים" אלא חיבור של שתי אבני בניין — <b>ג׳ינס</b> (טטרקורדים). כל דרומוס יווני הוא בעצם זוג ג׳ינס. לחשוב כך משנה את האלתור: במקום לרוץ על סולם, אתם מספרים סיפור בשני פרקים — הג׳ינס התחתון הוא הבית, העליון הוא המסע.</p>
+        <p class="hint">🎵 הערת רבע-טון: במאקאם המקורי (ראסט, באיאתי, סבא) יש צלילים "בין הסריגים" — רבעי טונים. הבוזוקי המסורג מקרב אותם לחצאי טונים, וזה בדיוק מה שעשו הסמירנאים כשהביאו את המאקאם לפיראוס. אפשר לרמוז על רבע טון עם משיכת מיתר (bend) עדינה.</p>
+
+        <h3 class="ajnas-title">אבני הבניין — ששת הג׳ינס המרכזיים <small>(לחצו לשמיעה)</small></h3>
+        <div class="ajnas-grid" id="ajnas-grid"></div>
+
+        <h3 class="ajnas-title">המתכונים: דרומוס = ג׳ינס תחתון + ג׳ינס עליון</h3>
+        <div class="ajnas-table-wrap">
+          <table class="ajnas-table" id="ajnas-table">
+            <thead><tr><th>דרומוס</th><th>ג׳ינס תחתון</th><th>ג׳ינס עליון</th><th>מאקאם מקביל</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: פנייה ========== -->
+    <section class="screen" id="screen-penia">
+      <header class="screen-head">
+        <h1>פנייה — Πενιά</h1>
+        <p class="lead">יד ימין היא הנשמה של הבוזוקי. כאן בונים את הצליל היווני האמיתי</p>
+      </header>
+
+      <div class="card">
+        <h2>עקרונות הטכניקה</h2>
+        <div class="technique-grid" id="technique-grid"></div>
+      </div>
+
+      <div class="card">
+        <h2>מאמן הפנייה</h2>
+        <p>בחרו תבנית, כוונו טמפו, ולחצו נגן. עקבו אחרי החץ המואר ופרטו יחד איתו על מיתר מושתק (יד שמאל מרפה את המיתרים). <b>↓ = פריטה למטה · ↑ = פריטה למעלה</b>. חץ גדול = מודגש.</p>
+
+        <div class="penia-controls">
+          <select id="penia-select"></select>
+          <div class="tempo-ctl">
+            <button class="btn small" id="penia-bpm-down">−</button>
+            <div class="bpm-display"><span id="penia-bpm">80</span><small>BPM</small></div>
+            <button class="btn small" id="penia-bpm-up">+</button>
+          </div>
+          <button class="btn gold" id="penia-play">▶ נגן</button>
+        </div>
+
+        <div class="penia-strip" id="penia-strip" dir="ltr"></div>
+        <div class="penia-info">
+          <span class="badge" id="penia-level"></span>
+          <span class="badge alt" id="penia-subdiv"></span>
+          <p id="penia-desc"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: ספריית תרגילים ========== -->
+    <section class="screen" id="screen-exercises">
+      <header class="screen-head">
+        <h1>ספריית התרגילים</h1>
+        <p class="lead">כ-60 תרגילי פריטה ואיצבוע ב-12 קטגוריות — המבנה של המתודיקות היווניות, בתוספת טכניקות מעולמות העוד, הבאגלמה/סאז והגיטרה</p>
+      </header>
+
+      <div class="rhythm-tabs" id="ex-cats"></div>
+
+      <div class="ex-layout">
+        <div class="ex-list-col">
+          <p class="ex-cat-desc" id="ex-cat-desc"></p>
+          <div class="ex-list" id="ex-list"></div>
+        </div>
+
+        <div class="card ex-detail" id="ex-detail">
+          <div class="ex-head">
+            <h2 id="ex-name"></h2>
+            <span class="badge alt" id="ex-num"></span>
+          </div>
+          <p id="ex-desc"></p>
+
+          <div class="ex-controls">
+            <div class="tempo-ctl">
+              <button class="btn small" id="ex-bpm-down">−</button>
+              <div class="bpm-display"><span id="ex-bpm">70</span><small>BPM</small></div>
+              <button class="btn small" id="ex-bpm-up">+</button>
+            </div>
+            <button class="btn gold" id="ex-play">▶ נגן</button>
+            <label class="chk"><input type="checkbox" id="ex-loop" checked> לולאה</label>
+            <label class="chk"><input type="checkbox" id="ex-click" checked> מטרונום</label>
+          </div>
+
+          <div class="chord-diagrams" id="ex-chords" dir="ltr"></div>
+          <div class="tab-wrap" dir="ltr" id="ex-tab-wrap"><svg id="ex-tab"></svg></div>
+          <div class="strum-strip" id="ex-strum" dir="ltr"></div>
+
+          <p class="hint" id="ex-hint">↓ = פריטה למטה · ↑ = פריטה למעלה · עיגול מודגש = דגש. השורות מלמעלה למטה: רה, לה, פה, דו.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: מקצבים ========== -->
+    <section class="screen" id="screen-rhythms">
+      <header class="screen-head">
+        <h1>מקצבים יווניים — Ρυθμοί</h1>
+        <p class="lead">מהזאימבקיקו ב-9/4 ועד הקלמטיאנוס ב-7/8 — המקצבים שמניעים את המוזיקה</p>
+      </header>
+
+      <div class="rhythm-tabs" id="rhythm-tabs"></div>
+
+      <div class="card" id="rhythm-detail">
+        <div class="rhythm-header">
+          <div>
+            <h2 id="rh-name"></h2>
+            <div class="dromos-greek" id="rh-greek"></div>
+          </div>
+          <div class="rhythm-meta">
+            <span class="meter-badge" id="rh-meter"></span>
+            <span class="badge alt" id="rh-grouping"></span>
+          </div>
+        </div>
+
+        <div class="beat-strip" id="beat-strip" dir="ltr"></div>
+        <div class="penia-row-label" dir="ltr"><span>פנייה מומלצת:</span></div>
+        <div class="beat-penia" id="beat-penia" dir="ltr"></div>
+
+        <div class="rhythm-controls">
+          <div class="tempo-ctl">
+            <button class="btn small" id="rh-bpm-down">−</button>
+            <div class="bpm-display"><span id="rh-bpm">80</span><small>BPM</small></div>
+            <button class="btn small" id="rh-bpm-up">+</button>
+          </div>
+          <input type="range" id="rh-bpm-slider" min="50" max="220" value="80">
+          <button class="btn gold" id="rh-play">▶ נגן מקצב</button>
+          <label class="chk"><input type="checkbox" id="rh-strum"> + פריטת ליווי</label>
+        </div>
+
+        <div class="grid-2">
+          <div class="info-block"><h3>על המקצב</h3><p id="rh-desc"></p></div>
+          <div class="info-block">
+            <h3>הריקוד</h3><p id="rh-dance"></p>
+            <div class="tip-box"><b>💡 לתרגול:</b> <span id="rh-tip"></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: מאמן מאזין ========== -->
+    <section class="screen" id="screen-listen">
+      <header class="screen-head">
+        <h1>המאמן המאזין</h1>
+        <p class="lead">נגנו — והכלי מקשיב, בודק צליל-צליל, ונותן ציון ומשוב כמו מורה אמיתי</p>
+      </header>
+
+      <div class="card">
+        <div class="grid-2">
+          <div>
+            <h2>איך זה עובד</h2>
+            <p>בחרו יעד (דרומוס או תרגיל), לחצו "התחל תרגול" ואשרו גישה למיקרופון. נגנו את הצלילים לפי הסדר — כל צליל נכון נצבע <b style="color:var(--ok)">ירוק</b> ומתקדמים הלאה; צליל שגוי מהבהב <b style="color:var(--accent-red)">אדום</b> ונשארים עליו עד שמצליחים. בסוף: ציון, משוב ובדיקת יציבות קצב.</p>
+            <p class="hint">💡 טיפים לזיהוי מדויק: נגנו צליל אחד בכל פעם ותנו לו לצלצל רגע · השאירו הפרדה קטנה בין צלילים חוזרים · התרחקו מרעשי רקע. הזיהוי לפי שם הצליל (בכל אוקטבה) — בגלל מיתרי האוקטבה של הבוזוקי.</p>
+          </div>
+          <div class="ls-live">
+            <div class="ls-live-note" id="ls-note">—</div>
+            <div class="ls-meter" dir="ltr">
+              <div class="ls-meter-scale"><span>-50</span><span>0</span><span>+50</span></div>
+              <div class="ls-meter-track"><div class="ls-needle" id="ls-needle"></div><div class="ls-center"></div></div>
+            </div>
+            <div class="ls-freq" id="ls-freq"></div>
+            <div class="ls-level" dir="ltr"><div class="ls-level-fill" id="ls-level-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ls-controls">
+          <select id="ls-target"></select>
+          <button class="btn gold" id="ls-start">▶ התחל תרגול</button>
+          <button class="btn" id="ls-preview">🔊 השמע לי את היעד</button>
+          <button class="btn" id="ls-skip">דלג על צליל</button>
+          <span class="ls-progress" id="ls-progress"></span>
+        </div>
+        <p class="ls-error" id="ls-error"></p>
+
+        <div class="ls-chips" id="ls-chips" dir="ltr"></div>
+
+        <div class="ls-results" id="ls-results"></div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: חדר תרגול ========== -->
+    <section class="screen" id="screen-practice">
+      <header class="screen-head">
+        <h1>חדר תרגול</h1>
+        <p class="lead">שגרת אימון יומית מובנית — 45 דקות שבונות נגן</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>השגרה היומית</h2>
+          <p>סמנו כל שלב שסיימתם. ההתקדמות נשמרת במחשב שלכם.</p>
+          <div class="routine" id="routine"></div>
+          <div class="streak" id="streak"></div>
+          <button class="btn" id="routine-reset">איפוס היום</button>
+        </div>
+
+        <div class="card">
+          <h2>מטרונום חופשי</h2>
+          <p>מטרונום פשוט לתרגול חופשי — בחרו משקל וטמפו.</p>
+          <div class="free-met">
+            <select id="met-sig">
+              <option value="4">4/4</option>
+              <option value="2">2/4</option>
+              <option value="3">3/4</option>
+              <option value="7">7/8 (3+2+2)</option>
+              <option value="9">9/8 (2+2+2+3)</option>
+            </select>
+            <div class="tempo-ctl">
+              <button class="btn small" id="met-bpm-down">−</button>
+              <div class="bpm-display"><span id="met-bpm">90</span><small>BPM</small></div>
+              <button class="btn small" id="met-bpm-up">+</button>
+            </div>
+            <button class="btn gold" id="met-play">▶ הפעל</button>
+          </div>
+          <div class="met-dots" id="met-dots" dir="ltr"></div>
+
+          <h2 style="margin-top:28px">עצות זהב לתרגול</h2>
+          <ul class="golden">
+            <li><b>לאט = מהר.</b> תרגלו בטמפו שבו אין טעויות בכלל, והעלו 5 BPM בכל פעם.</li>
+            <li><b>הקליטו את עצמכם</b> פעם בשבוע — האוזן שומעת מה שהידיים מסתירות.</li>
+            <li><b>תרגלו עם שירים אמיתיים.</b> נגנו יחד עם הקלטות של ציצאניס, חיוטיס וזמבטאס.</li>
+            <li><b>10 דקות טרמולו ביום</b> שוות יותר משעה פעם בשבוע.</li>
+            <li><b>שירו את מה שאתם מנגנים</b> — הדרומוסים נכנסים לדם דרך הקול.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== מסך: מילון ========== -->
+    <section class="screen" id="screen-glossary">
+      <header class="screen-head">
+        <h1>מילון הרבטיקו</h1>
+        <p class="lead">המונחים שכל נגן בוזוקי חייב להכיר — מהטברנה ועד הטקסימי</p>
+      </header>
+      <div class="glossary" id="glossary"></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+<script src="js/exercises.js"></script>
+<script src="js/listen.js"></script>
+</body>
+</html>
