@@ -13,7 +13,10 @@ const Players = (() => {
     save();
   }
 
-  function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch (e) { throw new Error('localStorage blocked'); }
+  }
 
   function uid() { return 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 

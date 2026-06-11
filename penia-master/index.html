@@ -39,7 +39,7 @@
       <div class="ob-step">
         <div class="ob-icon">📱</div>
         <h2>איך משחקים?</h2>
-        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם כלי:</b> נגנו על מיתר מושתק בזמן ההקשה</p>
+        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם כלי:</b> פרטו על מיתר מושתק — אבל המשחק שומע <b>הקשות</b>, לא מיקרופון</p>
       </div>
       <div class="ob-step">
         <div class="ob-icon">👥</div>
@@ -70,7 +70,7 @@
     <h2 class="section-title">בחר שלב</h2>
     <div class="level-map" id="level-map"></div>
 
-    <p class="footer-note">מומלץ: כיול תזמון לפני המשחק הראשון · פריטה על מיתר מושתק</p>
+    <p class="footer-note">לחצו ▶ שחק להתחיל · כיול תזמון = הקשות ↓↑ עם הקליקים (לא מיקרופון)</p>
   </section>
 
   <!-- ===== PLAY ===== -->
@@ -107,9 +107,10 @@
       <span class="bpm-box"><b id="play-bpm-val">60</b> BPM</span>
       <button class="btn small" id="btn-bpm-up">+</button>
       <button class="btn gold" id="btn-play">▶ שחק</button>
-      <button class="btn" id="btn-calib">⚙ כיול</button>
+      <button class="btn" id="btn-calib" type="button">⚙ כיול תזמון</button>
     </div>
     <p class="calib-msg" id="calib-msg"></p>
+    <p class="play-hint" id="play-hint">לחצו ▶ שחק — חיצים יופיעו ויזוזו אל קו הזהב</p>
 
     <div class="results-panel" id="results-panel"></div>
   </section>
@@ -129,9 +130,12 @@
     <div class="players-list" id="players-list"></div>
     <div class="add-player card-inner">
       <h3>הוסף נגן חדש</h3>
-      <input type="text" id="new-player-name" placeholder="שם הנגן" maxlength="20">
-      <div class="avatar-pick" id="avatar-pick"></div>
-      <button class="btn gold full" id="btn-add-player">+ הוסף</button>
+      <form id="add-player-form" autocomplete="off">
+        <input type="text" id="new-player-name" placeholder="שם הנגן" maxlength="20" autocomplete="name" enterkeyhint="done">
+        <div class="avatar-pick" id="avatar-pick"></div>
+        <p class="player-feedback" id="player-feedback" aria-live="polite"></p>
+        <button class="btn gold full" id="btn-add-player" type="submit">+ הוסף</button>
+      </form>
     </div>
   </section>
 

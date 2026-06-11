@@ -172,7 +172,11 @@ button, input, select { font: inherit; touch-action: manipulation; -webkit-tap-h
 .play-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; justify-content: center; }
 .bpm-box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 16px; min-width: 90px; text-align: center; }
 .bpm-box b { color: var(--gold); font-size: 22px; }
-.calib-msg { text-align: center; font-size: 13px; color: var(--aegean); min-height: 20px; margin-top: 6px; }
+.calib-msg { text-align: center; font-size: 13px; color: var(--aegean); min-height: 20px; margin-top: 6px; line-height: 1.5; }
+.calib-msg.ok { color: var(--ok); font-weight: 700; }
+.calib-msg.err { color: var(--bad); }
+.play-hint { text-align: center; font-size: 12px; color: var(--dim); margin-top: 8px; }
+.play-hint.hide { display: none; }
 
 /* ===== RESULTS ===== */
 .results-panel {
@@ -207,6 +211,12 @@ button, input, select { font: inherit; touch-action: manipulation; -webkit-tap-h
 .empty { text-align: center; color: var(--dim); padding: 24px; }
 
 /* ===== PLAYERS ===== */
+#screen-players {
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 48px);
+  max-height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .players-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .player-row {
   display: flex; align-items: center; gap: 12px;
@@ -224,8 +234,12 @@ button, input, select { font: inherit; touch-action: manipulation; -webkit-tap-h
 .card-inner h3 { color: var(--gold2); margin-bottom: 12px; font-size: 16px; }
 .card-inner input {
   width: 100%; background: var(--elev); border: 1px solid var(--line); color: var(--text);
-  padding: 12px; border-radius: 10px; margin-bottom: 12px;
+  padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 16px;
 }
+.player-feedback { min-height: 18px; font-size: 13px; margin: -4px 0 10px; text-align: center; }
+.player-feedback.ok { color: var(--ok); font-weight: 700; }
+.player-feedback.err { color: var(--bad); font-weight: 600; }
+.add-player { margin-bottom: 12px; }
 .avatar-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .av-btn {
   width: 44px; height: 44px; font-size: 22px; background: var(--elev);

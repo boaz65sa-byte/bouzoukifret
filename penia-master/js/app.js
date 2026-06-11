@@ -136,9 +136,13 @@ const UI = (() => {
   }
 
   function startGame() {
+    Engine.stop();
     AudioEngine.ensureCtx();
+    $('#play-hint').classList.add('hide');
+    $('#calib-msg').textContent = '';
     $('#btn-play').textContent = '⏹ עצור';
     $('#btn-play').classList.add('playing');
+    $('#btn-calib').disabled = true;
     Engine.start(currentLevel, bpm, $('#game-canvas'),
       ({ score, combo }) => {
         $('#hud-score').textContent = Math.round(score);
@@ -152,6 +156,8 @@ const UI = (() => {
     Engine.stop();
     $('#btn-play').textContent = '▶ שחק';
     $('#btn-play').classList.remove('playing');
+    $('#btn-calib').disabled = false;
+    $('#play-hint').classList.remove('hide');
   }
 
   function showResults(r) {
@@ -193,6 +199,8 @@ const UI = (() => {
     $('#res-share').onclick = () => shareScore(r, isRecord);
     $('#btn-play').textContent = '▶ שחק';
     $('#btn-play').classList.remove('playing');
+    $('#btn-calib').disabled = false;
+    $('#play-hint').classList.remove('hide');
   }
 
   function shareScore(r, isRecord) {
@@ -261,6 +269,31 @@ const UI = (() => {
     });
   }
 
+  function addPlayer() {
+    const nameInput = $('#new-player-name');
+    const feedback = $('#player-feedback');
+    const name = nameInput.value.trim();
+    if (!name) {
+      feedback.textContent = 'הקלידו שם לפני הוספה';
+      feedback.className = 'player-feedback err';
+      nameInput.focus();
+      return;
+    }
+    try {
+      Players.create(name, $('#avatar-pick').dataset.sel || AVATARS[0]);
+      nameInput.value = '';
+      feedback.textContent = `נוסף: ${name} ✓`;
+      feedback.className = 'player-feedback ok';
+      refreshPlayerChip();
+      renderLevelMap();
+      refreshCommunity();
+      setTimeout(() => { feedback.textContent = ''; feedback.className = 'player-feedback'; }, 2500);
+    } catch (e) {
+      feedback.textContent = 'לא ניתן לשמור — בדקו שהדפדפן לא חוסם אחסון';
+      feedback.className = 'player-feedback err';
+    }
+  }
+
   function initPlayersForm() {
     const avWrap = $('#avatar-pick');
     AVATARS.forEach(a => {
@@ -276,14 +309,9 @@ const UI = (() => {
     $$('.av-btn')[0]?.classList.add('sel');
     avWrap.dataset.sel = AVATARS[0];
 
-    $('#btn-add-player').addEventListener('click', () => {
-      const name = $('#new-player-name').value.trim();
-      if (!name) return;
-      Players.create(name, avWrap.dataset.sel);
-      $('#new-player-name').value = '';
-      refreshPlayerChip();
-      renderLevelMap();
-      refreshCommunity();
+    $('#add-player-form').addEventListener('submit', e => {
+      e.preventDefault();
+      addPlayer();
     });
   }
 
@@ -299,7 +327,13 @@ const UI = (() => {
         const sc = n.dataset.screen;
         showScreen(sc);
         if (sc === 'leaderboard') renderLeaderboard();
-        if (sc === 'players') renderPlayersList();
+        if (sc === 'players') {
+          renderPlayersList();
+          setTimeout(() => {
+            $('#screen-players').scrollTop = $('#screen-players').scrollHeight;
+            $('#new-player-name')?.focus({ preventScroll: true });
+          }, 80);
+        }
         if (sc === 'home') { renderLevelMap(); refreshCommunity(); }
       });
     });
@@ -311,13 +345,28 @@ const UI = (() => {
     $('#btn-bpm-down').addEventListener('click', () => { bpm = Math.max(40, bpm - 5); $('#play-bpm-val').textContent = bpm; });
     $('#btn-bpm-up').addEventListener('click', () => { bpm = Math.min(200, bpm + 5); $('#play-bpm-val').textContent = bpm; });
     $('#btn-calib').addEventListener('click', () => {
-      Engine.calibrate($('#game-canvas'), msg => { $('#calib-msg').textContent = msg; });
+      if ($('#btn-play').classList.contains('playing')) stopGame();
+      const btn = $('#btn-calib');
+      btn.disabled = true;
+      btn.textContent = 'מקישים…';
+      Engine.calibrate(
+        $('#game-canvas'),
+        (msg, ok) => {
+          $('#calib-msg').textContent = msg;
+          $('#calib-msg').className = 'calib-msg' + (ok ? ' ok' : ' err');
+          btn.disabled = false;
+          btn.textContent = '⚙ כיול תזמון';
+          if (ok) $('#play-hint').textContent = 'כיול הושלם — לחצו ▶ שחק עכשיו';
+        },
+        msg => { $('#calib-msg').textContent = msg; $('#calib-msg').className = 'calib-msg'; }
+      );
     });
     $('#btn-back-play').addEventListener('click', () => { stopGame(); showScreen('home'); });
 
     $('#player-chip').addEventListener('click', () => {
       showScreen('players');
       renderPlayersList();
+      setTimeout(() => $('#new-player-name')?.focus({ preventScroll: true }), 80);
     });
 
     Engine.bindInput($('#game-canvas'));

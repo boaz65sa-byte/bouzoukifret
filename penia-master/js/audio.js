@@ -64,6 +64,7 @@ const AudioEngine = (() => {
   }
 
   function click(when, accent = false) {
+    ensureCtx();
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.frequency.value = accent ? 1600 : 1100;

@@ -10,7 +10,7 @@ const Engine = (() => {
   let counts = { perfect: 0, good: 0, miss: 0, wrong: 0 };
   let popups = [], scheduledClicks = [];
   let inputOffset = parseFloat(localStorage.getItem('penia-offset') || '0');
-  let calibClicks = [], calibTaps = [];
+  let calibClicks = [], calibTaps = [], calibStart0 = 0;
   let canvas, cctx, dpr = 1, rafId = null, laneFlash = 0;
   let onHud = () => {}, onFinish = () => {};
 
@@ -121,6 +121,36 @@ const Engine = (() => {
     cctx.restore();
   }
 
+  function drawCalibOverlay(w, h, tNow, beat, start0) {
+    cctx.fillStyle = 'rgba(8,15,24,0.55)';
+    cctx.fillRect(0, 0, w, h);
+    cctx.fillStyle = '#f0cc74';
+    cctx.font = '800 18px Heebo, sans-serif';
+    cctx.textAlign = 'center';
+    cctx.fillText('כיול תזמון — לא מיקרופון!', w / 2, h * 0.18);
+    cctx.fillStyle = '#8fa6bc';
+    cctx.font = '600 14px Heebo, sans-serif';
+    cctx.fillText('הקישו ↓ או ↑ (או על המסך) עם כל קליק', w / 2, h * 0.28);
+    cctx.fillText('אפשר לפרט על מיתר מושתק — המשחק שומע רק הקשות', w / 2, h * 0.38);
+
+    const calibBeat = 60 / 90;
+    const idx = Math.floor((tNow - start0) / calibBeat);
+    const phase = ((tNow - start0) / calibBeat) % 1;
+    const pulse = 0.55 + 0.45 * Math.sin(phase * Math.PI);
+    const cy = h * 0.62;
+    cctx.strokeStyle = `rgba(227,179,65,${0.35 + pulse * 0.45})`;
+    cctx.lineWidth = 3 + pulse * 2;
+    cctx.beginPath();
+    cctx.arc(HIT_X, cy, 26 + pulse * 10, 0, Math.PI * 2);
+    cctx.stroke();
+    cctx.fillStyle = '#e3b341';
+    cctx.font = '900 28px Heebo, sans-serif';
+    cctx.fillText(String(Math.min(8, Math.max(1, idx + 1))), w / 2, cy + 10);
+    cctx.fillStyle = '#4fb3d9';
+    cctx.font = '700 13px Heebo, sans-serif';
+    cctx.fillText(`${calibTaps.length} / 8 הקשות`, w / 2, h * 0.82);
+  }
+
   function drawFrame() {
     if (!running && !calibrating) return;
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -145,6 +175,12 @@ const Engine = (() => {
 
     if (performance.now() - laneFlash < 100) {
       cctx.fillStyle = 'rgba(227,179,65,0.15)'; cctx.fillRect(0, 0, w, h);
+    }
+
+    if (calibrating) {
+      drawCalibOverlay(w, h, tNow, beat, calibStart0);
+      rafId = requestAnimationFrame(drawFrame);
+      return;
     }
 
     /* קווי פעמה */
@@ -248,6 +284,7 @@ const Engine = (() => {
   }
 
   function start(lv, bpmVal, canvasEl, hudCb, finishCb) {
+    calibrating = false;
     level = lv; bpm = bpmVal;
     onHud = hudCb; onFinish = finishCb;
     score = 0; combo = 0; maxCombo = 0;
@@ -270,17 +307,21 @@ const Engine = (() => {
     if (cctx && canvas) cctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   }
 
-  function calibrate(canvasEl, onDone) {
+  function calibrate(canvasEl, onDone, onProgress) {
     AudioEngine.ensureCtx();
     if (calibrating) return;
+    running = false;
     calibrating = true; calibClicks = []; calibTaps = [];
     setupCanvas(canvasEl);
-    const start0 = now() + 0.8, beat = 60 / 90;
+    calibStart0 = now() + 0.8;
+    const beat = 60 / 90;
     for (let i = 0; i < 8; i++) {
-      const t = start0 + i * beat;
+      const t = calibStart0 + i * beat;
       AudioEngine.click(t, true);
       calibClicks.push(t);
     }
+    onProgress?.('הקישו ↓↑ עם כל קליק (8 פעמים)…');
+    cancelAnimationFrame(rafId);
     drawFrame();
     setTimeout(() => {
       calibrating = false;
@@ -295,8 +336,10 @@ const Engine = (() => {
         diffs.sort((a, b) => a - b);
         inputOffset = -diffs[Math.floor(diffs.length / 2)];
         localStorage.setItem('penia-offset', String(inputOffset));
-        onDone(`כיול: ${(inputOffset * -1000).toFixed(0)}ms ✓`);
-      } else onDone('לא נקלטו מספיק הקשות — נסו שוב');
+        onDone(`כיול הושלם: ${(inputOffset * -1000).toFixed(0)}ms ✓ — לחצו ▶ שחק`, true);
+      } else {
+        onDone(`נקלטו ${calibTaps.length}/8 הקשות — הקישו ↓↑ עם הקליקים (לא מיקרופון)`, false);
+      }
     }, (0.8 + 8 * beat + 0.5) * 1000);
   }
 
