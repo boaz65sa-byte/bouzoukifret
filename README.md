@@ -4,13 +4,11 @@
 
 ## מאסטר הפנייה — משחק נפרד
 
-תיקייה **`penia-master/`** — אפליקציה עצמאית לשיווק בקבוצות:
-- פרופילי שחקנים + לוח תוצאות
-- 8 שלבים עם נעילה/פתיחה
-- שיתוף ציון לוואטסאפ
-- סטטיסטיקות קהילה (Firebase אופציונלי)
+**ריפו נפרד לשיתוף בקבוצות:** [github.com/boaz65sa-byte/penia-master](https://github.com/boaz65sa-byte/penia-master)
 
-פתחו `penia-master/index.html` או פרסמו את התיקייה בנפרד.
+משחק עצמאי (פרופילים, לוח תוצאות, 8 שלבים, שיתוף לוואטסאפ) — מיועד לפריסה ב-**Vercel**:
+- מקומי: `penia-master/index.html`
+- אחרי Deploy: קישור כמו `https://penia-master.vercel.app`
 
 ## איך מפעילים
 
