@@ -172,6 +172,7 @@ const UI = (() => {
     $('#results-panel').classList.remove('show');
     $('#hud-score').textContent = '0';
     $('#hud-combo').textContent = '';
+    setPlayUIState(false);
     updateInputModeUI();
     showScreen('play');
   }
@@ -187,15 +188,18 @@ const UI = (() => {
     });
   }
 
+  function setPlayUIState(running) {
+    $('#lane-box').classList.toggle('game-running', running);
+    $('#btn-stop').hidden = !running;
+    if (!running) $('#lane-box').classList.remove('calibrating');
+  }
+
   function startGame() {
     Engine.stop();
     stopMicForGame();
     AudioEngine.ensureCtx();
+    setPlayUIState(true);
     $('#calib-msg').textContent = '';
-    $('#btn-play').textContent = '⏹ עצור';
-    $('#btn-play').classList.add('playing');
-    $('#btn-calib').disabled = true;
-    $('#btn-input-mode').disabled = true;
     Engine.start(currentLevel, bpm, $('#game-canvas'),
       ({ score, combo }) => {
         $('#hud-score').textContent = Math.round(score);
@@ -209,10 +213,7 @@ const UI = (() => {
   function stopGame() {
     Engine.stop();
     stopMicForGame();
-    $('#btn-play').textContent = '▶ שחק';
-    $('#btn-play').classList.remove('playing');
-    $('#btn-calib').disabled = false;
-    $('#btn-input-mode').disabled = false;
+    setPlayUIState(false);
   }
 
   function showResults(r) {
@@ -256,9 +257,6 @@ const UI = (() => {
       if (idx < LEVELS.length - 1) openPlay(LEVELS[idx + 1]);
     };
     $('#res-share').onclick = () => shareScore(r, isRecord);
-    $('#btn-play').textContent = '▶ שחק';
-    $('#btn-play').classList.remove('playing');
-    $('#btn-calib').disabled = false;
   }
 
   function shareScore(r, isRecord) {
@@ -396,30 +394,31 @@ const UI = (() => {
       });
     });
 
-    $('#btn-play').addEventListener('click', () => {
-      if ($('#btn-play').classList.contains('playing')) stopGame();
-      else startGame();
-    });
+    $('#btn-play').addEventListener('click', () => startGame());
+    $('#btn-stop').addEventListener('click', () => stopGame());
+
     $('#btn-bpm-down').addEventListener('click', () => { bpm = Math.max(40, bpm - 5); $('#play-bpm-val').textContent = bpm; });
     $('#btn-bpm-up').addEventListener('click', () => { bpm = Math.min(200, bpm + 5); $('#play-bpm-val').textContent = bpm; });
     $('#btn-calib').addEventListener('click', () => {
-      if ($('#btn-play').classList.contains('playing')) stopGame();
+      if ($('#lane-box').classList.contains('game-running')) stopGame();
       const btn = $('#btn-calib');
       btn.disabled = true;
-      $('#calib-msg').textContent = 'כיול בהקשה על המסך — 8 קליקים';
+      $('#lane-box').classList.add('calibrating');
+      $('#calib-msg').textContent = 'הקישו ↓↑ עם 8 הקליקים על המסלול';
       Engine.calibrate(
         $('#game-canvas'),
         (msg, ok) => {
           $('#calib-msg').textContent = msg;
           $('#calib-msg').className = 'calib-msg' + (ok ? ' ok' : ' err');
           btn.disabled = false;
+          $('#lane-box').classList.remove('calibrating');
         },
         msg => { $('#calib-msg').textContent = msg; $('#calib-msg').className = 'calib-msg'; }
       );
     });
 
     $('#btn-input-mode').addEventListener('click', () => {
-      if ($('#btn-play').classList.contains('playing')) return;
+      if ($('#lane-box').classList.contains('game-running')) return;
       inputMode = inputMode === 'mic' ? 'touch' : 'mic';
       updateInputModeUI();
       $('#calib-msg').textContent = inputMode === 'mic'
@@ -440,7 +439,7 @@ const UI = (() => {
 
     window.addEventListener('resize', () => {
       Engine.resize($('#game-canvas'));
-      if ($('#btn-play').classList.contains('playing')) Engine.stop();
+      if ($('#lane-box').classList.contains('game-running')) stopGame();
     });
   }
 

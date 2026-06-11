@@ -187,18 +187,42 @@ button, input, select { font: inherit; touch-action: manipulation; -webkit-tap-h
   background: rgba(8,15,24,0.7); padding: 3px 8px; border-radius: 8px;
 }
 
-.play-dock {
-  flex-shrink: 0; display: flex; align-items: center; gap: 10px; margin-top: 10px;
+.play-prep {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 20px;
+  background: rgba(8,15,24,0.88); backdrop-filter: blur(6px);
+  border-radius: 14px;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
 }
-.bpm-strip { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.bpm-box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; min-width: 72px; text-align: center; }
-.bpm-box b { color: var(--gold); font-size: 18px; }
-.play-main { flex: 1; font-size: 17px; min-height: 50px; }
-.btn.icon-mini { width: 46px; min-width: 46px; padding: 0; font-size: 20px; flex-shrink: 0; }
+.lane-box.game-running .play-prep,
+.lane-box.calibrating .play-prep {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.prep-label { font-size: 15px; color: var(--dim); font-weight: 600; }
+.play-prep .play-main {
+  width: min(240px, 90%); font-size: 20px; min-height: 56px;
+  box-shadow: 0 8px 28px rgba(227,179,65,0.35);
+}
+.prep-tools { display: flex; gap: 10px; }
+.play-prep .calib-msg { margin: 0; min-height: 14px; }
 
-.calib-msg { text-align: center; font-size: 12px; color: var(--aegean); min-height: 16px; margin-top: 4px; flex-shrink: 0; line-height: 1.4; }
-.calib-msg.ok { color: var(--ok); font-weight: 700; }
-.calib-msg.err { color: var(--bad); }
+.game-stop {
+  position: absolute; top: 10px; left: 10px; z-index: 7;
+  width: 40px; height: 40px; min-height: 0; padding: 0;
+  border-radius: 50%; font-size: 16px;
+  background: rgba(217,100,89,0.9); border: none; color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.lane-box.game-running .game-stop { display: block !important; }
+.lane-box.game-running .zone { opacity: 0.35; }
+
+.play-dock { display: none; }
+.calib-msg { text-align: center; font-size: 12px; color: var(--aegean); line-height: 1.4; }
+.bpm-strip { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.bpm-box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; min-width: 88px; text-align: center; }
+.bpm-box b { color: var(--gold); font-size: 22px; }
+.btn.icon-mini { width: 46px; min-width: 46px; padding: 0; font-size: 18px; flex-shrink: 0; min-height: 46px; }
 
 .teach-box {
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;

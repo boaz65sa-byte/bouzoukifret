@@ -107,28 +107,33 @@
     </details>
 
     <div class="lane-wrap">
-      <div class="lane-box" dir="ltr">
+      <div class="lane-box" id="lane-box" dir="ltr">
         <span class="zone up">↑ למעלה</span>
         <canvas id="game-canvas"></canvas>
         <span class="zone down">↓ למטה</span>
         <span id="play-best" class="best-float"></span>
         <div class="mic-meter" id="mic-meter" hidden><div class="mic-fill" id="mic-fill"></div></div>
         <p class="mic-status" id="mic-status"></p>
+
+        <div class="play-prep" id="play-prep">
+          <p class="prep-label">מוכנים?</p>
+          <div class="bpm-strip">
+            <button class="btn small" id="btn-bpm-down" type="button">−</button>
+            <span class="bpm-box"><b id="play-bpm-val">60</b> BPM</span>
+            <button class="btn small" id="btn-bpm-up" type="button">+</button>
+          </div>
+          <button class="btn gold play-main" id="btn-play" type="button">▶ שחק</button>
+          <div class="prep-tools">
+            <button class="btn icon-mini input-mode mic" id="btn-input-mode" type="button" title="מצב קלט">🎸</button>
+            <button class="btn icon-mini" id="btn-calib" type="button" title="כיול תזמון">⚙ כיול</button>
+          </div>
+          <p class="calib-msg" id="calib-msg"></p>
+        </div>
+
+        <button class="btn game-stop" id="btn-stop" type="button" hidden aria-label="עצור">⏹</button>
       </div>
       <div class="results-panel" id="results-panel"></div>
     </div>
-
-    <div class="play-dock">
-      <div class="bpm-strip">
-        <button class="btn small" id="btn-bpm-down" type="button">−</button>
-        <span class="bpm-box"><b id="play-bpm-val">60</b> BPM</span>
-        <button class="btn small" id="btn-bpm-up" type="button">+</button>
-      </div>
-      <button class="btn gold play-main" id="btn-play" type="button">▶ שחק</button>
-      <button class="btn icon-mini input-mode mic" id="btn-input-mode" type="button" title="מצב קלט">🎸</button>
-      <button class="btn icon-mini" id="btn-calib" type="button" title="כיול תזמון (הקשה)">⚙</button>
-    </div>
-    <p class="calib-msg" id="calib-msg"></p>
   </section>
 
   <!-- ===== LEADERBOARD ===== -->
