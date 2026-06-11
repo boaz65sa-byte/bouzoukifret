@@ -39,7 +39,7 @@
       <div class="ob-step">
         <div class="ob-icon">📱</div>
         <h2>איך משחקים?</h2>
-        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם כלי:</b> פרטו על מיתר מושתק — אבל המשחק שומע <b>הקשות</b>, לא מיקרופון</p>
+        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם בוזוקי (מומלץ):</b> פרטו על מיתר מושתק — המשחק <b>שומע</b> את הפריטה ונותן ציון ומשוב</p>
       </div>
       <div class="ob-step">
         <div class="ob-icon">👥</div>
@@ -65,12 +65,22 @@
     </header>
 
     <div class="comm-panel" id="comm-local"></div>
-    <div id="comm-global"></div>
+    <div id="comm-global" hidden></div>
 
-    <h2 class="section-title">בחר שלב</h2>
+    <h2 class="section-title">בחר שלב — פריטה</h2>
     <div class="level-map" id="level-map"></div>
 
-    <p class="footer-note">לחצו ▶ שחק להתחיל · כיול תזמון = הקשות ↓↑ עם הקליקים (לא מיקרופון)</p>
+    <div class="modes-teaser card-inner">
+      <div class="modes-teaser-head">
+        <span class="modes-icon">🎼</span>
+        <div>
+          <b>משחק מודוסים</b>
+          <small>דו · רה · מי על הגשר — בקרוב</small>
+        </div>
+        <span class="soon-badge">בקרוב</span>
+      </div>
+      <p class="modes-desc">יגיע שלב שני: המשחק מציג מודוס (חיג'אז, ראסט...) ואתם מנגנים על הבוזוקי — המיקרофון מאשר כל צליל.</p>
+    </div>
   </section>
 
   <!-- ===== PLAY ===== -->
@@ -102,6 +112,8 @@
         <canvas id="game-canvas"></canvas>
         <span class="zone down">↓ למטה</span>
         <span id="play-best" class="best-float"></span>
+        <div class="mic-meter" id="mic-meter" hidden><div class="mic-fill" id="mic-fill"></div></div>
+        <p class="mic-status" id="mic-status"></p>
       </div>
       <div class="results-panel" id="results-panel"></div>
     </div>
@@ -113,7 +125,8 @@
         <button class="btn small" id="btn-bpm-up" type="button">+</button>
       </div>
       <button class="btn gold play-main" id="btn-play" type="button">▶ שחק</button>
-      <button class="btn icon-mini" id="btn-calib" type="button" title="כיול תזמון">⚙</button>
+      <button class="btn icon-mini input-mode mic" id="btn-input-mode" type="button" title="מצב קלט">🎸</button>
+      <button class="btn icon-mini" id="btn-calib" type="button" title="כיול תזמון (הקשה)">⚙</button>
     </div>
     <p class="calib-msg" id="calib-msg"></p>
   </section>
@@ -154,6 +167,7 @@
 <script src="config.js" onerror="void 0"></script>
 <script src="js/levels.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/mic.js"></script>
 <script src="js/community.js"></script>
 <script src="js/players.js"></script>
 <script src="js/engine.js"></script>

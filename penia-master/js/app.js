@@ -8,6 +8,7 @@ const UI = (() => {
   let currentLevel = LEVELS[0];
   let bpm = LEVELS[0].bpm;
   let seenTutorial = localStorage.getItem('penia-tutorial') === '1';
+  let inputMode = localStorage.getItem('penia-input') || 'mic'; // mic | touch
 
   function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
@@ -90,10 +91,11 @@ const UI = (() => {
   function refreshCommunity() {
     const s = Community.stats();
     $('#comm-local').innerHTML = `
-      <div class="comm-stat"><b>${s.localPlayers}</b><span>שחקנים במכשיר</span></div>
-      <div class="comm-stat"><b>${s.localGames}</b><span>משחקים שוחקו</span></div>`;
+      <div class="comm-stat"><b>${s.localPlayers}</b><span>שחקנים</span></div>
+      <div class="comm-stat"><b>${s.localGames}</b><span>משחקים</span></div>`;
     const globalEl = $('#comm-global');
     if (s.online && s.globalGames != null) {
+      globalEl.hidden = false;
       globalEl.innerHTML = `
         <div class="comm-banner online">
           <div class="comm-group">${s.groupName}</div>
@@ -103,11 +105,56 @@ const UI = (() => {
           </div>
         </div>`;
     } else {
-      globalEl.innerHTML = `
-        <div class="comm-banner offline">
-          <p>רוצים לראות כמה נגנים בקבוצות הבוזוקי שלכם? העתיקו <code>config.example.js</code> ל-<code>config.js</code> והגדירו Firebase (חינם).</p>
-        </div>`;
+      globalEl.hidden = true;
+      globalEl.innerHTML = '';
     }
+  }
+
+  function updateInputModeUI() {
+    const btn = $('#btn-input-mode');
+    const isMic = inputMode === 'mic';
+    btn.textContent = isMic ? '🎸' : '📱';
+    btn.classList.toggle('mic', isMic);
+    btn.classList.toggle('touch', !isMic);
+    btn.title = isMic ? 'מצב: בוזוקי אמיתי (מיקרופון)' : 'מצב: הקשה על המסך';
+    $('#mic-meter').hidden = !isMic;
+    $('#mic-status').textContent = isMic ? 'פרטו על מיתר מושתק — המשחק שומע' : '';
+    localStorage.setItem('penia-input', inputMode);
+  }
+
+  function buildFeedback(counts) {
+    const tips = [];
+    if (counts.wrong > 2) tips.push('↕ בדקו כיוון: ↓ למטה · ↑ למעלה');
+    if (counts.early > counts.late + 2) tips.push('⏱ מוקדמים — חכו עוד רגע לקו הזהב');
+    if (counts.late > counts.early + 2) tips.push('⏱ מאוחרים — הקישו מעט לפני הקו');
+    if (counts.miss > 3) tips.push('👂 הקשיבו למטרונום — דיוק לפני מהירות');
+    if (!tips.length && counts.perfect > counts.good) tips.push('🎸 פריטה נקייה — המשיכו כך!');
+    return tips.join(' · ');
+  }
+
+  async function startMicForGame() {
+    if (inputMode !== 'mic') return;
+    try {
+      await MicInput.start(
+        ({ dir }) => Engine.handleInput(dir),
+        lvl => { $('#mic-fill').style.width = (lvl * 100) + '%'; }
+      );
+      $('#mic-status').textContent = '🎤 שומע — פרטו בזמן';
+    } catch (e) {
+      inputMode = 'touch';
+      updateInputModeUI();
+      const msg = e.message === 'denied'
+        ? 'אין גישה למיקרופון — עברתם למצב הקשה'
+        : 'מיקרופון לא זמין — מצב הקשה';
+      $('#calib-msg').textContent = msg;
+      $('#calib-msg').className = 'calib-msg err';
+    }
+  }
+
+  function stopMicForGame() {
+    MicInput.stop();
+    $('#mic-fill').style.width = '0%';
+    if (inputMode === 'mic') $('#mic-status').textContent = 'פרטו על מיתר מושתק — המשחק שומע';
   }
 
   /* ---- Play ---- */
@@ -125,6 +172,7 @@ const UI = (() => {
     $('#results-panel').classList.remove('show');
     $('#hud-score').textContent = '0';
     $('#hud-combo').textContent = '';
+    updateInputModeUI();
     showScreen('play');
   }
 
@@ -141,11 +189,13 @@ const UI = (() => {
 
   function startGame() {
     Engine.stop();
+    stopMicForGame();
     AudioEngine.ensureCtx();
     $('#calib-msg').textContent = '';
     $('#btn-play').textContent = '⏹ עצור';
     $('#btn-play').classList.add('playing');
     $('#btn-calib').disabled = true;
+    $('#btn-input-mode').disabled = true;
     Engine.start(currentLevel, bpm, $('#game-canvas'),
       ({ score, combo }) => {
         $('#hud-score').textContent = Math.round(score);
@@ -153,13 +203,16 @@ const UI = (() => {
       },
       result => showResults(result)
     );
+    startMicForGame();
   }
 
   function stopGame() {
     Engine.stop();
+    stopMicForGame();
     $('#btn-play').textContent = '▶ שחק';
     $('#btn-play').classList.remove('playing');
     $('#btn-calib').disabled = false;
+    $('#btn-input-mode').disabled = false;
   }
 
   function showResults(r) {
@@ -177,6 +230,7 @@ const UI = (() => {
       '🏆 μάστορα! שליטה מלאה'
     ];
 
+    const feedback = buildFeedback(r.counts);
     const panel = $('#results-panel');
     panel.className = 'results-panel show ' + ['work', 'ok', 'good', 'gold'][r.stars];
     panel.innerHTML = `
@@ -185,6 +239,7 @@ const UI = (() => {
         <div class="res-score">${Math.round(r.score)} ${isRecord ? '<span class="rec">שיא!</span>' : ''}</div>
         <div class="res-msg">${msgs[r.stars]}</div>
         <div class="res-detail">דיוק ${(r.acc * 100).toFixed(0)}% · מושלם ${r.counts.perfect} · קומבו ${r.maxCombo}</div>
+        ${feedback ? `<div class="res-feedback">${feedback}</div>` : ''}
         <div class="res-btns">
           <button class="btn gold" id="res-retry">🔁 שוב</button>
           ${r.stars >= 2 ? '<button class="btn" id="res-faster">⚡ +5 BPM</button>' : ''}
@@ -326,7 +381,7 @@ const UI = (() => {
 
     $$('.bottom-nav .nav-item').forEach(n => {
       n.addEventListener('click', () => {
-        Engine.stop();
+        stopGame();
         const sc = n.dataset.screen;
         showScreen(sc);
         if (sc === 'leaderboard') renderLeaderboard();
@@ -351,6 +406,7 @@ const UI = (() => {
       if ($('#btn-play').classList.contains('playing')) stopGame();
       const btn = $('#btn-calib');
       btn.disabled = true;
+      $('#calib-msg').textContent = 'כיול בהקשה על המסך — 8 קליקים';
       Engine.calibrate(
         $('#game-canvas'),
         (msg, ok) => {
@@ -361,7 +417,20 @@ const UI = (() => {
         msg => { $('#calib-msg').textContent = msg; $('#calib-msg').className = 'calib-msg'; }
       );
     });
+
+    $('#btn-input-mode').addEventListener('click', () => {
+      if ($('#btn-play').classList.contains('playing')) return;
+      inputMode = inputMode === 'mic' ? 'touch' : 'mic';
+      updateInputModeUI();
+      $('#calib-msg').textContent = inputMode === 'mic'
+        ? 'מצב בוזוקי — אשרו מיקרофון בלחיצה על ▶ שחק'
+        : 'מצב הקשה — הקישו על המסך או ↓↑';
+      $('#calib-msg').className = 'calib-msg';
+    });
+    updateInputModeUI();
     $('#btn-back-play').addEventListener('click', () => { stopGame(); showScreen('home'); });
+
+    Engine.bindInput($('#game-canvas'));
 
     $('#player-chip').addEventListener('click', () => {
       showScreen('players');
@@ -369,7 +438,6 @@ const UI = (() => {
       setTimeout(() => $('#new-player-name')?.focus({ preventScroll: true }), 80);
     });
 
-    Engine.bindInput($('#game-canvas'));
     window.addEventListener('resize', () => {
       Engine.resize($('#game-canvas'));
       if ($('#btn-play').classList.contains('playing')) Engine.stop();

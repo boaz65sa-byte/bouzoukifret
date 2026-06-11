@@ -7,7 +7,7 @@ const Engine = (() => {
   let targets = [], beats = [], particles = [];
   let t0 = 0, endT = 0;
   let score = 0, combo = 0, maxCombo = 0;
-  let counts = { perfect: 0, good: 0, miss: 0, wrong: 0 };
+  let counts = { perfect: 0, good: 0, miss: 0, wrong: 0, early: 0, late: 0 };
   let popups = [], scheduledClicks = [];
   let inputOffset = parseFloat(localStorage.getItem('penia-offset') || '0');
   let calibClicks = [], calibTaps = [], calibStart0 = 0;
@@ -77,10 +77,12 @@ const Engine = (() => {
       label = 'מושלם!'; color = '#e3b341';
     } else if (adt <= W_GOOD) {
       best.status = 'good'; counts.good++; combo++;
+      if (bestDt < 0) counts.early++; else counts.late++;
       score += 50 * (1 + Math.min(2, Math.floor(combo / 8) * 0.5));
       label = bestDt < 0 ? 'טוב (מוקדם)' : 'טוב (מאוחר)'; color = '#5fc88f';
     } else {
       best.status = 'good'; counts.good++; combo = 0; score += 20;
+      if (bestDt < 0) counts.early++; else counts.late++;
       label = bestDt < 0 ? 'מוקדם' : 'מאוחר'; color = '#4fb3d9';
     }
     maxCombo = Math.max(maxCombo, combo);
@@ -288,7 +290,7 @@ const Engine = (() => {
     level = lv; bpm = bpmVal;
     onHud = hudCb; onFinish = finishCb;
     score = 0; combo = 0; maxCombo = 0;
-    counts = { perfect: 0, good: 0, miss: 0, wrong: 0 };
+    counts = { perfect: 0, good: 0, miss: 0, wrong: 0, early: 0, late: 0 };
     popups = [];
     AudioEngine.ensureCtx();
     setupCanvas(canvasEl);

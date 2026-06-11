@@ -231,7 +231,36 @@ button, input, select { font: inherit; touch-action: manipulation; -webkit-tap-h
 .res-stars { font-size: 36px; color: var(--gold); letter-spacing: 4px; }
 .res-score { font-size: 48px; font-weight: 900; color: var(--gold2); margin: 6px 0; }
 .res-msg { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-.res-detail { color: var(--dim); font-size: 13px; margin-bottom: 16px; }
+.btn.icon-mini.input-mode.mic { border-color: var(--ok); background: rgba(95,200,143,0.12); }
+.btn.icon-mini.input-mode.touch { border-color: var(--aegean); background: rgba(79,179,217,0.12); }
+
+.mic-meter {
+  position: absolute; bottom: 36px; left: 12px; right: 12px; height: 4px;
+  background: rgba(255,255,255,0.08); border-radius: 2px; z-index: 3; overflow: hidden;
+}
+.mic-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--gold)); transition: width 0.05s; }
+.mic-status {
+  position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;
+  font-size: 11px; color: var(--ok); z-index: 3; pointer-events: none;
+}
+
+.modes-teaser { margin-top: 16px; opacity: 0.85; }
+.modes-teaser-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.modes-icon { font-size: 32px; }
+.modes-teaser b { display: block; color: var(--gold2); }
+.modes-teaser small { color: var(--dim); font-size: 12px; }
+.soon-badge {
+  margin-right: auto; font-size: 10px; font-weight: 800; color: var(--aegean);
+  border: 1px solid rgba(79,179,217,0.4); padding: 3px 8px; border-radius: 8px;
+}
+.modes-desc { font-size: 13px; color: var(--dim); line-height: 1.6; }
+
+.res-detail { color: var(--dim); font-size: 13px; margin-bottom: 8px; }
+.res-feedback {
+  font-size: 13px; color: var(--aegean); line-height: 1.55;
+  margin: 0 0 12px; padding: 8px 12px;
+  background: rgba(79,179,217,0.08); border-radius: 10px;
+}
 .res-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .rec { display: inline-block; background: var(--bad); color: #fff; font-size: 13px; padding: 3px 10px; border-radius: 12px; vertical-align: middle; }
 
