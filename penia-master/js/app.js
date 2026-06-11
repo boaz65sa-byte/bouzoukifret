@@ -1,4 +1,4 @@
-/* ממשק — מאסטר הפנייה (אפליקציה עצמאית) */
+/* ממשק — בוזוקי מאסטר */
 'use strict';
 
 const $ = s => document.querySelector(s);
@@ -8,7 +8,12 @@ const UI = (() => {
   let currentLevel = LEVELS[0];
   let bpm = LEVELS[0].bpm;
   let seenTutorial = localStorage.getItem('penia-tutorial') === '1';
-  let inputMode = localStorage.getItem('penia-input') || 'mic'; // mic | touch
+  let inputMode = localStorage.getItem('penia-input') || 'mic';
+  let currentChord = null;
+  let chordDrillActive = false;
+  let chordDrillHits = 0;
+  let chordDrillRound = 0;
+  const CHORD_ROUNDS = 4;
 
   function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
@@ -16,8 +21,17 @@ const UI = (() => {
     $$('.bottom-nav .nav-item').forEach(n => {
       n.classList.toggle('active', n.dataset.screen === id);
     });
-    $('.app').classList.toggle('play-mode', id === 'play');
+    $('.app').classList.toggle('play-mode', id === 'play' || id === 'chord-play');
     if (id === 'play') requestAnimationFrame(() => Engine.resize($('#game-canvas')));
+  }
+
+  function goHub(target) {
+    stopGame();
+    stopChordDrill();
+    if (target === 'pick-levels') { renderLevelMap(); showScreen('pick-levels'); }
+    else if (target === 'chords') { renderChordGrid(); showScreen('chords'); }
+    else if (target === 'modes') showScreen('modes');
+    else showScreen('home');
   }
 
   function boot() {
@@ -56,6 +70,105 @@ const UI = (() => {
     });
     showStep(0);
   }
+
+  function renderChordGrid() {
+    const grid = $('#chord-grid');
+    grid.innerHTML = '';
+    IRON_7.forEach((c, i) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'chord-card-btn';
+      card.innerHTML = `
+        <span class="cc-rank">${i + 1}</span>
+        <div class="cc-diag"></div>
+        <div class="cc-info">
+          <b>${c.id}</b>
+          <small>${c.he}</small>
+          <span>${c.role}</span>
+        </div>`;
+      ChordDiagram.draw(card.querySelector('.cc-diag'), c.id, { noLabel: true });
+      card.addEventListener('click', () => openChordPlay(c));
+      grid.appendChild(card);
+    });
+  }
+
+  function openChordPlay(chord) {
+    currentChord = chord;
+    stopChordDrill();
+    $('#chord-play-title').textContent = chord.id + ' · ' + chord.he;
+    $('#chord-play-sub').textContent = chord.role;
+    ChordDiagram.draw($('#chord-diagram-big'), chord.id, { large: true });
+    $('#chord-prep').classList.remove('hide');
+    $('#chord-drill-status').textContent = 'לחצו ▶ שחק — החזיקו את האקורד ופרטו ↓';
+    $('#chord-drill-score').textContent = '';
+    showScreen('chord-play');
+  }
+
+  function stopChordDrill() {
+    chordDrillActive = false;
+    MicInput.stop();
+    $('#chord-prep').classList.remove('hide');
+  }
+
+  async function startChordDrill() {
+    if (!currentChord || chordDrillActive) return;
+    AudioEngine.ensureCtx();
+    $('#chord-prep').classList.add('hide');
+    chordDrillHits = 0;
+    chordDrillRound = 0;
+    chordDrillActive = true;
+    let roundScored = false;
+
+    try {
+      await MicInput.start(({ freq }) => {
+        if (!chordDrillActive || roundScored) return;
+        if (matchChord(currentChord, freq)) {
+          roundScored = true;
+          chordDrillHits++;
+          $('#chord-drill-status').textContent = '✓ נשמע נכון!';
+          $('#chord-drill-status').className = 'chord-drill-status ok';
+        }
+      });
+    } catch (e) {
+      chordDrillActive = false;
+      $('#chord-prep').classList.remove('hide');
+      $('#chord-drill-status').textContent = 'אין מיקרופון — אשרו גישה';
+      return;
+    }
+
+    for (let r = 1; r <= CHORD_ROUNDS && chordDrillActive; r++) {
+      roundScored = false;
+      chordDrillRound = r;
+      $('#chord-drill-status').className = 'chord-drill-status';
+      $('#chord-drill-status').textContent = `סיבוב ${r}/${CHORD_ROUNDS} — 3…`;
+      await wait(700);
+      if (!chordDrillActive) break;
+      $('#chord-drill-status').textContent = `סיבוב ${r} — 2…`;
+      await wait(700);
+      if (!chordDrillActive) break;
+      $('#chord-drill-status').textContent = `סיבוב ${r} — 1… פרטו!`;
+      await wait(700);
+      if (!chordDrillActive) break;
+      const before = chordDrillHits;
+      $('#chord-drill-status').textContent = '▼ פרטו עכשיו ↓';
+      await wait(1800);
+      if (chordDrillHits === before) {
+        $('#chord-drill-status').textContent = 'לא נקלט — בדקו את הפרט';
+        $('#chord-drill-status').className = 'chord-drill-status err';
+      }
+      await wait(600);
+    }
+
+    MicInput.stop();
+    chordDrillActive = false;
+    const pct = Math.round((chordDrillHits / CHORD_ROUNDS) * 100);
+    $('#chord-drill-score').textContent = `${chordDrillHits}/${CHORD_ROUNDS} פגיעות · ${pct}%`;
+    $('#chord-drill-status').textContent = pct >= 75 ? '🏆 מצוין! האקורד נכנס' : '💪 עוד סיבוב — החזיקו את הפרט';
+    $('#chord-drill-status').className = 'chord-drill-status ' + (pct >= 75 ? 'ok' : '');
+    $('#chord-prep').classList.remove('hide');
+  }
+
+  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   /* ---- Home: מפת שלבים ---- */
   function renderLevelMap() {
@@ -261,14 +374,14 @@ const UI = (() => {
 
   function shareScore(r, isRecord) {
     const p = Players.current();
-    const text = `🎸 מאסטר הפנייה — ${p.name}\n` +
-      `שלב: ${r.level.name} (${r.bpm} BPM)\n` +
+    const text = `🎸 בוזוקי מאסטר — ${p.name}\n` +
+      `מאסטר הפריטה · ${r.level.name} (${r.bpm} BPM)\n` +
       `ניקוד: ${Math.round(r.score)} ${isRecord ? '🏆 שיא!' : ''}\n` +
       `כוכבים: ${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}\n` +
       `דיוק: ${(r.acc * 100).toFixed(0)}%\n` +
       `נסו גם: ${location.href}`;
     if (navigator.share) {
-      navigator.share({ title: 'מאסטר הפנייה', text }).catch(() => copy(text));
+      navigator.share({ title: 'בוזוקי מאסטר', text }).catch(() => copy(text));
     } else copy(text);
   }
 
@@ -376,6 +489,17 @@ const UI = (() => {
     initSplash();
     initOnboard();
     initPlayersForm();
+    renderChordGrid();
+
+    $$('[data-hub]').forEach(btn => {
+      btn.addEventListener('click', () => goHub(btn.dataset.hub));
+    });
+    $$('[data-back]').forEach(btn => {
+      btn.addEventListener('click', () => goHub(btn.dataset.back));
+    });
+    $('#btn-back-play').addEventListener('click', () => goHub('pick-levels'));
+    $('#btn-back-chord').addEventListener('click', () => { stopChordDrill(); goHub('chords'); });
+    $('#btn-chord-play').addEventListener('click', () => startChordDrill());
 
     $$('.bottom-nav .nav-item').forEach(n => {
       n.addEventListener('click', () => {
@@ -390,7 +514,7 @@ const UI = (() => {
             $('#new-player-name')?.focus({ preventScroll: true });
           }, 80);
         }
-        if (sc === 'home') { renderLevelMap(); refreshCommunity(); }
+        if (sc === 'home') refreshCommunity();
       });
     });
 
@@ -427,7 +551,6 @@ const UI = (() => {
       $('#calib-msg').className = 'calib-msg';
     });
     updateInputModeUI();
-    $('#btn-back-play').addEventListener('click', () => { stopGame(); showScreen('home'); });
 
     Engine.bindInput($('#game-canvas'));
 

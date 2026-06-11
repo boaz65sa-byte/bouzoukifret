@@ -37,6 +37,35 @@ const MicInput = (() => {
     return low > high * 1.08 ? 'd' : 'u';
   }
 
+  function detectPitch(buf, sampleRate) {
+    const SIZE = buf.length;
+    let r = 0;
+    for (let i = 0; i < SIZE; i++) r += buf[i] * buf[i];
+    r = Math.sqrt(r / SIZE);
+    if (r < 0.012) return null;
+    let r1 = 0, r2 = SIZE - 1;
+    for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < r * 0.8) r1 = i; else break;
+    for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < r * 0.8) r2 = SIZE - i; else break;
+    const sliced = buf.slice(r1, r2), N = sliced.length;
+    if (N < 256) return null;
+    const c = new Float32Array(N);
+    for (let lag = 0; lag < N; lag++) {
+      let sum = 0;
+      for (let i = 0; i < N - lag; i++) sum += sliced[i] * sliced[i + lag];
+      c[lag] = sum;
+    }
+    let d = 0;
+    while (d < N - 1 && c[d] > c[d + 1]) d++;
+    let maxVal = -1, maxPos = -1;
+    const minLag = Math.max(d, Math.floor(sampleRate / 1300));
+    const maxLag = Math.min(N - 1, Math.ceil(sampleRate / 90));
+    for (let i = minLag; i <= maxLag; i++) {
+      if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+    }
+    if (maxPos <= 0 || maxVal < 0.01 * c[0]) return null;
+    return sampleRate / maxPos;
+  }
+
   function poll() {
     if (!analyser) return;
     const buf = new Float32Array(analyser.fftSize);
@@ -51,7 +80,8 @@ const MicInput = (() => {
       armed = false;
       lastHit = now;
       const dir = strumDirection(buf, AudioEngine.ctx.sampleRate);
-      onStrum({ dir, rms: cur });
+      const freq = detectPitch(buf, AudioEngine.ctx.sampleRate);
+      onStrum({ dir, rms: cur, freq });
     }
     if (cur < ONSET_RMS * 0.55) armed = true;
     lastRms = cur * 0.35 + lastRms * 0.65;

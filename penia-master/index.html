@@ -5,46 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#080f18">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="description" content="מאסטר הפנייה — משחק לימודי לתרגול פריטה יוונית על בוזוקי. 8 שלבים, ניקוד, קומבו, לוח תוצאות לקבוצות.">
-<title>מאסטר הפנייה | Penia Master — תרגול פריטה יוונית</title>
+<meta name="description" content="בוזוקי מאסטר — שלושה משחקי אימון: פריטה, מודוסים ואקורדים על בוזוקי יווני.">
+<title>בוזוקי מאסטר — מאסטר הפריטה · המודוסים · האקורדים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
 
-<!-- ===== SPLASH ===== -->
 <div id="splash" class="splash">
+  <div class="splash-glow"></div>
   <svg class="splash-logo" viewBox="0 0 120 120" aria-hidden="true">
-    <circle cx="60" cy="60" r="54" fill="none" stroke="#e3b341" stroke-width="2" opacity="0.4"/>
-    <path d="M35 75 L55 35 L75 75 Z" fill="#e3b341" opacity="0.9"/>
-    <path d="M35 75 L55 35 L75 75 Z" fill="none" stroke="#fff0c8" stroke-width="1.5" transform="translate(0,-28) scale(0.55)" opacity="0.7"/>
+    <circle cx="60" cy="60" r="54" fill="none" stroke="#e3b341" stroke-width="2" opacity="0.5"/>
+    <path d="M35 75 L55 35 L75 75 Z" fill="#e3b341" opacity="0.95"/>
     <text x="60" y="98" fill="#4fb3d9" font-size="11" text-anchor="middle" font-family="Heebo">↓ ↑</text>
   </svg>
-  <h1>מאסטר הפנייה</h1>
-  <p>Penia Master · Πενιά</p>
+  <h1>בוזוקי מאסטר</h1>
+  <p>Bouzouki Master · τρία παιχνίδια</p>
   <div class="splash-bar"><div class="splash-fill"></div></div>
 </div>
 
 <div class="app">
 
-  <!-- ===== ONBOARDING ===== -->
+  <!-- ONBOARDING -->
   <section class="screen" id="screen-onboard">
     <div class="ob-wrap">
       <div class="ob-step active">
         <div class="ob-icon">🎸</div>
-        <h2>ברוכים הבאים!</h2>
-        <p>משחק לימודי שמלמד את <b>פנייה</b> — טכניקת הפריטה היוונית. חיצים זורמים, אתם מקישים ↓ או ↑ בדיוק בזמן — כמו Guitar Hero, אבל לבוזוקי.</p>
+        <h2>שלושה משחקים — בוזוקי אמיתי</h2>
+        <p><b>מאסטר הפריטה</b> — תזמון ↓↑ עם המיקרופון<br><b>מאסטר המודוסים</b> — דו·רה·מי על הגשר (בקרוב)<br><b>מאסטר האקורדים</b> — 7 אקורדי הברזל ועוד</p>
       </div>
       <div class="ob-step">
-        <div class="ob-icon">📱</div>
-        <h2>איך משחקים?</h2>
-        <p><b>במחשב:</b> חצים ↓↑ או J/K<br><b>בטלפון:</b> הקשה על החצי התחתון (↓) או העליון (↑)<br><b>עם בוזוקי (מומלץ):</b> פרטו על מיתר מושתק — המשחק <b>שומע</b> את הפריטה ונותן ציון ומשוב</p>
+        <div class="ob-icon">🎤</div>
+        <h2>נגנו על הכלי!</h2>
+        <p>הוציאו את הבוזוקי, פרטו על מיתר מושתק — המשחק <b>שומע</b>, נותן ציון ואומר איך לשפר.</p>
       </div>
       <div class="ob-step">
         <div class="ob-icon">👥</div>
-        <h2>לקבוצות בוזוקי</h2>
-        <p>צרו פרופיל לכל נגן, התחרו בלוח התוצאות, ושתפו את הציון בקבוצת הוואטסאפ. 8 שלבים מהיסוד ועד טזנה 7/8.</p>
+        <h2>לקבוצות</h2>
+        <p>פרופיל לכל נגן, לוח תוצאות, שיתוף לוואטסאפ — מושלם לשיעור קבוצתי.</p>
       </div>
       <div class="ob-dots"><span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span></div>
       <div class="ob-btns">
@@ -54,36 +53,102 @@
     </div>
   </section>
 
-  <!-- ===== HOME ===== -->
+  <!-- HUB — בחירת משחק -->
   <section class="screen" id="screen-home">
-    <header class="top-bar">
-      <div class="brand">
+    <header class="hub-head">
+      <div class="brand hub-brand">
         <span class="brand-icon">🎸</span>
-        <div><b>מאסטר הפנייה</b><small>Penia Master</small></div>
+        <div><b>בוזוקי מאסטר</b><small>Bouzouki Master</small></div>
       </div>
-      <button class="player-chip" id="player-chip" type="button" data-screen="players"></button>
+      <button class="player-chip" id="player-chip" type="button"></button>
     </header>
 
     <div class="comm-panel" id="comm-local"></div>
     <div id="comm-global" hidden></div>
 
-    <h2 class="section-title">בחר שלב — פריטה</h2>
-    <div class="level-map" id="level-map"></div>
+    <p class="hub-tagline">בחר משחק · נגן על הכלי · התקדם</p>
 
-    <div class="modes-teaser card-inner">
-      <div class="modes-teaser-head">
-        <span class="modes-icon">🎼</span>
-        <div>
-          <b>משחק מודוסים</b>
-          <small>דו · רה · מי על הגשר — בקרוב</small>
+    <div class="game-hub">
+      <button class="game-card game-pick" type="button" data-hub="pick-levels">
+        <span class="gc-num">1</span>
+        <div class="gc-body">
+          <b>מאסטר הפריטה</b>
+          <small>Penia · ↓↑ בזמן · 8 שלבים</small>
         </div>
-        <span class="soon-badge">בקרוב</span>
-      </div>
-      <p class="modes-desc">יגיע שלב שני: המשחק מציג מודוס (חיג'אז, ראסט...) ואתם מנגנים על הבוזוקי — המיקרофון מאשר כל צליל.</p>
+        <span class="gc-go">▶</span>
+      </button>
+      <button class="game-card game-modes" type="button" data-hub="modes">
+        <span class="gc-num">2</span>
+        <div class="gc-body">
+          <b>מאסטר המודוסים</b>
+          <small>דו רה מי · חיג׳אז · ראסט…</small>
+        </div>
+        <span class="gc-soon">בקרוב</span>
+      </button>
+      <button class="game-card game-chords" type="button" data-hub="chords">
+        <span class="gc-num">3</span>
+        <div class="gc-body">
+          <b>מאסטר האקורדים</b>
+          <small>7 אקורדי ברזל + 101 פוזיציות</small>
+        </div>
+        <span class="gc-go">▶</span>
+      </button>
     </div>
   </section>
 
-  <!-- ===== PLAY ===== -->
+  <!-- שלבי פריטה -->
+  <section class="screen" id="screen-pick-levels">
+    <header class="sub-head">
+      <button class="btn icon sub-back" data-back="home">→</button>
+      <div><h2>מאסטר הפריטה</h2><small>8 שלבים · ↓↑ · מיקרופון</small></div>
+    </header>
+    <div class="level-map" id="level-map"></div>
+  </section>
+
+  <!-- מודוסים -->
+  <section class="screen" id="screen-modes">
+    <header class="sub-head">
+      <button class="btn icon sub-back" data-back="home">→</button>
+      <div><h2>מאסטר המודוסים</h2><small>בקרוב</small></div>
+    </header>
+    <div class="coming-soon">
+      <div class="cs-icon">🎼</div>
+      <h3>דו · רה · מי על הגשר</h3>
+      <p>המשחק יציג מודוס (חיג׳אז, ראסט, סבאח…) — ואתם מנגנים על הבוזוקי. המיקרופון מאשר כל צליל ונותן משוב.</p>
+    </div>
+  </section>
+
+  <!-- אקורדים — 7 ברזל -->
+  <section class="screen" id="screen-chords">
+    <header class="sub-head">
+      <button class="btn icon sub-back" data-back="home">→</button>
+      <div><h2>מאסטר האקורדים</h2><small>7 אקורדי הברזל</small></div>
+    </header>
+    <p class="chords-lead">הברזל — שבעת האקורדים שמובילים כל ליווי רבטיקו. לחצו לתרגול עם המיקרופון.</p>
+    <div class="chord-grid" id="chord-grid"></div>
+    <p class="chords-more">+ עוד 101 פוזיציות בדרך — כולן יקבלו כבוד 🎸</p>
+  </section>
+
+  <!-- תרגול אקורד בודד -->
+  <section class="screen" id="screen-chord-play">
+    <header class="play-top">
+      <button class="btn icon" id="btn-back-chord">→</button>
+      <div class="play-head-text">
+        <h2 id="chord-play-title"></h2>
+        <small id="chord-play-sub"></small>
+      </div>
+    </header>
+    <div class="chord-play-stage">
+      <div id="chord-diagram-big"></div>
+      <div class="chord-drill-status" id="chord-drill-status">לחצו ▶ שחק והחזיקו את האקורד</div>
+      <div class="chord-drill-score" id="chord-drill-score"></div>
+      <div class="play-prep chord-prep" id="chord-prep">
+        <button class="btn gold play-main" id="btn-chord-play" type="button">▶ שחק</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- מסך משחק פריטה -->
   <section class="screen" id="screen-play">
     <header class="play-top">
       <button class="btn icon" id="btn-back-play">→</button>
@@ -116,7 +181,7 @@
         <p class="mic-status" id="mic-status"></p>
 
         <div class="play-prep" id="play-prep">
-          <p class="prep-label">מוכנים?</p>
+          <p class="prep-label">מוכנים? · נגנו על הבוזוקי</p>
           <div class="bpm-strip">
             <button class="btn small" id="btn-bpm-down" type="button">−</button>
             <span class="bpm-box"><b id="play-bpm-val">60</b> BPM</span>
@@ -125,7 +190,7 @@
           <button class="btn gold play-main" id="btn-play" type="button">▶ שחק</button>
           <div class="prep-tools">
             <button class="btn icon-mini input-mode mic" id="btn-input-mode" type="button" title="מצב קלט">🎸</button>
-            <button class="btn icon-mini" id="btn-calib" type="button" title="כיול תזמון">⚙ כיול</button>
+            <button class="btn icon-mini" id="btn-calib" type="button" title="כיול">⚙</button>
           </div>
           <p class="calib-msg" id="calib-msg"></p>
         </div>
@@ -136,18 +201,16 @@
     </div>
   </section>
 
-  <!-- ===== LEADERBOARD ===== -->
   <section class="screen" id="screen-leaderboard">
-    <h2 class="section-title">🏆 לוח תוצאות</h2>
-    <p class="lead">התחרות בין הנגנים במכשיר — מושלם לשיעור קבוצתי</p>
+    <h2 class="section-title">🏆 לוח תוצאות — פריטה</h2>
+    <p class="lead">התחרות בין הנגנים</p>
     <select id="lb-level" class="select-full"></select>
     <div class="lb-list" id="lb-list"></div>
   </section>
 
-  <!-- ===== PLAYERS ===== -->
   <section class="screen" id="screen-players">
     <h2 class="section-title">👥 שחקנים</h2>
-    <p class="lead">כל נגן בקבוצה מקבל פרופיל, התקדמות ושיאים משלו</p>
+    <p class="lead">פרופיל לכל נגן בקבוצה</p>
     <div class="players-list" id="players-list"></div>
     <div class="add-player card-inner">
       <h3>הוסף נגן חדש</h3>
@@ -160,17 +223,17 @@
     </div>
   </section>
 
-  <!-- ===== BOTTOM NAV ===== -->
   <nav class="bottom-nav">
-    <button class="nav-item active" data-screen="home"><span>🏠</span> בית</button>
+    <button class="nav-item active" data-screen="home"><span>🏠</span> משחקים</button>
     <button class="nav-item" data-screen="leaderboard"><span>🏆</span> תוצאות</button>
     <button class="nav-item" data-screen="players"><span>👥</span> שחקנים</button>
   </nav>
 </div>
 
-<!-- config.js אופציונלי — העתק מ-config.example.js -->
 <script src="config.js" onerror="void 0"></script>
 <script src="js/levels.js"></script>
+<script src="js/chords-data.js"></script>
+<script src="js/chord-diagram.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/mic.js"></script>
 <script src="js/community.js"></script>

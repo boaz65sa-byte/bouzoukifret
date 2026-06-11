@@ -159,12 +159,21 @@ const Engine = (() => {
     const tNow = now(), beat = 60 / bpm, pxPerSec = PX_PER_BEAT / beat;
 
     /* רקע מסלול */
-    const gUp = cctx.createLinearGradient(0, 0, 0, h / 2);
-    gUp.addColorStop(0, 'rgba(26,55,82,0.9)'); gUp.addColorStop(1, 'rgba(15,31,48,0.6)');
+    cctx.fillStyle = '#060b12';
+    cctx.fillRect(0, 0, w, h);
+    const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
+    gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
     cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
-    const gDn = cctx.createLinearGradient(0, h / 2, 0, h);
-    gDn.addColorStop(0, 'rgba(48,38,18,0.5)'); gDn.addColorStop(1, 'rgba(32,24,10,0.85)');
+    const gDn = cctx.createLinearGradient(0, h * 0.5, w, h);
+    gDn.addColorStop(0, 'rgba(60,45,18,0.25)'); gDn.addColorStop(1, 'rgba(28,20,8,0.55)');
     cctx.fillStyle = gDn; cctx.fillRect(0, h / 2, w, h / 2);
+
+    for (let i = 0; i < 16; i++) {
+      const sx = (Math.sin(i * 2.1 + tNow * 0.3) * 0.5 + 0.5) * w;
+      const sy = (Math.cos(i * 1.7 + tNow * 0.2) * 0.5 + 0.5) * h;
+      cctx.fillStyle = `rgba(227,179,65,${0.04 + (i % 3) * 0.02})`;
+      cctx.beginPath(); cctx.arc(sx, sy, 2, 0, Math.PI * 2); cctx.fill();
+    }
 
     /* מאיאנדר דקorative top */
     cctx.strokeStyle = 'rgba(227,179,65,0.12)'; cctx.lineWidth = 2;
@@ -195,9 +204,9 @@ const Engine = (() => {
 
     /* קו פגיעה + זוהר */
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 200);
-    cctx.shadowColor = '#e3b341'; cctx.shadowBlur = 8 + pulse * 8;
-    cctx.strokeStyle = `rgba(240,204,116,${0.7 + pulse * 0.3})`;
-    cctx.lineWidth = 4;
+    cctx.shadowColor = '#e3b341'; cctx.shadowBlur = 12 + pulse * 14;
+    cctx.strokeStyle = `rgba(240,204,116,${0.75 + pulse * 0.25})`;
+    cctx.lineWidth = 5;
     cctx.beginPath(); cctx.moveTo(HIT_X, 0); cctx.lineTo(HIT_X, h); cctx.stroke();
     cctx.shadowBlur = 0; cctx.lineWidth = 1;
 
