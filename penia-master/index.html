@@ -13,7 +13,7 @@
 </head>
 <body>
 
-<div id="splash" class="splash">
+<div id="splash" class="splash" role="button" tabindex="0" aria-label="דלג">
   <div class="splash-glow"></div>
   <svg class="splash-logo" viewBox="0 0 120 120" aria-hidden="true">
     <circle cx="60" cy="60" r="54" fill="none" stroke="#e3b341" stroke-width="2" opacity="0.5"/>
@@ -23,6 +23,7 @@
   <h1>בוזוקי מאסטר</h1>
   <p>Bouzouki Master · τρία παιχνίδια</p>
   <div class="splash-bar"><div class="splash-fill"></div></div>
+  <p class="splash-skip">לחץ לדילוג</p>
 </div>
 
 <div class="app">
@@ -54,48 +55,46 @@
   </section>
 
   <!-- HUB — בחירת משחק -->
-  <section class="screen" id="screen-home">
+  <section class="screen active" id="screen-home">
     <header class="hub-head">
       <div class="brand hub-brand">
         <span class="brand-icon">🎸</span>
-        <div><b>בוזוקי מאסטר</b><small>Bouzouki Master</small></div>
+        <div><b>בוזוקי מאסטר</b><small>Bouzouki Master · 3 משחקים</small></div>
       </div>
-      <button class="player-chip" id="player-chip" type="button"></button>
+      <button class="player-chip btn" id="player-chip" type="button"><span class="chip-av">🎸</span><span>נגן</span></button>
     </header>
 
     <div class="comm-panel" id="comm-local"></div>
     <div id="comm-global" hidden></div>
 
-    <p class="hub-tagline">בחר משחק · נגן על הכלי · התקדם</p>
+    <h2 class="hub-title">🎮 שלושת המשחקים</h2>
+    <p class="hub-tagline">לחצו על משחק · בחרו שלב · נגנו על הבוזוקי</p>
 
     <div class="game-hub" id="game-hub">
-      <div class="hub-game hub-pick" data-hub="pick-levels" role="button" tabindex="0" aria-label="מאסטר הפריטה">
-        <div class="hg-icon">↓↑</div>
-        <div class="hg-body">
-          <b>מאסטר הפריטה</b>
-          <small>תזמון פריטה ↓↑ · מיקרופון · מטרונום</small>
-          <span class="hg-badge">8 שלבים</span>
-        </div>
-        <span class="hg-go" aria-hidden="true">◀</span>
-      </div>
-      <div class="hub-game hub-modes" data-hub="modes" role="button" tabindex="0" aria-label="מאסטר המודוסים">
-        <div class="hg-icon">♩</div>
-        <div class="hg-body">
-          <b>מאסטר המודוסים</b>
-          <small>חיג׳אז · ראסט · מינור · אוסאק על מיתר רה</small>
-          <span class="hg-badge">6 שלבים</span>
-        </div>
-        <span class="hg-go" aria-hidden="true">◀</span>
-      </div>
-      <div class="hub-game hub-chords" data-hub="chords" role="button" tabindex="0" aria-label="מאסטר האקורדים">
-        <div class="hg-icon">🎸</div>
-        <div class="hg-body">
-          <b>מאסטר האקורדים</b>
-          <small>משחק זורם + תרגול 7 אקורדי הברזל</small>
-          <span class="hg-badge">7+7 שלבים</span>
-        </div>
-        <span class="hg-go" aria-hidden="true">◀</span>
-      </div>
+      <button type="button" class="hub-btn hub-pick" data-hub="pick-levels">
+        <span class="hb-icon">↓↑</span>
+        <span class="hb-text">
+          <strong>מאסטר הפריטה</strong>
+          <small>תזמון ↓↑ · מיקרופון · 8 שלבים</small>
+        </span>
+        <span class="hb-go">◀</span>
+      </button>
+      <button type="button" class="hub-btn hub-modes" data-hub="modes">
+        <span class="hb-icon">♩</span>
+        <span class="hb-text">
+          <strong>מאסטר המודוסים</strong>
+          <small>חיג׳אז · ראסט · מינור · 6 שלבים</small>
+        </span>
+        <span class="hb-go">◀</span>
+      </button>
+      <button type="button" class="hub-btn hub-chords" data-hub="chords">
+        <span class="hb-icon">🎸</span>
+        <span class="hb-text">
+          <strong>מאסטר האקורדים</strong>
+          <small>משחק זורם + תרגול 7 הברזל</small>
+        </span>
+        <span class="hb-go">◀</span>
+      </button>
     </div>
   </section>
 

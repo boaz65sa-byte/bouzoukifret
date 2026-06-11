@@ -59,31 +59,41 @@ const UI = (() => {
     if (!hub) return;
     hub.addEventListener('click', e => {
       const card = e.target.closest('[data-hub]');
-      if (card) goHub(card.dataset.hub);
-    });
-    hub.addEventListener('keydown', e => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      const card = e.target.closest('[data-hub]');
-      if (card) { e.preventDefault(); goHub(card.dataset.hub); }
+      if (!card) return;
+      e.preventDefault();
+      goHub(card.dataset.hub);
     });
   }
 
+  function bind(el, evt, fn) {
+    if (el) el.addEventListener(evt, fn);
+  }
+
+  let splashDone = false;
+
+  function dismissSplash() {
+    if (splashDone) return;
+    splashDone = true;
+    const sp = $('#splash');
+    if (sp) sp.classList.add('hide');
+    boot();
+  }
+
   function boot() {
-    if (!seenTutorial) showScreen('onboard');
-    else showScreen('home');
+    showScreen('home');
     refreshPlayerChip();
-    renderLevelMap();
-    renderModeMap();
-    renderChordFlowMap();
+    try { renderLevelMap(); renderModeMap(); renderChordFlowMap(); } catch (e) { console.warn('maps', e); }
     refreshCommunity();
   }
 
   /* ---- Splash ---- */
   function initSplash() {
-    setTimeout(() => {
-      $('#splash').classList.add('hide');
-      boot();
-    }, 2200);
+    const sp = $('#splash');
+    sp?.addEventListener('click', dismissSplash);
+    sp?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') dismissSplash();
+    });
+    setTimeout(dismissSplash, 900);
   }
 
   /* ---- Onboarding ---- */
@@ -102,6 +112,7 @@ const UI = (() => {
     });
     $('#ob-skip').addEventListener('click', () => {
       localStorage.setItem('penia-tutorial', '1');
+      seenTutorial = true;
       showScreen('home');
     });
     showStep(0);
@@ -610,12 +621,10 @@ const UI = (() => {
     try { renderChordGrid(); } catch (e) { console.warn('chord grid', e); }
     try { renderModeMap(); renderChordFlowMap(); renderLevelMap(); } catch (e) { console.warn('maps', e); }
 
-    $$('[data-back]').forEach(btn => {
-      btn.addEventListener('click', () => goHub(btn.dataset.back));
-    });
-    $('#btn-back-play').addEventListener('click', () => goHub(playBackTarget));
-    $('#btn-back-chord').addEventListener('click', () => { stopChordDrill(); goHub('chords'); });
-    $('#btn-chord-play').addEventListener('click', () => startChordDrill());
+    $$('[data-back]').forEach(btn => bind(btn, 'click', () => goHub(btn.dataset.back)));
+    bind($('#btn-back-play'), 'click', () => goHub(playBackTarget));
+    bind($('#btn-back-chord'), 'click', () => { stopChordDrill(); goHub('chords'); });
+    bind($('#btn-chord-play'), 'click', () => startChordDrill());
 
     $$('.bottom-nav .nav-item').forEach(n => {
       n.addEventListener('click', () => {
@@ -630,21 +639,23 @@ const UI = (() => {
             $('#new-player-name')?.focus({ preventScroll: true });
           }, 80);
         }
-        if (sc === 'home') refreshCommunity();
+        if (sc === 'home') {
+          try { renderLevelMap(); renderModeMap(); renderChordFlowMap(); } catch (e) { /* */ }
+          refreshCommunity();
+        }
       });
     });
 
-    $('#lb-game')?.addEventListener('change', renderLeaderboard);
-    $('#lb-level')?.addEventListener('change', renderLeaderboard);
-
-    $('#btn-play').addEventListener('click', () => startGame());
-    $('#btn-stop').addEventListener('click', () => stopGame());
-
-    $('#btn-bpm-down').addEventListener('click', () => { bpm = Math.max(40, bpm - 5); $('#play-bpm-val').textContent = bpm; });
-    $('#btn-bpm-up').addEventListener('click', () => { bpm = Math.min(200, bpm + 5); $('#play-bpm-val').textContent = bpm; });
-    $('#btn-calib').addEventListener('click', () => {
-      if ($('#lane-box').classList.contains('game-running')) stopGame();
+    bind($('#lb-game'), 'change', renderLeaderboard);
+    bind($('#lb-level'), 'change', renderLeaderboard);
+    bind($('#btn-play'), 'click', () => startGame());
+    bind($('#btn-stop'), 'click', () => stopGame());
+    bind($('#btn-bpm-down'), 'click', () => { bpm = Math.max(40, bpm - 5); $('#play-bpm-val').textContent = bpm; });
+    bind($('#btn-bpm-up'), 'click', () => { bpm = Math.min(200, bpm + 5); $('#play-bpm-val').textContent = bpm; });
+    bind($('#btn-calib'), 'click', () => {
+      if ($('#lane-box')?.classList.contains('game-running')) stopGame();
       const btn = $('#btn-calib');
+      if (!btn) return;
       btn.disabled = true;
       $('#lane-box').classList.add('calibrating');
       $('#calib-msg').textContent = 'הקישו ↓↑ עם 8 הקליקים על המסלול';
@@ -660,8 +671,8 @@ const UI = (() => {
       );
     });
 
-    $('#btn-input-mode').addEventListener('click', () => {
-      if ($('#lane-box').classList.contains('game-running')) return;
+    bind($('#btn-input-mode'), 'click', () => {
+      if ($('#lane-box')?.classList.contains('game-running')) return;
       inputMode = inputMode === 'mic' ? 'touch' : 'mic';
       updateInputModeUI();
       $('#calib-msg').textContent = inputMode === 'mic'
@@ -671,9 +682,9 @@ const UI = (() => {
     });
     updateInputModeUI();
 
-    Engine.bindInput($('#game-canvas'));
+    if ($('#game-canvas')) Engine.bindInput($('#game-canvas'));
 
-    $('#player-chip').addEventListener('click', () => {
+    bind($('#player-chip'), 'click', () => {
       showScreen('players');
       renderPlayersList();
       setTimeout(() => $('#new-player-name')?.focus({ preventScroll: true }), 80);
@@ -681,7 +692,7 @@ const UI = (() => {
 
     window.addEventListener('resize', () => {
       Engine.resize($('#game-canvas'));
-      if ($('#lane-box').classList.contains('game-running')) stopGame();
+      if ($('#lane-box')?.classList.contains('game-running')) stopGame();
     });
   }
 
