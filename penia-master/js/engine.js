@@ -1,9 +1,9 @@
-/* מנוע המשחק + רינדור גרפי משופר */
+/* מנוע המשחק — פריטה · מודוסים · אקורדים */
 const Engine = (() => {
   const W_PERFECT = 0.05, W_GOOD = 0.11, W_REGISTER = 0.16;
   const LOOPS = 4, COUNT_IN = 4, PX_PER_BEAT = 155, HIT_X = 92;
 
-  let level, bpm, running = false, calibrating = false;
+  let level, bpm, gameType = 'pick', running = false, calibrating = false;
   let targets = [], beats = [], particles = [];
   let t0 = 0, endT = 0;
   let score = 0, combo = 0, maxCombo = 0;
@@ -16,19 +16,48 @@ const Engine = (() => {
 
   const actx = () => AudioEngine.ctx;
   const now = () => actx().currentTime;
+  const yCenter = h => h * 0.5;
 
   function buildRound() {
-    const beat = 60 / bpm, stepDur = beat / level.stepsPerBeat;
+    gameType = level.gameType || 'pick';
+    const beat = 60 / bpm;
+    const spb = gameType === 'pick' ? (level.stepsPerBeat || 1) : 1;
+    const stepDur = beat / spb;
     targets = []; beats = []; particles = [];
     t0 = now() + 0.65;
     const playStart = t0 + COUNT_IN * beat;
-    const totalSteps = level.strokes.length * LOOPS;
-    for (let s = 0; s < totalSteps; s++) {
-      const stroke = level.strokes[s % level.strokes.length];
-      if (stroke === '-') continue;
-      targets.push({ t: playStart + s * stepDur, dir: stroke.toLowerCase(), accent: stroke === 'D' || stroke === 'U', status: null });
+
+    const sequence = [];
+    if (gameType === 'pick') {
+      for (let loop = 0; loop < LOOPS; loop++) level.strokes.forEach(s => sequence.push({ stroke: s }));
+    } else if (gameType === 'note') {
+      for (let loop = 0; loop < LOOPS; loop++) level.notes.forEach(n => sequence.push({ note: n }));
+    } else {
+      for (let loop = 0; loop < LOOPS; loop++) level.chordSeq.forEach(id => sequence.push({ chordId: id }));
     }
-    endT = playStart + totalSteps * stepDur;
+
+    let step = 0;
+    for (const item of sequence) {
+      if (gameType === 'pick' && item.stroke === '-') { step++; continue; }
+      const tg = { t: playStart + step * stepDur, status: null, gameType };
+      if (gameType === 'pick') {
+        tg.dir = item.stroke.toLowerCase();
+        tg.accent = item.stroke === 'D' || item.stroke === 'U';
+      } else if (gameType === 'note') {
+        tg.note = item.note;
+        tg.label = item.note.label || item.note.solfege;
+        tg.midi = item.note.midi;
+      } else {
+        tg.chordId = item.chordId;
+        tg.label = item.chordId;
+        const ch = IRON_7.find(c => c.id === item.chordId);
+        tg.he = ch?.he || '';
+      }
+      targets.push(tg);
+      step++;
+    }
+    endT = playStart + step * stepDur;
+
     scheduledClicks = [];
     const totalBeats = Math.ceil((endT - t0) / beat);
     for (let b = 0; b <= totalBeats; b++) {
@@ -47,25 +76,24 @@ const Engine = (() => {
     }
   }
 
-  function handleInput(dir) {
-    if (calibrating) { calibTaps.push(now()); laneFlash = performance.now(); return; }
-    if (!running) return;
-    const tIn = now() + inputOffset;
+  function findBestTarget(tIn) {
     let best = null, bestDt = Infinity;
     for (const tg of targets) {
       if (tg.status) continue;
       const dt = tIn - tg.t;
       if (Math.abs(dt) < Math.abs(bestDt)) { bestDt = dt; best = tg; }
     }
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const yHit = dir === 'u' ? h * 0.28 : h * 0.72;
+    return { best, bestDt };
+  }
 
+  function scoreHit(best, bestDt, yHit, ok, wrongMsg, sfxDir) {
+    const w = canvas.clientWidth;
     if (!best || Math.abs(bestDt) > W_REGISTER) {
       addPopup('מוקדם מדי...', '#7d92a8'); return;
     }
-    if (best.dir !== dir) {
+    if (!ok) {
       best.status = 'wrong'; counts.wrong++; combo = 0;
-      addPopup('כיוון הפוך!', '#d96459');
+      addPopup(wrongMsg, '#d96459');
       spawnParticles(HIT_X, yHit, '#d96459');
       onHud({ score, combo }); return;
     }
@@ -89,8 +117,33 @@ const Engine = (() => {
     addPopup(label, color);
     spawnParticles(HIT_X, yHit, color);
     laneFlash = performance.now();
-    AudioEngine.strum(0, dir, best.accent);
+    if (gameType === 'pick') AudioEngine.strum(0, sfxDir, best.accent);
+    else AudioEngine.strum(0, 'd', false);
     onHud({ score, combo, maxCombo });
+  }
+
+  function handleInput(dir) {
+    if (calibrating) { calibTaps.push(now()); laneFlash = performance.now(); return; }
+    if (!running || gameType !== 'pick') return;
+    const h = canvas.clientHeight;
+    const { best, bestDt } = findBestTarget(now() + inputOffset);
+    scoreHit(best, bestDt, dir === 'u' ? h * 0.28 : h * 0.72, best?.dir === dir, 'כיוון הפוך!', dir);
+  }
+
+  function handleNoteHit(freq) {
+    if (calibrating || !running || gameType !== 'note') return;
+    const h = canvas.clientHeight;
+    const { best, bestDt } = findBestTarget(now() + inputOffset);
+    const ok = best && matchNote(best.note, freq);
+    scoreHit(best, bestDt, yCenter(h), ok, 'צליל לא נכון!', 'd');
+  }
+
+  function handleChordHit(freq) {
+    if (calibrating || !running || gameType !== 'chord') return;
+    const h = canvas.clientHeight;
+    const { best, bestDt } = findBestTarget(now() + inputOffset);
+    const ok = best && matchChordId(best.chordId, freq);
+    scoreHit(best, bestDt, yCenter(h), ok, 'אקורד לא נכון!', 'd');
   }
 
   function addPopup(text, color) {
@@ -120,6 +173,60 @@ const Engine = (() => {
       cctx.moveTo(x - h, y + s * 0.45); cctx.lineTo(x + h, y + s * 0.45); cctx.lineTo(x, y - s * 0.7);
     }
     cctx.closePath(); cctx.fill();
+    cctx.restore();
+  }
+
+  function drawNoteBubble(x, y, tg) {
+    const w = 52, ht = 36;
+    let color = '#4fb3d9';
+    let alpha = 1;
+    if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
+    else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
+    cctx.save();
+    cctx.globalAlpha = alpha;
+    cctx.shadowColor = color; cctx.shadowBlur = tg.status ? 0 : 12;
+    cctx.fillStyle = color + '33';
+    cctx.strokeStyle = color;
+    cctx.lineWidth = 2;
+    cctx.beginPath();
+    cctx.roundRect(x - w / 2, y - ht / 2, w, ht, 8);
+    cctx.fill(); cctx.stroke();
+    cctx.fillStyle = '#f0cc74';
+    cctx.font = '900 20px Heebo, sans-serif';
+    cctx.textAlign = 'center';
+    cctx.textBaseline = 'middle';
+    cctx.fillText(tg.label, x, y - 2);
+    cctx.fillStyle = '#8fa6bc';
+    cctx.font = '600 10px Heebo, sans-serif';
+    cctx.fillText('סריג ' + tg.note.fret, x, y + 12);
+    cctx.restore();
+  }
+
+  function drawChordBubble(x, y, tg) {
+    const w = 64, ht = 44;
+    let color = '#e3b341';
+    let alpha = 1;
+    if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
+    else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
+    cctx.save();
+    cctx.globalAlpha = alpha;
+    cctx.shadowColor = color; cctx.shadowBlur = tg.status ? 0 : 14;
+    cctx.fillStyle = color + '28';
+    cctx.strokeStyle = color;
+    cctx.lineWidth = 2.5;
+    cctx.beginPath();
+    cctx.roundRect(x - w / 2, y - ht / 2, w, ht, 10);
+    cctx.fill(); cctx.stroke();
+    cctx.fillStyle = '#f0cc74';
+    cctx.font = '900 22px Heebo, sans-serif';
+    cctx.textAlign = 'center';
+    cctx.textBaseline = 'middle';
+    cctx.fillText(tg.label, x, y - 4);
+    if (tg.he) {
+      cctx.fillStyle = '#8fa6bc';
+      cctx.font = '600 11px Heebo, sans-serif';
+      cctx.fillText(tg.he, x, y + 14);
+    }
     cctx.restore();
   }
 
@@ -158,15 +265,31 @@ const Engine = (() => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     const tNow = now(), beat = 60 / bpm, pxPerSec = PX_PER_BEAT / beat;
 
-    /* רקע מסלול */
     cctx.fillStyle = '#060b12';
     cctx.fillRect(0, 0, w, h);
-    const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
-    gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
-    cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
-    const gDn = cctx.createLinearGradient(0, h * 0.5, w, h);
-    gDn.addColorStop(0, 'rgba(60,45,18,0.25)'); gDn.addColorStop(1, 'rgba(28,20,8,0.55)');
-    cctx.fillStyle = gDn; cctx.fillRect(0, h / 2, w, h / 2);
+
+    if (gameType === 'pick') {
+      const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
+      gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
+      cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
+      const gDn = cctx.createLinearGradient(0, h * 0.5, w, h);
+      gDn.addColorStop(0, 'rgba(60,45,18,0.25)'); gDn.addColorStop(1, 'rgba(28,20,8,0.55)');
+      cctx.fillStyle = gDn; cctx.fillRect(0, h / 2, w, h / 2);
+    } else if (gameType === 'note') {
+      const g = cctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, 'rgba(30,60,90,0.5)'); g.addColorStop(1, 'rgba(12,20,32,0.8)');
+      cctx.fillStyle = g; cctx.fillRect(0, 0, w, h);
+      /* חמשה קווים — סטאף מיני */
+      cctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      for (let i = -2; i <= 2; i++) {
+        const ly = yCenter(h) + i * 8;
+        cctx.beginPath(); cctx.moveTo(0, ly); cctx.lineTo(w, ly); cctx.stroke();
+      }
+    } else {
+      const g = cctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, 'rgba(50,40,15,0.45)'); g.addColorStop(1, 'rgba(15,25,40,0.85)');
+      cctx.fillStyle = g; cctx.fillRect(0, 0, w, h);
+    }
 
     for (let i = 0; i < 16; i++) {
       const sx = (Math.sin(i * 2.1 + tNow * 0.3) * 0.5 + 0.5) * w;
@@ -175,14 +298,10 @@ const Engine = (() => {
       cctx.beginPath(); cctx.arc(sx, sy, 2, 0, Math.PI * 2); cctx.fill();
     }
 
-    /* מאיאנדר דקorative top */
-    cctx.strokeStyle = 'rgba(227,179,65,0.12)'; cctx.lineWidth = 2;
-    for (let i = 0; i < w; i += 28) {
-      cctx.strokeRect(i, 4, 14, 6);
+    if (gameType === 'pick') {
+      cctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      cctx.beginPath(); cctx.moveTo(0, h / 2); cctx.lineTo(w, h / 2); cctx.stroke();
     }
-
-    cctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    cctx.beginPath(); cctx.moveTo(0, h / 2); cctx.lineTo(w, h / 2); cctx.stroke();
 
     if (performance.now() - laneFlash < 100) {
       cctx.fillStyle = 'rgba(227,179,65,0.15)'; cctx.fillRect(0, 0, w, h);
@@ -194,7 +313,6 @@ const Engine = (() => {
       return;
     }
 
-    /* קווי פעמה */
     cctx.strokeStyle = 'rgba(157,178,199,0.12)';
     for (const bt of beats) {
       const x = HIT_X + (bt - tNow) * pxPerSec;
@@ -202,7 +320,6 @@ const Engine = (() => {
       cctx.beginPath(); cctx.moveTo(x, 0); cctx.lineTo(x, h); cctx.stroke();
     }
 
-    /* קו פגיעה + זוהר */
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 200);
     cctx.shadowColor = '#e3b341'; cctx.shadowBlur = 12 + pulse * 14;
     cctx.strokeStyle = `rgba(240,204,116,${0.75 + pulse * 0.25})`;
@@ -210,14 +327,18 @@ const Engine = (() => {
     cctx.beginPath(); cctx.moveTo(HIT_X, 0); cctx.lineTo(HIT_X, h); cctx.stroke();
     cctx.shadowBlur = 0; cctx.lineWidth = 1;
 
-    /* מטרות */
-    [[h * 0.28, '#4fb3d9'], [h * 0.72, '#e3b341']].forEach(([cy, col]) => {
-      cctx.strokeStyle = col + '66';
+    if (gameType === 'pick') {
+      [[h * 0.28, '#4fb3d9'], [h * 0.72, '#e3b341']].forEach(([cy, col]) => {
+        cctx.strokeStyle = col + '66';
+        cctx.lineWidth = 2;
+        cctx.beginPath(); cctx.arc(HIT_X, cy, 22, 0, Math.PI * 2); cctx.stroke();
+      });
+    } else {
+      cctx.strokeStyle = '#e3b34166';
       cctx.lineWidth = 2;
-      cctx.beginPath(); cctx.arc(HIT_X, cy, 22, 0, Math.PI * 2); cctx.stroke();
-    });
+      cctx.beginPath(); cctx.arc(HIT_X, yCenter(h), 26, 0, Math.PI * 2); cctx.stroke();
+    }
 
-    /* ספירה לאחור */
     if (running && tNow < t0 + COUNT_IN * beat) {
       const n = Math.ceil((t0 + COUNT_IN * beat - tNow) / beat);
       cctx.fillStyle = '#f0cc74';
@@ -226,26 +347,29 @@ const Engine = (() => {
       cctx.fillText(n, w / 2, h / 2 + 18);
     }
 
-    /* חיצים */
     for (const tg of targets) {
       const x = HIT_X + (tg.t - tNow) * pxPerSec;
-      if (x < -40 || x > w + 40) continue;
-      const y = tg.dir === 'u' ? h * 0.28 : h * 0.72;
-      const size = tg.accent ? 24 : 17;
-      let color = tg.dir === 'u' ? '#4fb3d9' : '#e3b341';
-      let alpha = 1;
-      if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
-      else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
-      drawArrow(x, y, tg.dir, size, color, tg.accent && !tg.status, alpha);
-      /* שובל */
-      if (!tg.status && x > HIT_X) {
-        cctx.strokeStyle = color + '44';
-        cctx.lineWidth = 3;
-        cctx.beginPath(); cctx.moveTo(x - 18, y); cctx.lineTo(x - 4, y); cctx.stroke();
+      if (x < -60 || x > w + 60) continue;
+      if (gameType === 'pick') {
+        const y = tg.dir === 'u' ? h * 0.28 : h * 0.72;
+        const size = tg.accent ? 24 : 17;
+        let color = tg.dir === 'u' ? '#4fb3d9' : '#e3b341';
+        let alpha = 1;
+        if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
+        else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
+        drawArrow(x, y, tg.dir, size, color, tg.accent && !tg.status, alpha);
+        if (!tg.status && x > HIT_X) {
+          cctx.strokeStyle = color + '44';
+          cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.moveTo(x - 18, y); cctx.lineTo(x - 4, y); cctx.stroke();
+        }
+      } else if (gameType === 'note') {
+        drawNoteBubble(x, yCenter(h), tg);
+      } else {
+        drawChordBubble(x, yCenter(h), tg);
       }
     }
 
-    /* פספוסים */
     if (running) {
       for (const tg of targets) {
         if (!tg.status && tNow - tg.t > W_REGISTER) {
@@ -256,7 +380,6 @@ const Engine = (() => {
       }
     }
 
-    /* חלקיקים */
     particles = particles.filter(p => p.life > 0);
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= 0.04;
@@ -266,7 +389,6 @@ const Engine = (() => {
       cctx.globalAlpha = 1;
     });
 
-    /* פופ-אפים */
     const pNow = performance.now();
     popups = popups.filter(p => pNow - p.born < 750);
     popups.forEach(p => {
@@ -291,12 +413,13 @@ const Engine = (() => {
     const acc = total ? weighted / total : 0;
     const stars = acc >= 0.92 && counts.wrong === 0 ? 3 : acc >= 0.75 ? 2 : acc >= 0.55 ? 1 : 0;
     if (stars >= 2) AudioEngine.fanfare();
-    onFinish({ score, stars, acc, counts, maxCombo, level, bpm });
+    onFinish({ score, stars, acc, counts, maxCombo, level, bpm, gameType });
   }
 
   function start(lv, bpmVal, canvasEl, hudCb, finishCb) {
     calibrating = false;
     level = lv; bpm = bpmVal;
+    gameType = lv.gameType || 'pick';
     onHud = hudCb; onFinish = finishCb;
     score = 0; combo = 0; maxCombo = 0;
     counts = { perfect: 0, good: 0, miss: 0, wrong: 0, early: 0, late: 0 };
@@ -358,13 +481,17 @@ const Engine = (() => {
     document.addEventListener('keydown', e => {
       if (!running && !calibrating) return;
       if (e.repeat) return;
-      if (e.code === 'ArrowDown' || e.code === 'KeyJ') { e.preventDefault(); handleInput('d'); }
-      else if (e.code === 'ArrowUp' || e.code === 'KeyK') { e.preventDefault(); handleInput('u'); }
+      if (gameType === 'pick') {
+        if (e.code === 'ArrowDown' || e.code === 'KeyJ') { e.preventDefault(); handleInput('d'); }
+        else if (e.code === 'ArrowUp' || e.code === 'KeyK') { e.preventDefault(); handleInput('u'); }
+      }
     });
     canvasEl.addEventListener('pointerdown', e => {
       e.preventDefault();
-      const r = canvasEl.getBoundingClientRect();
-      handleInput(e.clientY - r.top < r.height / 2 ? 'u' : 'd');
+      if (gameType === 'pick') {
+        const r = canvasEl.getBoundingClientRect();
+        handleInput(e.clientY - r.top < r.height / 2 ? 'u' : 'd');
+      }
     });
   }
 
@@ -372,5 +499,7 @@ const Engine = (() => {
     if (canvasEl) setupCanvas(canvasEl);
   }
 
-  return { start, stop, calibrate, bindInput, handleInput, resize };
+  function getGameType() { return gameType; }
+
+  return { start, stop, calibrate, bindInput, handleInput, handleNoteHit, handleChordHit, resize, getGameType };
 })();

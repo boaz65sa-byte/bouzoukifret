@@ -33,7 +33,7 @@
       <div class="ob-step active">
         <div class="ob-icon">🎸</div>
         <h2>שלושה משחקים — בוזוקי אמיתי</h2>
-        <p><b>מאסטר הפריטה</b> — תזמון ↓↑ עם המיקרופון<br><b>מאסטר המודוסים</b> — דו·רה·מי על הגשר (בקרוב)<br><b>מאסטר האקורדים</b> — 7 אקורדי הברזל ועוד</p>
+        <p><b>מאסטר הפריטה</b> — תזמון ↓↑ עם המיקרופון<br><b>מאסטר המודוסים</b> — דו·רה·מי על מיתר רה<br><b>מאסטר האקורדים</b> — 7 אקורדי הברזל ועוד</p>
       </div>
       <div class="ob-step">
         <div class="ob-icon">🎤</div>
@@ -68,31 +68,34 @@
 
     <p class="hub-tagline">בחר משחק · נגן על הכלי · התקדם</p>
 
-    <div class="game-hub">
-      <button class="game-card game-pick" type="button" data-hub="pick-levels">
-        <span class="gc-num">1</span>
-        <div class="gc-body">
+    <div class="game-hub" id="game-hub">
+      <div class="hub-game hub-pick" data-hub="pick-levels" role="button" tabindex="0" aria-label="מאסטר הפריטה">
+        <div class="hg-icon">↓↑</div>
+        <div class="hg-body">
           <b>מאסטר הפריטה</b>
-          <small>Penia · ↓↑ בזמן · 8 שלבים</small>
+          <small>תזמון פריטה ↓↑ · מיקרופון · מטרונום</small>
+          <span class="hg-badge">8 שלבים</span>
         </div>
-        <span class="gc-go">▶</span>
-      </button>
-      <button class="game-card game-modes" type="button" data-hub="modes">
-        <span class="gc-num">2</span>
-        <div class="gc-body">
+        <span class="hg-go" aria-hidden="true">◀</span>
+      </div>
+      <div class="hub-game hub-modes" data-hub="modes" role="button" tabindex="0" aria-label="מאסטר המודוסים">
+        <div class="hg-icon">♩</div>
+        <div class="hg-body">
           <b>מאסטר המודוסים</b>
-          <small>דו רה מי · חיג׳אז · ראסט…</small>
+          <small>חיג׳אז · ראסט · מינור · אוסאק על מיתר רה</small>
+          <span class="hg-badge">6 שלבים</span>
         </div>
-        <span class="gc-soon">בקרוב</span>
-      </button>
-      <button class="game-card game-chords" type="button" data-hub="chords">
-        <span class="gc-num">3</span>
-        <div class="gc-body">
+        <span class="hg-go" aria-hidden="true">◀</span>
+      </div>
+      <div class="hub-game hub-chords" data-hub="chords" role="button" tabindex="0" aria-label="מאסטר האקורדים">
+        <div class="hg-icon">🎸</div>
+        <div class="hg-body">
           <b>מאסטר האקורדים</b>
-          <small>7 אקורדי ברזל + 101 פוזיציות</small>
+          <small>משחק זורם + תרגול 7 אקורדי הברזל</small>
+          <span class="hg-badge">7+7 שלבים</span>
         </div>
-        <span class="gc-go">▶</span>
-      </button>
+        <span class="hg-go" aria-hidden="true">◀</span>
+      </div>
     </div>
   </section>
 
@@ -109,21 +112,22 @@
   <section class="screen" id="screen-modes">
     <header class="sub-head">
       <button class="btn icon sub-back" data-back="home">→</button>
-      <div><h2>מאסטר המודוסים</h2><small>בקרוב</small></div>
+      <div><h2>מאסטר המודוסים</h2><small>6 שלבים · מיתר רה · מיקרופון</small></div>
     </header>
-    <div class="coming-soon">
-      <div class="cs-icon">🎼</div>
-      <h3>דו · רה · מי על הגשר</h3>
-      <p>המשחק יציג מודוס (חיג׳אז, ראסט, סבאח…) — ואתם מנגנים על הבוזוקי. המיקרופון מאשר כל צליל ונותן משוב.</p>
-    </div>
+    <p class="chords-lead">דרומוסים יווניים על מיתר רה — כל צליל מגיע לקו, אתם מנגנים על הבוזוקי.</p>
+    <div class="level-map" id="mode-map"></div>
   </section>
 
-  <!-- אקורדים — 7 ברזל -->
+  <!-- אקורדים -->
   <section class="screen" id="screen-chords">
     <header class="sub-head">
       <button class="btn icon sub-back" data-back="home">→</button>
-      <div><h2>מאסטר האקורדים</h2><small>7 אקורדי הברזל</small></div>
+      <div><h2>מאסטר האקורדים</h2><small>משחק זורם + תרגול</small></div>
     </header>
+    <h3 class="section-sub">🎮 משחק זורם — 7 שלבים</h3>
+    <p class="chords-lead">אקורדים זורמים על המסלול — פרטו את האקורד הנכון בזמן.</p>
+    <div class="level-map" id="chord-flow-map"></div>
+    <h3 class="section-sub">📖 תרגול בודד — 7 הברזל</h3>
     <p class="chords-lead">הברזל — שבעת האקורדים שמובילים כל ליווי רבטיקו. לחצו לתרגול עם המיקרופון.</p>
     <div class="chord-grid" id="chord-grid"></div>
     <p class="chords-more">+ עוד 101 פוזיציות בדרך — כולן יקבלו כבוד 🎸</p>
@@ -173,9 +177,9 @@
 
     <div class="lane-wrap">
       <div class="lane-box" id="lane-box" dir="ltr">
-        <span class="zone up">↑ למעלה</span>
+        <span class="zone up" id="zone-up">↑ למעלה</span>
         <canvas id="game-canvas"></canvas>
-        <span class="zone down">↓ למטה</span>
+        <span class="zone down" id="zone-down">↓ למטה</span>
         <span id="play-best" class="best-float"></span>
         <div class="mic-meter" id="mic-meter" hidden><div class="mic-fill" id="mic-fill"></div></div>
         <p class="mic-status" id="mic-status"></p>
@@ -202,8 +206,13 @@
   </section>
 
   <section class="screen" id="screen-leaderboard">
-    <h2 class="section-title">🏆 לוח תוצאות — פריטה</h2>
+    <h2 class="section-title">🏆 לוח תוצאות</h2>
     <p class="lead">התחרות בין הנגנים</p>
+    <select id="lb-game" class="select-full">
+      <option value="pick">מאסטר הפריטה</option>
+      <option value="modes">מאסטר המודוסים</option>
+      <option value="chords">מאסטר האקורדים</option>
+    </select>
     <select id="lb-level" class="select-full"></select>
     <div class="lb-list" id="lb-list"></div>
   </section>
@@ -233,6 +242,8 @@
 <script src="config.js" onerror="void 0"></script>
 <script src="js/levels.js"></script>
 <script src="js/chords-data.js"></script>
+<script src="js/chords-levels.js"></script>
+<script src="js/modes-data.js"></script>
 <script src="js/chord-diagram.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/mic.js"></script>

@@ -7,6 +7,8 @@ const $$ = s => document.querySelectorAll(s);
 const UI = (() => {
   let currentLevel = LEVELS[0];
   let bpm = LEVELS[0].bpm;
+  let playBackTarget = 'pick-levels';
+  let currentGameKind = 'pick';
   let seenTutorial = localStorage.getItem('penia-tutorial') === '1';
   let inputMode = localStorage.getItem('penia-input') || 'mic';
   let currentChord = null;
@@ -14,6 +16,24 @@ const UI = (() => {
   let chordDrillHits = 0;
   let chordDrillRound = 0;
   const CHORD_ROUNDS = 4;
+
+  const GAME_NAMES = {
+    pick: 'מאסטר הפריטה',
+    modes: 'מאסטר המודוסים',
+    chords: 'מאסטר האקורדים',
+  };
+
+  function levelListForKind(kind) {
+    if (kind === 'modes') return MODE_LEVELS;
+    if (kind === 'chords') return CHORD_FLOW_LEVELS;
+    return LEVELS;
+  }
+
+  function kindFromLevel(lv) {
+    if (lv.gameType === 'note') return 'modes';
+    if (lv.gameType === 'chord') return 'chords';
+    return 'pick';
+  }
 
   function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
@@ -29,9 +49,23 @@ const UI = (() => {
     stopGame();
     stopChordDrill();
     if (target === 'pick-levels') { renderLevelMap(); showScreen('pick-levels'); }
-    else if (target === 'chords') { renderChordGrid(); showScreen('chords'); }
-    else if (target === 'modes') showScreen('modes');
+    else if (target === 'chords') { renderChordFlowMap(); renderChordGrid(); showScreen('chords'); }
+    else if (target === 'modes') { renderModeMap(); showScreen('modes'); }
     else showScreen('home');
+  }
+
+  function bindHubNavigation() {
+    const hub = $('#game-hub');
+    if (!hub) return;
+    hub.addEventListener('click', e => {
+      const card = e.target.closest('[data-hub]');
+      if (card) goHub(card.dataset.hub);
+    });
+    hub.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('[data-hub]');
+      if (card) { e.preventDefault(); goHub(card.dataset.hub); }
+    });
   }
 
   function boot() {
@@ -39,6 +73,8 @@ const UI = (() => {
     else showScreen('home');
     refreshPlayerChip();
     renderLevelMap();
+    renderModeMap();
+    renderChordFlowMap();
     refreshCommunity();
   }
 
@@ -170,12 +206,12 @@ const UI = (() => {
 
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  /* ---- Home: מפת שלבים ---- */
-  function renderLevelMap() {
-    const grid = $('#level-map');
+  function renderGenericMap(list, containerId, onOpen) {
+    const grid = $(containerId);
+    if (!grid) return;
     grid.innerHTML = '';
     const p = Players.current();
-    LEVELS.forEach(lv => {
+    list.forEach(lv => {
       const unlocked = Players.isUnlocked(lv.id);
       const prog = p.progress[lv.id] || {};
       const card = document.createElement('div');
@@ -188,11 +224,21 @@ const UI = (() => {
           <div class="lc-stars">${'★'.repeat(prog.stars || 0)}${'☆'.repeat(3 - (prog.stars || 0))}</div>
         </div>
         ${unlocked ? '<div class="lc-play">▶</div>' : '<div class="lc-lock">🔒</div>'}`;
-      if (unlocked) {
-        card.addEventListener('click', () => openPlay(lv));
-      }
+      if (unlocked) card.addEventListener('click', () => onOpen(lv));
       grid.appendChild(card);
     });
+  }
+
+  function renderLevelMap() {
+    renderGenericMap(LEVELS, '#level-map', lv => openPlay(lv, 'pick-levels', 'pick'));
+  }
+
+  function renderModeMap() {
+    renderGenericMap(MODE_LEVELS, '#mode-map', lv => openPlay(lv, 'modes', 'modes'));
+  }
+
+  function renderChordFlowMap() {
+    renderGenericMap(CHORD_FLOW_LEVELS, '#chord-flow-map', lv => openPlay(lv, 'chords', 'chords'));
   }
 
   function refreshPlayerChip() {
@@ -235,24 +281,56 @@ const UI = (() => {
     localStorage.setItem('penia-input', inputMode);
   }
 
-  function buildFeedback(counts) {
+  function buildFeedback(counts, gt) {
     const tips = [];
-    if (counts.wrong > 2) tips.push('↕ בדקו כיוון: ↓ למטה · ↑ למעלה');
+    if (gt === 'pick') {
+      if (counts.wrong > 2) tips.push('↕ בדקו כיוון: ↓ למטה · ↑ למעלה');
+    } else if (gt === 'note') {
+      if (counts.wrong > 2) tips.push('♩ בדקו סריג ואינטונציה — צליל אחד בכל פעם');
+    } else {
+      if (counts.wrong > 2) tips.push('🎸 החזיקו את האקורד לפני הקו — פריטה ↓ נקייה');
+    }
     if (counts.early > counts.late + 2) tips.push('⏱ מוקדמים — חכו עוד רגע לקו הזהב');
-    if (counts.late > counts.early + 2) tips.push('⏱ מאוחרים — הקישו מעט לפני הקו');
+    if (counts.late > counts.early + 2) tips.push('⏱ מאוחרים — נגנו מעט לפני הקו');
     if (counts.miss > 3) tips.push('👂 הקשיבו למטרונום — דיוק לפני מהירות');
-    if (!tips.length && counts.perfect > counts.good) tips.push('🎸 פריטה נקייה — המשיכו כך!');
+    if (!tips.length && counts.perfect > counts.good) tips.push('🎸 נקי — המשיכו כך!');
     return tips.join(' · ');
+  }
+
+  function updateLaneZones(gt) {
+    const lane = $('#lane-box');
+    lane.classList.toggle('lane-pick', gt === 'pick');
+    lane.classList.toggle('lane-notes', gt === 'note');
+    lane.classList.toggle('lane-chords', gt === 'chord');
+    const zu = $('#zone-up'), zd = $('#zone-down');
+    if (gt === 'pick') {
+      zu.textContent = '↑ למעלה'; zd.textContent = '↓ למטה';
+      zu.hidden = false; zd.hidden = false;
+    } else if (gt === 'note') {
+      zu.textContent = '♩ צליל'; zd.textContent = 'מיתר רה';
+      zu.hidden = false; zd.hidden = false;
+    } else {
+      zu.hidden = true; zd.hidden = true;
+    }
+    $('#btn-input-mode').hidden = gt !== 'pick';
   }
 
   async function startMicForGame() {
     if (inputMode !== 'mic') return;
+    const gt = currentLevel.gameType || 'pick';
     try {
       await MicInput.start(
-        ({ dir }) => Engine.handleInput(dir),
+        ({ dir, freq }) => {
+          if (gt === 'pick') Engine.handleInput(dir);
+          else if (gt === 'note') Engine.handleNoteHit(freq);
+          else Engine.handleChordHit(freq);
+        },
         lvl => { $('#mic-fill').style.width = (lvl * 100) + '%'; }
       );
-      $('#mic-status').textContent = '🎤 שומע — פרטו בזמן';
+      const msg = gt === 'pick' ? '🎤 שומע — פרטו בזמן'
+        : gt === 'note' ? '🎤 שומע — נגנו כל צליל בקו'
+        : '🎤 שומע — החזיקו אקורד ופרטו ↓';
+      $('#mic-status').textContent = msg;
     } catch (e) {
       inputMode = 'touch';
       updateInputModeUI();
@@ -271,15 +349,19 @@ const UI = (() => {
   }
 
   /* ---- Play ---- */
-  function openPlay(lv) {
+  function openPlay(lv, backTo, kind) {
     currentLevel = lv;
+    currentGameKind = kind || kindFromLevel(lv);
+    playBackTarget = backTo || 'pick-levels';
     bpm = lv.bpm;
+    const gt = lv.gameType || 'pick';
     $('#play-title').textContent = lv.name;
     $('#play-sub').textContent = lv.subtitle + ' · ' + lv.bpm + ' BPM';
     $('#play-teach').textContent = lv.teach;
     $('#play-tip').textContent = '💡 ' + lv.tip;
     $('#play-bpm-val').textContent = bpm;
-    renderPattern($('#play-pattern'), lv.strokes);
+    renderPlayPattern(lv, gt);
+    updateLaneZones(gt);
     const prog = Players.current().progress[lv.id];
     $('#play-best').textContent = prog?.best ? `שיא ${prog.best}` : '';
     $('#results-panel').classList.remove('show');
@@ -288,6 +370,28 @@ const UI = (() => {
     setPlayUIState(false);
     updateInputModeUI();
     showScreen('play');
+  }
+
+  function renderPlayPattern(lv, gt) {
+    const el = $('#play-pattern');
+    el.innerHTML = '';
+    if (gt === 'pick') {
+      renderPattern(el, lv.strokes);
+    } else if (gt === 'note') {
+      lv.notes.forEach(n => {
+        const sp = document.createElement('span');
+        sp.className = 'pat note';
+        sp.textContent = n.label || n.solfege;
+        el.appendChild(sp);
+      });
+    } else {
+      lv.chordSeq.forEach(id => {
+        const sp = document.createElement('span');
+        sp.className = 'pat chord';
+        sp.textContent = id;
+        el.appendChild(sp);
+      });
+    }
   }
 
   function renderPattern(el, strokes) {
@@ -331,22 +435,27 @@ const UI = (() => {
 
   function showResults(r) {
     stopGame();
+    const list = levelListForKind(currentGameKind);
     const prev = Players.current().progress[r.level.id]?.best || 0;
     const isRecord = r.score > prev;
     Players.recordResult(r.level.id, r.score, r.stars, r.counts, r.bpm);
     renderLevelMap();
+    renderModeMap();
+    renderChordFlowMap();
     refreshCommunity();
 
     const msgs = [
       '💪 האטו — דיוק לפני מהירות',
-      '👍 התבנית נכנסת! עוד סבב',
+      '👍 נכנס! עוד סבב',
       '⭐ מצוין! כמעט מושלם',
       '🏆 μάστορα! שליטה מלאה'
     ];
 
-    const feedback = buildFeedback(r.counts);
+    const feedback = buildFeedback(r.counts, r.gameType || 'pick');
     const panel = $('#results-panel');
     panel.className = 'results-panel show ' + ['work', 'ok', 'good', 'gold'][r.stars];
+    const idx = list.findIndex(l => l.id === r.level.id);
+    const hasNext = r.stars >= 1 && idx < list.length - 1;
     panel.innerHTML = `
       <div class="res-inner">
         <div class="res-stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</div>
@@ -357,7 +466,7 @@ const UI = (() => {
         <div class="res-btns">
           <button class="btn gold" id="res-retry">🔁 שוב</button>
           ${r.stars >= 2 ? '<button class="btn" id="res-faster">⚡ +5 BPM</button>' : ''}
-          ${r.stars >= 1 && LEVELS.find(l => l.id === r.level.id)?.num < 8 ? '<button class="btn" id="res-next">⬆ שלב הבא</button>' : ''}
+          ${hasNext ? '<button class="btn" id="res-next">⬆ שלב הבא</button>' : ''}
           <button class="btn" id="res-share">📤 שתף</button>
         </div>
       </div>`;
@@ -365,17 +474,15 @@ const UI = (() => {
     const faster = $('#res-faster');
     if (faster) faster.onclick = () => { bpm += 5; $('#play-bpm-val').textContent = bpm; panel.classList.remove('show'); startGame(); };
     const next = $('#res-next');
-    if (next) next.onclick = () => {
-      const idx = LEVELS.findIndex(l => l.id === r.level.id);
-      if (idx < LEVELS.length - 1) openPlay(LEVELS[idx + 1]);
-    };
+    if (next) next.onclick = () => openPlay(list[idx + 1], playBackTarget, currentGameKind);
     $('#res-share').onclick = () => shareScore(r, isRecord);
   }
 
   function shareScore(r, isRecord) {
     const p = Players.current();
+    const gameName = GAME_NAMES[currentGameKind] || 'בוזוקי מאסטר';
     const text = `🎸 בוזוקי מאסטר — ${p.name}\n` +
-      `מאסטר הפריטה · ${r.level.name} (${r.bpm} BPM)\n` +
+      `${gameName} · ${r.level.name} (${r.bpm} BPM)\n` +
       `ניקוד: ${Math.round(r.score)} ${isRecord ? '🏆 שיא!' : ''}\n` +
       `כוכבים: ${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}\n` +
       `דיוק: ${(r.acc * 100).toFixed(0)}%\n` +
@@ -391,20 +498,26 @@ const UI = (() => {
   }
 
   /* ---- Leaderboard ---- */
-  function renderLeaderboard() {
+  function fillLbLevels(kind) {
     const sel = $('#lb-level');
-    if (!sel.options.length) {
-      LEVELS.forEach((lv, i) => {
-        const o = document.createElement('option');
-        o.value = i; o.textContent = lv.name;
-        sel.appendChild(o);
-      });
-      sel.addEventListener('change', renderLeaderboard);
-    }
-    const lv = LEVELS[parseInt(sel.value, 10) || 0];
+    const list = levelListForKind(kind);
+    sel.innerHTML = '';
+    list.forEach((lv, i) => {
+      const o = document.createElement('option');
+      o.value = i; o.textContent = lv.name;
+      sel.appendChild(o);
+    });
+  }
+
+  function renderLeaderboard() {
+    const gameSel = $('#lb-game');
+    const kind = gameSel.value || 'pick';
+    fillLbLevels(kind);
+    const list = levelListForKind(kind);
+    const lv = list[parseInt($('#lb-level').value, 10) || 0];
     const rows = Players.leaderboard(lv.id);
-    const list = $('#lb-list');
-    list.innerHTML = rows.length ? '' : '<p class="empty">עדיין אין תוצאות — שחקו!</p>';
+    const listEl = $('#lb-list');
+    listEl.innerHTML = rows.length ? '' : '<p class="empty">עדיין אין תוצאות — שחקו!</p>';
     rows.forEach((row, i) => {
       const div = document.createElement('div');
       div.className = 'lb-row' + (i === 0 ? ' first' : '');
@@ -414,7 +527,7 @@ const UI = (() => {
         <span class="lb-name">${row.name}</span>
         <span class="lb-stars">${'★'.repeat(row.stars)}</span>
         <span class="lb-score">${row.best}</span>`;
-      list.appendChild(div);
+      listEl.appendChild(div);
     });
   }
 
@@ -433,6 +546,8 @@ const UI = (() => {
         Players.setCurrent(p.id);
         refreshPlayerChip();
         renderLevelMap();
+        renderModeMap();
+        renderChordFlowMap();
       });
       list.appendChild(div);
     });
@@ -455,6 +570,8 @@ const UI = (() => {
       feedback.className = 'player-feedback ok';
       refreshPlayerChip();
       renderLevelMap();
+      renderModeMap();
+      renderChordFlowMap();
       refreshCommunity();
       setTimeout(() => { feedback.textContent = ''; feedback.className = 'player-feedback'; }, 2500);
     } catch (e) {
@@ -486,18 +603,17 @@ const UI = (() => {
 
   /* ---- Init ---- */
   function init() {
+    bindHubNavigation();
     initSplash();
     initOnboard();
-    initPlayersForm();
-    renderChordGrid();
+    try { initPlayersForm(); } catch (e) { console.warn('players form', e); }
+    try { renderChordGrid(); } catch (e) { console.warn('chord grid', e); }
+    try { renderModeMap(); renderChordFlowMap(); renderLevelMap(); } catch (e) { console.warn('maps', e); }
 
-    $$('[data-hub]').forEach(btn => {
-      btn.addEventListener('click', () => goHub(btn.dataset.hub));
-    });
     $$('[data-back]').forEach(btn => {
       btn.addEventListener('click', () => goHub(btn.dataset.back));
     });
-    $('#btn-back-play').addEventListener('click', () => goHub('pick-levels'));
+    $('#btn-back-play').addEventListener('click', () => goHub(playBackTarget));
     $('#btn-back-chord').addEventListener('click', () => { stopChordDrill(); goHub('chords'); });
     $('#btn-chord-play').addEventListener('click', () => startChordDrill());
 
@@ -517,6 +633,9 @@ const UI = (() => {
         if (sc === 'home') refreshCommunity();
       });
     });
+
+    $('#lb-game')?.addEventListener('change', renderLeaderboard);
+    $('#lb-level')?.addEventListener('change', renderLeaderboard);
 
     $('#btn-play').addEventListener('click', () => startGame());
     $('#btn-stop').addEventListener('click', () => stopGame());

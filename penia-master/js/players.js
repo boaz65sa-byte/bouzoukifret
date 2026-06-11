@@ -38,13 +38,23 @@ const Players = (() => {
   function all() { return [...data.players].sort((a, b) => b.stats.totalScore - a.stats.totalScore); }
   function setCurrent(id) { data.currentId = id; save(); }
 
-  function isUnlocked(levelId) {
-    const lv = LEVELS.find(l => l.id === levelId);
+  function levelListFor(id) {
+    if (id.startsWith('m')) return MODE_LEVELS;
+    if (id.startsWith('c')) return CHORD_FLOW_LEVELS;
+    return LEVELS;
+  }
+
+  function isUnlockedIn(list, levelId) {
+    const lv = list.find(l => l.id === levelId);
     if (!lv || lv.unlock === 0) return true;
-    const prev = LEVELS.find(l => l.num === lv.unlock);
+    const prev = list.find(l => l.num === lv.unlock);
     if (!prev) return true;
     const prog = current().progress[prev.id];
     return prog && prog.stars >= 1;
+  }
+
+  function isUnlocked(levelId) {
+    return isUnlockedIn(levelListFor(levelId), levelId);
   }
 
   function recordResult(levelId, score, stars, counts, bpm) {
@@ -79,5 +89,5 @@ const Players = (() => {
   function totalPlayers() { return data.players.length; }
 
   load();
-  return { create, current, all, setCurrent, isUnlocked, recordResult, leaderboard, totalPlayers, save };
+  return { create, current, all, setCurrent, isUnlocked, isUnlockedIn, levelListFor, recordResult, leaderboard, totalPlayers, save };
 })();
