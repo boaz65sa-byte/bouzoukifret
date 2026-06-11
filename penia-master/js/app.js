@@ -1,4 +1,4 @@
-/* ממשק — מאסטר הפנייה (מסך משחק יחיד) */
+/* ממשק — מאסטר הפנייה (אפליקציה עצמאית) */
 'use strict';
 
 const $ = s => document.querySelector(s);
@@ -11,135 +11,141 @@ const UI = (() => {
 
   function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
-    const el = $('#screen-' + id);
-    if (el) el.classList.add('active');
-    $('#app').classList.toggle('in-game', id === 'game');
-    closeMenu();
-  }
-
-  function openMenu() {
-    $('#menu-sheet').classList.add('open');
-    $('#sheet-backdrop').classList.add('open');
-    refreshPlayerChip();
-    refreshCommunity();
-  }
-
-  function closeMenu() {
-    $('#menu-sheet').classList.remove('open');
-    $('#sheet-backdrop').classList.remove('open');
-  }
-
-  function setStatus(msg, type) {
-    const el = $('#status-line');
-    el.textContent = msg || '';
-    el.className = 'status-line' + (type ? ' ' + type : '');
+    $('#screen-' + id).classList.add('active');
+    $$('.bottom-nav .nav-item').forEach(n => {
+      n.classList.toggle('active', n.dataset.screen === id);
+    });
+    $('.app').classList.toggle('play-mode', id === 'play');
+    if (id === 'play') requestAnimationFrame(() => Engine.resize($('#game-canvas')));
   }
 
   function boot() {
-    renderLevelSelect();
-    setLevel(currentLevel, false);
-    refreshPlayerChip();
-    refreshCommunity();
     if (!seenTutorial) showScreen('onboard');
-    else showScreen('game');
-    requestAnimationFrame(() => Engine.resize($('#game-canvas')));
+    else showScreen('home');
+    refreshPlayerChip();
+    renderLevelMap();
+    refreshCommunity();
   }
 
+  /* ---- Splash ---- */
   function initSplash() {
     setTimeout(() => {
       $('#splash').classList.add('hide');
       boot();
-    }, 1600);
+    }, 2200);
   }
 
+  /* ---- Onboarding ---- */
   function initOnboard() {
-    $('#ob-start').addEventListener('click', () => {
+    let step = 0;
+    const steps = $$('.ob-step');
+    const dots = $$('.ob-dot');
+    function showStep(i) {
+      steps.forEach((s, j) => s.classList.toggle('active', j === i));
+      dots.forEach((d, j) => d.classList.toggle('active', j === i));
+      step = i;
+    }
+    $('#ob-next').addEventListener('click', () => {
+      if (step < steps.length - 1) showStep(step + 1);
+      else { localStorage.setItem('penia-tutorial', '1'); seenTutorial = true; showScreen('home'); }
+    });
+    $('#ob-skip').addEventListener('click', () => {
       localStorage.setItem('penia-tutorial', '1');
-      seenTutorial = true;
-      showScreen('game');
-      AudioEngine.ensureCtx();
+      showScreen('home');
     });
+    showStep(0);
   }
 
-  function renderLevelSelect() {
-    const sel = $('#level-select');
-    sel.innerHTML = '';
-    LEVELS.forEach((lv, i) => {
-      const o = document.createElement('option');
-      o.value = i;
-      o.textContent = `${lv.icon}. ${lv.name}`;
-      o.disabled = !Players.isUnlocked(lv.id);
-      sel.appendChild(o);
+  /* ---- Home: מפת שלבים ---- */
+  function renderLevelMap() {
+    const grid = $('#level-map');
+    grid.innerHTML = '';
+    const p = Players.current();
+    LEVELS.forEach(lv => {
+      const unlocked = Players.isUnlocked(lv.id);
+      const prog = p.progress[lv.id] || {};
+      const card = document.createElement('div');
+      card.className = 'level-card' + (unlocked ? '' : ' locked');
+      card.innerHTML = `
+        <div class="lc-num">${lv.icon}</div>
+        <div class="lc-body">
+          <div class="lc-name">${lv.name}</div>
+          <div class="lc-sub">${lv.subtitle}</div>
+          <div class="lc-stars">${'★'.repeat(prog.stars || 0)}${'☆'.repeat(3 - (prog.stars || 0))}</div>
+        </div>
+        ${unlocked ? '<div class="lc-play">▶</div>' : '<div class="lc-lock">🔒</div>'}`;
+      if (unlocked) {
+        card.addEventListener('click', () => openPlay(lv));
+      }
+      grid.appendChild(card);
     });
-    sel.addEventListener('change', () => {
-      const idx = parseInt(sel.value, 10);
-      if (!isNaN(idx)) setLevel(LEVELS[idx]);
-    });
-  }
-
-  function setLevel(lv, updateSelect = true) {
-    if (!Players.isUnlocked(lv.id)) return;
-    currentLevel = lv;
-    bpm = lv.bpm;
-    if (updateSelect) {
-      const idx = LEVELS.findIndex(l => l.id === lv.id);
-      if (idx >= 0) $('#level-select').value = String(idx);
-    }
-    $('#bar-bpm').textContent = bpm + ' BPM';
-    $('#play-bpm-val').textContent = bpm;
-    $('#play-tip').textContent = lv.teach + ' — ' + lv.tip;
-    updateLevelNav();
-    $('#results-panel').classList.remove('show');
-    setStatus('');
-  }
-
-  function updateLevelNav() {
-    const idx = LEVELS.findIndex(l => l.id === currentLevel.id);
-    $('#btn-level-prev').disabled = idx <= 0;
-    const next = LEVELS[idx + 1];
-    $('#btn-level-next').disabled = !next || !Players.isUnlocked(next.id);
-  }
-
-  function shiftLevel(dir) {
-    const idx = LEVELS.findIndex(l => l.id === currentLevel.id);
-    const next = LEVELS[idx + dir];
-    if (next && Players.isUnlocked(next.id)) {
-      stopGame();
-      setLevel(next);
-    }
   }
 
   function refreshPlayerChip() {
     const p = Players.current();
-    $('#player-chip').innerHTML = `<span class="chip-av">${p.avatar}</span><span class="chip-name">${p.name}</span><span class="chip-arrow">‹</span>`;
+    $('#player-chip').innerHTML = `<span class="chip-av">${p.avatar}</span><span>${p.name}</span>`;
     renderPlayersList();
-    renderLevelSelect();
-    updateLevelNav();
   }
 
   function refreshCommunity() {
     const s = Community.stats();
     $('#comm-local').innerHTML = `
-      <span><b>${s.localPlayers}</b> שחקנים</span>
-      <span><b>${s.localGames}</b> משחקים</span>`;
+      <div class="comm-stat"><b>${s.localPlayers}</b><span>שחקנים במכשיר</span></div>
+      <div class="comm-stat"><b>${s.localGames}</b><span>משחקים שוחקו</span></div>`;
     const globalEl = $('#comm-global');
     if (s.online && s.globalGames != null) {
-      globalEl.innerHTML = `<p class="comm-online">${s.groupName}: <b>${s.globalPlayers}</b> נגנים · <b>${s.globalGames}</b> משחקים</p>`;
-    } else globalEl.innerHTML = '';
+      globalEl.innerHTML = `
+        <div class="comm-banner online">
+          <div class="comm-group">${s.groupName}</div>
+          <div class="comm-global-row">
+            <div><b>${s.globalPlayers}</b> נגנים בקהילה</div>
+            <div><b>${s.globalGames}</b> משחקים סה"כ</div>
+          </div>
+        </div>`;
+    } else {
+      globalEl.innerHTML = `
+        <div class="comm-banner offline">
+          <p>רוצים לראות כמה נגנים בקבוצות הבוזוקי שלכם? העתיקו <code>config.example.js</code> ל-<code>config.js</code> והגדירו Firebase (חינם).</p>
+        </div>`;
+    }
+  }
+
+  /* ---- Play ---- */
+  function openPlay(lv) {
+    currentLevel = lv;
+    bpm = lv.bpm;
+    $('#play-title').textContent = lv.name;
+    $('#play-sub').textContent = lv.subtitle + ' · ' + lv.bpm + ' BPM';
+    $('#play-teach').textContent = lv.teach;
+    $('#play-tip').textContent = '💡 ' + lv.tip;
+    $('#play-bpm-val').textContent = bpm;
+    renderPattern($('#play-pattern'), lv.strokes);
+    const prog = Players.current().progress[lv.id];
+    $('#play-best').textContent = prog?.best ? `שיא ${prog.best}` : '';
+    $('#results-panel').classList.remove('show');
+    $('#hud-score').textContent = '0';
+    $('#hud-combo').textContent = '';
+    showScreen('play');
+  }
+
+  function renderPattern(el, strokes) {
+    el.innerHTML = '';
+    strokes.forEach(s => {
+      const sp = document.createElement('span');
+      const rest = s === '-', acc = s === 'D' || s === 'U';
+      sp.className = 'pat' + (acc ? ' acc' : '') + (rest ? ' rest' : '');
+      sp.textContent = rest ? '·' : s.toLowerCase() === 'd' ? '↓' : '↑';
+      el.appendChild(sp);
+    });
   }
 
   function startGame() {
     Engine.stop();
-    closeMenu();
     AudioEngine.ensureCtx();
-    setStatus('');
-    const btn = $('#btn-play');
-    btn.textContent = '⏹ עצור';
-    btn.classList.add('playing');
-    $('#level-select').disabled = true;
-    $('#btn-level-prev').disabled = true;
-    $('#btn-level-next').disabled = true;
-    $('#btn-menu').disabled = true;
+    $('#calib-msg').textContent = '';
+    $('#btn-play').textContent = '⏹ עצור';
+    $('#btn-play').classList.add('playing');
+    $('#btn-calib').disabled = true;
     Engine.start(currentLevel, bpm, $('#game-canvas'),
       ({ score, combo }) => {
         $('#hud-score').textContent = Math.round(score);
@@ -151,12 +157,9 @@ const UI = (() => {
 
   function stopGame() {
     Engine.stop();
-    const btn = $('#btn-play');
-    btn.textContent = '▶ שחק';
-    btn.classList.remove('playing');
-    $('#level-select').disabled = false;
-    $('#btn-menu').disabled = false;
-    updateLevelNav();
+    $('#btn-play').textContent = '▶ שחק';
+    $('#btn-play').classList.remove('playing');
+    $('#btn-calib').disabled = false;
   }
 
   function showResults(r) {
@@ -164,46 +167,64 @@ const UI = (() => {
     const prev = Players.current().progress[r.level.id]?.best || 0;
     const isRecord = r.score > prev;
     Players.recordResult(r.level.id, r.score, r.stars, r.counts, r.bpm);
-    renderLevelSelect();
+    renderLevelMap();
     refreshCommunity();
 
-    const msgs = ['האטו — דיוק קודם', 'מתקדמים!', 'מצוין!', 'μάστορα!'];
+    const msgs = [
+      '💪 האטו — דיוק לפני מהירות',
+      '👍 התבנית נכנסת! עוד סבב',
+      '⭐ מצוין! כמעט מושלם',
+      '🏆 μάστορα! שליטה מלאה'
+    ];
+
     const panel = $('#results-panel');
-    panel.className = 'results-overlay show ' + ['work', 'ok', 'good', 'gold'][r.stars];
+    panel.className = 'results-panel show ' + ['work', 'ok', 'good', 'gold'][r.stars];
     panel.innerHTML = `
       <div class="res-inner">
         <div class="res-stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</div>
-        <div class="res-score">${Math.round(r.score)} ${isRecord ? '<span class="rec">שיא</span>' : ''}</div>
+        <div class="res-score">${Math.round(r.score)} ${isRecord ? '<span class="rec">שיא!</span>' : ''}</div>
         <div class="res-msg">${msgs[r.stars]}</div>
+        <div class="res-detail">דיוק ${(r.acc * 100).toFixed(0)}% · מושלם ${r.counts.perfect} · קומבו ${r.maxCombo}</div>
         <div class="res-btns">
           <button class="btn gold" id="res-retry">🔁 שוב</button>
-          ${r.stars >= 1 && LEVELS.find(l => l.id === r.level.id)?.num < 8 ? '<button class="btn" id="res-next">שלב הבא</button>' : ''}
-          <button class="btn ghost" id="res-share">שתף</button>
+          ${r.stars >= 2 ? '<button class="btn" id="res-faster">⚡ +5 BPM</button>' : ''}
+          ${r.stars >= 1 && LEVELS.find(l => l.id === r.level.id)?.num < 8 ? '<button class="btn" id="res-next">⬆ שלב הבא</button>' : ''}
+          <button class="btn" id="res-share">📤 שתף</button>
         </div>
       </div>`;
     $('#res-retry').onclick = () => { panel.classList.remove('show'); startGame(); };
+    const faster = $('#res-faster');
+    if (faster) faster.onclick = () => { bpm += 5; $('#play-bpm-val').textContent = bpm; panel.classList.remove('show'); startGame(); };
     const next = $('#res-next');
     if (next) next.onclick = () => {
-      panel.classList.remove('show');
       const idx = LEVELS.findIndex(l => l.id === r.level.id);
-      if (idx < LEVELS.length - 1) setLevel(LEVELS[idx + 1]);
-      startGame();
+      if (idx < LEVELS.length - 1) openPlay(LEVELS[idx + 1]);
     };
     $('#res-share').onclick = () => shareScore(r, isRecord);
+    $('#btn-play').textContent = '▶ שחק';
+    $('#btn-play').classList.remove('playing');
+    $('#btn-calib').disabled = false;
   }
 
   function shareScore(r, isRecord) {
     const p = Players.current();
-    const text = `🎸 מאסטר הפנייה — ${p.name}\n${r.level.name} · ${Math.round(r.score)} נק׳ ${'★'.repeat(r.stars)}\n${location.href}`;
-    if (navigator.share) navigator.share({ title: 'מאסטר הפנייה', text }).catch(() => copy(text));
-    else copy(text);
+    const text = `🎸 מאסטר הפנייה — ${p.name}\n` +
+      `שלב: ${r.level.name} (${r.bpm} BPM)\n` +
+      `ניקוד: ${Math.round(r.score)} ${isRecord ? '🏆 שיא!' : ''}\n` +
+      `כוכבים: ${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}\n` +
+      `דיוק: ${(r.acc * 100).toFixed(0)}%\n` +
+      `נסו גם: ${location.href}`;
+    if (navigator.share) {
+      navigator.share({ title: 'מאסטר הפנייה', text }).catch(() => copy(text));
+    } else copy(text);
   }
 
   function copy(text) {
     navigator.clipboard?.writeText(text);
-    setStatus('הועתק לוואטסאפ ✓', 'ok');
+    alert('הועתק! הדביקו בקבוצת הוואטסאפ 🎸');
   }
 
+  /* ---- Leaderboard ---- */
   function renderLeaderboard() {
     const sel = $('#lb-level');
     if (!sel.options.length) {
@@ -217,7 +238,7 @@ const UI = (() => {
     const lv = LEVELS[parseInt(sel.value, 10) || 0];
     const rows = Players.leaderboard(lv.id);
     const list = $('#lb-list');
-    list.innerHTML = rows.length ? '' : '<p class="empty">עדיין אין תוצאות</p>';
+    list.innerHTML = rows.length ? '' : '<p class="empty">עדיין אין תוצאות — שחקו!</p>';
     rows.forEach((row, i) => {
       const div = document.createElement('div');
       div.className = 'lb-row' + (i === 0 ? ' first' : '');
@@ -225,25 +246,27 @@ const UI = (() => {
         <span class="lb-rank">${i + 1}</span>
         <span class="lb-av">${row.avatar}</span>
         <span class="lb-name">${row.name}</span>
+        <span class="lb-stars">${'★'.repeat(row.stars)}</span>
         <span class="lb-score">${row.best}</span>`;
       list.appendChild(div);
     });
   }
 
+  /* ---- Players ---- */
   function renderPlayersList() {
     const list = $('#players-list');
-    if (!list) return;
     list.innerHTML = '';
     Players.all().forEach(p => {
       const div = document.createElement('div');
       div.className = 'player-row' + (p.id === Players.current().id ? ' active' : '');
       div.innerHTML = `
         <span class="pr-av">${p.avatar}</span>
-        <div class="pr-info"><b>${p.name}</b><small>${p.stats.games} משחקים</small></div>
+        <div class="pr-info"><b>${p.name}</b><small>${p.stats.games} משחקים · ${p.stats.totalScore} נק׳</small></div>
         ${p.id === Players.current().id ? '<span class="pr-badge">פעיל</span>' : ''}`;
       div.addEventListener('click', () => {
         Players.setCurrent(p.id);
         refreshPlayerChip();
+        renderLevelMap();
       });
       list.appendChild(div);
     });
@@ -254,7 +277,7 @@ const UI = (() => {
     const feedback = $('#player-feedback');
     const name = nameInput.value.trim();
     if (!name) {
-      feedback.textContent = 'הקלידו שם';
+      feedback.textContent = 'הקלידו שם לפני הוספה';
       feedback.className = 'player-feedback err';
       nameInput.focus();
       return;
@@ -262,12 +285,14 @@ const UI = (() => {
     try {
       Players.create(name, $('#avatar-pick').dataset.sel || AVATARS[0]);
       nameInput.value = '';
-      feedback.textContent = `${name} ✓`;
+      feedback.textContent = `נוסף: ${name} ✓`;
       feedback.className = 'player-feedback ok';
       refreshPlayerChip();
+      renderLevelMap();
       refreshCommunity();
+      setTimeout(() => { feedback.textContent = ''; feedback.className = 'player-feedback'; }, 2500);
     } catch (e) {
-      feedback.textContent = 'שגיאת שמירה';
+      feedback.textContent = 'לא ניתן לשמור — בדקו שהדפדפן לא חוסם אחסון';
       feedback.className = 'player-feedback err';
     }
   }
@@ -286,60 +311,62 @@ const UI = (() => {
     });
     $$('.av-btn')[0]?.classList.add('sel');
     avWrap.dataset.sel = AVATARS[0];
-    $('#add-player-form').addEventListener('submit', e => { e.preventDefault(); addPlayer(); });
+
+    $('#add-player-form').addEventListener('submit', e => {
+      e.preventDefault();
+      addPlayer();
+    });
   }
 
-  function runCalib() {
-    closeMenu();
-    if ($('#btn-play').classList.contains('playing')) stopGame();
-    setStatus('הקישו ↓↑ עם 8 הקליקים…');
-    Engine.calibrate(
-      $('#game-canvas'),
-      (msg, ok) => setStatus(msg, ok ? 'ok' : 'err'),
-      () => setStatus('הקישו ↓↑ עם הקליקים…')
-    );
-  }
-
+  /* ---- Init ---- */
   function init() {
     initSplash();
     initOnboard();
     initPlayersForm();
 
-    $('#btn-menu').addEventListener('click', openMenu);
-    $('#btn-close-menu').addEventListener('click', closeMenu);
-    $('#sheet-backdrop').addEventListener('click', closeMenu);
+    $$('.bottom-nav .nav-item').forEach(n => {
+      n.addEventListener('click', () => {
+        Engine.stop();
+        const sc = n.dataset.screen;
+        showScreen(sc);
+        if (sc === 'leaderboard') renderLeaderboard();
+        if (sc === 'players') {
+          renderPlayersList();
+          setTimeout(() => {
+            $('#screen-players').scrollTop = $('#screen-players').scrollHeight;
+            $('#new-player-name')?.focus({ preventScroll: true });
+          }, 80);
+        }
+        if (sc === 'home') { renderLevelMap(); refreshCommunity(); }
+      });
+    });
 
     $('#btn-play').addEventListener('click', () => {
       if ($('#btn-play').classList.contains('playing')) stopGame();
       else startGame();
     });
-
-    $('#btn-level-prev').addEventListener('click', () => shiftLevel(-1));
-    $('#btn-level-next').addEventListener('click', () => shiftLevel(1));
-
-    $('#btn-bpm-down').addEventListener('click', () => {
-      bpm = Math.max(40, bpm - 5);
-      $('#play-bpm-val').textContent = bpm;
-      $('#bar-bpm').textContent = bpm + ' BPM';
+    $('#btn-bpm-down').addEventListener('click', () => { bpm = Math.max(40, bpm - 5); $('#play-bpm-val').textContent = bpm; });
+    $('#btn-bpm-up').addEventListener('click', () => { bpm = Math.min(200, bpm + 5); $('#play-bpm-val').textContent = bpm; });
+    $('#btn-calib').addEventListener('click', () => {
+      if ($('#btn-play').classList.contains('playing')) stopGame();
+      const btn = $('#btn-calib');
+      btn.disabled = true;
+      Engine.calibrate(
+        $('#game-canvas'),
+        (msg, ok) => {
+          $('#calib-msg').textContent = msg;
+          $('#calib-msg').className = 'calib-msg' + (ok ? ' ok' : ' err');
+          btn.disabled = false;
+        },
+        msg => { $('#calib-msg').textContent = msg; $('#calib-msg').className = 'calib-msg'; }
+      );
     });
-    $('#btn-bpm-up').addEventListener('click', () => {
-      bpm = Math.min(200, bpm + 5);
-      $('#play-bpm-val').textContent = bpm;
-      $('#bar-bpm').textContent = bpm + ' BPM';
-    });
-
-    $('#btn-calib').addEventListener('click', runCalib);
-    $('#btn-show-lb').addEventListener('click', () => { closeMenu(); showScreen('leaderboard'); renderLeaderboard(); });
-    $('#btn-show-players').addEventListener('click', () => { closeMenu(); showScreen('players'); renderPlayersList(); });
-
-    $$('.overlay-back').forEach(b => {
-      b.addEventListener('click', () => showScreen(b.dataset.back));
-    });
+    $('#btn-back-play').addEventListener('click', () => { stopGame(); showScreen('home'); });
 
     $('#player-chip').addEventListener('click', () => {
-      closeMenu();
       showScreen('players');
       renderPlayersList();
+      setTimeout(() => $('#new-player-name')?.focus({ preventScroll: true }), 80);
     });
 
     Engine.bindInput($('#game-canvas'));
