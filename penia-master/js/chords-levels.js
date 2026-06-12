@@ -84,6 +84,48 @@ const CHORD_FLOW_LEVELS = [
     teach: 'סיבוב מלא — ברזל + מז׳ור + מינור + צבעים.',
     tip: '56 BPM — המטרה: ליווי שלם בלי לחשוב.',
   },
+  {
+    id: 'c13', num: 13, name: 'D → G → A7 → D', subtitle: 'מעגל I-IV-V',
+    icon: '13', bpm: 54, unlock: 12, gameType: 'chord',
+    chordSeq: ['D', 'G', 'A7', 'D', 'D', 'G', 'A7', 'D'],
+    teach: 'התקדמות קלאסית: טוניקה → סול → דומיננטה → חזרה.',
+    tip: 'G ו-A7 — שתי הפוזיציות החשובות אחרי הברזל.',
+  },
+  {
+    id: 'c14', num: 14, name: 'Eb · Dm · Gm · A7', subtitle: 'צבע חיג׳אז',
+    icon: '14', bpm: 52, unlock: 13, gameType: 'chord',
+    chordSeq: ['Eb', 'Dm', 'Gm', 'A7', 'Eb', 'Dm', 'Gm', 'A7'],
+    teach: 'מי♭ + מינור + סבאח — הליווי המזרחי הקלאסי.',
+    tip: 'Eb = הצליל שמיד מזהה שיר יווני.',
+  },
+  {
+    id: 'c15', num: 15, name: 'Dsus4 · D · D6 · D', subtitle: 'קישוטים',
+    icon: '15', bpm: 50, unlock: 14, gameType: 'chord',
+    chordSeq: ['Dsus4', 'D', 'D6', 'D', 'Dsus4', 'D', 'D6', 'D'],
+    teach: 'שלושה "צבעים" על רה — מתח, פתרון, מתיקות.',
+    tip: 'Dsus4 → D = הפתרון הכי מספק בבוזוקי.',
+  },
+  {
+    id: 'c16', num: 16, name: 'Dm7 · Gm7 · C · F', subtitle: 'ג׳אז רך',
+    icon: '16', bpm: 48, unlock: 15, gameType: 'chord',
+    chordSeq: ['Dm7', 'Gm7', 'C', 'F', 'Dm7', 'Gm7', 'C', 'F'],
+    teach: 'אקורדי 7 רכים — ליווי מודרני וזורם.',
+    tip: 'החזיקו כל אקורד שנייה לפני הפריטה.',
+  },
+  {
+    id: 'c17', num: 17, name: '7 ברזל — 90 BPM', subtitle: 'מהירות',
+    icon: '17', bpm: 60, unlock: 16, gameType: 'chord',
+    chordSeq: ['D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em', 'D'],
+    teach: 'אותם 7 ברזל — מהיר יותר. בדיקת שליטה אמיתית.',
+    tip: 'רק אם c6 נקי — עכשיו תאיצו!',
+  },
+  {
+    id: 'c18', num: 18, name: 'מאסטר ליווי — 16 אקורדים', subtitle: 'הכל ברצף',
+    icon: '18', bpm: 58, unlock: 17, gameType: 'chord',
+    chordSeq: ['D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em', 'D', 'G', 'A7', 'Dm', 'Gm6', 'A7', 'D', 'Dsus4', 'D'],
+    teach: '16 אקורדים — ליווי שלם כמו בטברנה. המבחן הסופי.',
+    tip: 'זה מה שנגנים כשהשולחן שר "Opa!"',
+  },
 ];
 
 function matchChordId(chordId, freq) {
