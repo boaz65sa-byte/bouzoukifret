@@ -12,6 +12,7 @@ const CHORD_LIB = {
   D7:     { shape: [2, 1, 3, 0],     he: 'רה ספטים',       role: 'מעבר דומיננטי', cat: 'dom' },
   G:      { shape: ['x', 2, 2, 0],  he: 'סול מז׳ור',      role: 'ליווי מזרחי', cat: 'major' },
   Am:     { shape: ['x', 4, 3, 2],  he: 'לה מינור',       role: 'מינור יחסי', cat: 'minor' },
+  Bm:     { shape: ['x', 5, 4, 2],  he: 'סי מינור',       role: 'מינור · סירτός', cat: 'minor' },
   F:      { shape: [0, 0, 0, 3],     he: 'פה מז׳ור',       role: 'פוזיציה פתוחה', cat: 'major' },
   A:      { shape: ['x', 4, 4, 2],  he: 'לה מז׳ור',       role: 'דומיננטה מז׳ור', cat: 'major' },
   E:      { shape: [4, 3, 2, 2],     he: 'מי מז׳ור',       role: 'V · בהיר', cat: 'major' },
@@ -37,7 +38,7 @@ const IRON_7 = ['D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em'].map(id => ({
 const CHORD_CATEGORIES = [
   { id: 'iron', label: '7 הברזל', ids: ['D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em'] },
   { id: 'major', label: 'מז׳ור', ids: ['G', 'A', 'F', 'E', 'Bb'] },
-  { id: 'minor', label: 'מינור', ids: ['Am', 'Cm'] },
+  { id: 'minor', label: 'מינור', ids: ['Am', 'Bm', 'Cm'] },
   { id: 'dom', label: 'דומיננטות', ids: ['D7', 'E7', 'B7'] },
   { id: 'jazz', label: 'ג׳אז וליווי', ids: ['Dm7', 'Dmaj7', 'D6', 'Gm7', 'Em7b5'] },
   { id: 'color', label: 'צבעים', ids: ['Dsus4', 'Ddim7', 'Gm6', 'F#dim7'] },

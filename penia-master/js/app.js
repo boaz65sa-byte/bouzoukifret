@@ -48,6 +48,15 @@ const UI = (() => {
   function goHub(target) {
     try { stopGame(); stopChordDrill(); } catch (e) { /* */ }
     const dest = target || 'home';
+    /* מעבר מסך קודם — גם אם הרינדור נכשל */
+    if (dest === 'pick-levels') showScreen('pick-levels');
+    else if (dest === 'chords') showScreen('chords');
+    else if (dest === 'modes') showScreen('modes');
+    else showScreen('home');
+    window.scrollTo(0, 0);
+    const active = document.querySelector('.screen.active');
+    if (active) active.scrollTop = 0;
+
     try {
       if (dest === 'pick-levels') renderLevelMap();
       else if (dest === 'chords') { renderChordFlowMap(); renderChordGrid(); }
@@ -55,24 +64,35 @@ const UI = (() => {
     } catch (e) {
       console.warn('render maps', e);
     }
-    if (dest === 'pick-levels') showScreen('pick-levels');
-    else if (dest === 'chords') showScreen('chords');
-    else if (dest === 'modes') showScreen('modes');
-    else showScreen('home');
   }
 
-  /* גיבוי — onclick ב-HTML אם האירועים נכשלים */
+  /* גיבוי — onclick ב-HTML + רענון מפות */
   window.__peniaGoHub = goHub;
+  window.__peniaGoHubFull = goHub;
+  window.__peniaRefreshMaps = dest => {
+    try {
+      if (dest === 'pick-levels') renderLevelMap();
+      else if (dest === 'chords') { renderChordFlowMap(); renderChordGrid(); }
+      else if (dest === 'modes') renderModeMap();
+    } catch (e) { console.warn('refresh maps', e); }
+  };
 
   function bindHubNavigation() {
+    const hub = $('#game-hub');
+    const activate = (hubId, e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (hubId) goHub(hubId);
+    };
+    if (hub) {
+      hub.addEventListener('click', e => {
+        const btn = e.target.closest('[data-hub]');
+        if (btn) activate(btn.getAttribute('data-hub'), e);
+      });
+    }
     $$('[data-hub]').forEach(btn => {
-      const hub = btn.getAttribute('data-hub');
-      if (!hub) return;
-      const activate = e => {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        goHub(hub);
-      };
-      btn.addEventListener('click', activate);
+      const hubId = btn.getAttribute('data-hub');
+      if (!hubId) return;
+      btn.addEventListener('click', e => activate(hubId, e));
     });
   }
 
@@ -262,15 +282,20 @@ const UI = (() => {
     const grid = $(containerId);
     if (!grid) return;
     grid.innerHTML = '';
+    if (!Array.isArray(list) || !list.length) {
+      grid.innerHTML = '<p class="map-empty">שלבים לא נטענו — רעננו את הדף (Ctrl+F5)</p>';
+      return;
+    }
     const p = Players.current();
     list.forEach(lv => {
-      const unlocked = Players.isUnlocked(lv.id);
-      const prog = p.progress[lv.id] || {};
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'level-card' + (unlocked ? '' : ' locked') + (lv.song ? ' song-level' : '');
-      card.disabled = !unlocked;
-      card.innerHTML = `
+      try {
+        const unlocked = Players.isUnlocked(lv.id);
+        const prog = p.progress[lv.id] || {};
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'level-card' + (unlocked ? '' : ' locked') + (lv.song ? ' song-level' : '');
+        card.disabled = !unlocked;
+        card.innerHTML = `
         <div class="lc-num">${lv.icon}</div>
         <div class="lc-body">
           <div class="lc-name">${lv.name}</div>
@@ -278,8 +303,19 @@ const UI = (() => {
           <div class="lc-stars">${'★'.repeat(prog.stars || 0)}${'☆'.repeat(3 - (prog.stars || 0))}</div>
         </div>
         ${unlocked ? '<div class="lc-play">▶</div>' : '<div class="lc-lock">🔒</div>'}`;
-      if (unlocked) card.addEventListener('click', () => onOpen(lv));
-      grid.appendChild(card);
+        if (unlocked) {
+          card.addEventListener('click', () => {
+            try { onOpen(lv); }
+            catch (err) {
+              console.warn('open level', err);
+              if (typeof openPlay === 'function') openPlay(lv, playBackTarget, currentGameKind);
+            }
+          });
+        }
+        grid.appendChild(card);
+      } catch (err) {
+        console.warn('level card', lv?.id, err);
+      }
     });
   }
 
@@ -288,12 +324,14 @@ const UI = (() => {
   }
 
   function renderModeMap() {
-    renderGenericMap(MODE_LEVELS, '#mode-map', lv => openPrep(lv, 'modes', 'modes'));
+    const list = typeof MODE_LEVELS !== 'undefined' ? MODE_LEVELS : [];
+    renderGenericMap(list, '#mode-map', lv => openPrep(lv, 'modes', 'modes'));
   }
 
   function renderChordFlowMap() {
-    const flow = CHORD_FLOW_LEVELS.filter(l => !l.song);
-    const songs = CHORD_FLOW_LEVELS.filter(l => l.song);
+    const all = typeof CHORD_FLOW_LEVELS !== 'undefined' ? CHORD_FLOW_LEVELS : [];
+    const flow = all.filter(l => !l.song);
+    const songs = all.filter(l => l.song);
     renderGenericMap(flow, '#chord-flow-map', lv => openPrep(lv, 'chords', 'chords'));
     renderGenericMap(songs, '#chord-song-map', lv => openPrep(lv, 'chords', 'chords'));
   }
@@ -423,17 +461,30 @@ const UI = (() => {
     $('#prep-teach').textContent = lv.teach;
     $('#prep-tip').textContent = '💡 ' + lv.tip;
     const vis = $('#prep-visual');
-    if (gt === 'note') {
-      $('#prep-badge').textContent = lv.dromos
-        ? '🗺 מפת מודוס · ' + lv.dromos
-        : '🗺 מפת מודוס · מיתר רה';
-      ModeDiagram.draw(vis, ModeDiagram.uniqueScaleNotes(lv.notes), {
-        playNotes: lv.notes,
-        title: (lv.dromos || lv.name) + ' · מיתר רה',
-      });
-    } else {
-      $('#prep-badge').textContent = lv.song ? '🎵 מצב שיר יווני' : '🗺 מפת אקורדים';
-      ChordMap.drawProgression(vis, lv.chordSeq, { fullSeq: lv.chordSeq, song: !!lv.song });
+    try {
+      if (gt === 'note') {
+        $('#prep-badge').textContent = lv.dromos
+          ? '🗺 מפת מודוס · ' + lv.dromos
+          : '🗺 מפת מודוס · מיתר רה';
+        if (typeof ModeDiagram !== 'undefined' && lv.notes?.length) {
+          ModeDiagram.draw(vis, ModeDiagram.uniqueScaleNotes(lv.notes), {
+            playNotes: lv.notes,
+            title: (lv.dromos || lv.name) + ' · מיתר רה',
+          });
+        } else if (vis) {
+          vis.innerHTML = '<p class="map-empty">מפת מודוס · ' + (lv.notes?.length || 0) + ' צלילים</p>';
+        }
+      } else {
+        $('#prep-badge').textContent = lv.song ? '🎵 מצב שיר יווני' : '🗺 מפת אקורדים';
+        if (typeof ChordMap !== 'undefined' && lv.chordSeq?.length) {
+          ChordMap.drawProgression(vis, lv.chordSeq, { fullSeq: lv.chordSeq, song: !!lv.song });
+        } else if (vis) {
+          vis.innerHTML = '<p class="map-empty">' + (lv.chordSeq || []).join(' → ') + '</p>';
+        }
+      }
+    } catch (err) {
+      console.warn('prep visual', err);
+      if (vis) vis.innerHTML = '<p class="map-empty">תצוגה מקדימה · לחצו ▶ שחק</p>';
     }
     $('#prep-flow-hint').textContent = gt === 'note'
       ? 'כשמוכנים — הצלילים יזרמו לקו הזהב · נגנו כל צליל על מיתר רה'
@@ -441,6 +492,7 @@ const UI = (() => {
         ? 'כשמוכנים — האקורדים יזרמו כמו בשיר · פרטו ↓ על הבוזוקי בזמן'
         : 'כשמוכנים — האקורדים יזרמו לקו הזהב · החזיקו צורה ופרטו ↓';
     showScreen('prep');
+    window.scrollTo(0, 0);
   }
 
   /* ---- Play ---- */
