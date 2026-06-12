@@ -27,7 +27,7 @@ button, input, select {
   font: inherit; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.hub-btn, .btn, .nav-item, .player-chip, .av-btn, .game-cube {
+.hub-btn, .btn, .nav-item, .player-chip, .av-btn, .game-cube, .level-card {
   appearance: none; -webkit-appearance: none;
 }
 
@@ -116,10 +116,12 @@ button, input, select {
 .level-map { display: flex; flex-direction: column; gap: 10px; }
 .level-card {
   display: flex; align-items: center; gap: 14px;
+  width: 100%; text-align: right; font: inherit; color: inherit;
   background: linear-gradient(135deg, rgba(227,179,65,0.06), transparent), var(--card);
   border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
   cursor: pointer; transition: 0.15s;
 }
+.level-card:disabled { cursor: not-allowed; }
 .level-card:active { transform: scale(0.98); }
 .level-card.locked { opacity: 0.45; cursor: not-allowed; }
 .lc-num {
@@ -499,7 +501,14 @@ button, input, select {
 .cc-info b { display: block; font-size: 17px; color: var(--gold2); }
 .cc-info small { display: block; color: var(--dim); font-size: 12px; margin: 2px 0; }
 .cc-info span { font-size: 11px; color: var(--aegean); }
-.chords-more { text-align: center; color: var(--dim); font-size: 12px; margin-top: 12px; padding-bottom: 20px; }
+.chord-cat-title {
+  font-size: 14px; font-weight: 800; color: var(--gold);
+  margin: 18px 0 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.chord-cat-title:first-child { margin-top: 0; }
+#chord-library { padding-bottom: 24px; }
+.chords-more { display: none; }
 
 .chord-play-stage {
   flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -517,6 +526,71 @@ button, input, select {
   padding: 0;
 }
 .chord-prep .play-main { width: min(260px, 90vw); }
+
+/* ---- Prep: מפת מודוס / אקורדים ---- */
+#screen-prep { padding-bottom: 32px; }
+.prep-stage {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 8px 0 24px;
+}
+.prep-badge {
+  margin: 0; padding: 6px 14px; border-radius: 999px;
+  background: rgba(227,179,65,0.12); border: 1px solid rgba(227,179,65,0.35);
+  color: var(--gold2); font-weight: 800; font-size: 14px;
+}
+.prep-details { width: 100%; max-width: 420px; }
+.prep-flow-hint {
+  margin: 0; text-align: center; color: var(--dim); font-size: 14px; font-weight: 600;
+  max-width: 340px; line-height: 1.45;
+}
+#prep-visual { width: 100%; max-width: 520px; }
+.prep-stage .play-main { width: min(280px, 92vw); margin-top: 4px; }
+
+.mode-diagram, .chord-map { width: 100%; }
+.mode-svg, .chord-map .chord-svg { width: 100%; height: auto; display: block; }
+.mode-seq-row, .chord-map-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px; margin-top: 12px; padding: 10px; border-radius: 12px;
+  background: rgba(8,15,24,0.6); border: 1px solid rgba(79,179,217,0.15);
+}
+.mode-seq-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 10px; border-radius: 10px; background: rgba(227,179,65,0.12);
+  border: 1px solid rgba(227,179,65,0.25); min-width: 52px;
+}
+.mode-seq-chip b { color: var(--gold); font-size: 11px; }
+.mode-seq-chip span { color: #e8f0f8; font-weight: 800; font-size: 14px; }
+.mode-seq-chip small { color: var(--dim); font-size: 10px; }
+.mode-seq-arrow, .chord-map-arrow { color: var(--dim); font-size: 16px; font-weight: 700; padding: 0 2px; }
+.mode-map-hint, .chord-map-hint {
+  margin: 10px 0 0; text-align: center; color: var(--dim); font-size: 13px; line-height: 1.4;
+}
+.chord-map-title {
+  margin: 0 0 8px; text-align: center; color: var(--gold2); font-weight: 700; font-size: 15px;
+}
+.chord-map-row { gap: 8px; }
+.chord-map-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px; border-radius: 12px; background: rgba(227,179,65,0.08);
+  border: 1px solid rgba(227,179,65,0.2); min-width: 72px;
+}
+.chord-map-item b { color: var(--gold); font-size: 15px; }
+.chord-map-item small { color: var(--dim); font-size: 10px; text-align: center; }
+.chord-map-item .cm-diag { width: 64px; }
+.chord-timeline {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  margin-top: 12px; padding: 10px; border-radius: 12px;
+  background: rgba(79,179,217,0.06); border: 1px dashed rgba(79,179,217,0.2);
+}
+.chord-tl-step {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 8px; font-weight: 800; font-size: 13px;
+  background: rgba(8,15,24,0.5); color: #c8d8e8; border: 1px solid rgba(59,86,111,0.5);
+}
+.chord-tl-step b { color: var(--dim); font-size: 10px; font-weight: 700; }
+.chord-tl-step.first { border-color: var(--gold); color: var(--gold2); background: rgba(227,179,65,0.1); }
+.level-card.song-level { border-color: rgba(79,179,217,0.35); }
+.level-card.song-level .lc-num { background: linear-gradient(135deg, rgba(79,179,217,0.25), rgba(227,179,65,0.2)); }
 
 .splash-glow {
   position: absolute; width: 280px; height: 280px; border-radius: 50%;

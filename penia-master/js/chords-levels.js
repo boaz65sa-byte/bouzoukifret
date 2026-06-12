@@ -43,15 +43,50 @@ const CHORD_FLOW_LEVELS = [
     tip: 'זה הליווי שכל נגן בוזוקי חייב לדעת.',
   },
   {
-    id: 'c7', num: 7, name: '7 הברזל ×2', subtitle: 'מאסטר',
-    icon: '7', bpm: 62, unlock: 6, gameType: 'chord',
+    id: 'c7', num: 7, name: '7 הברזל ×2', subtitle: 'מהיר',
+    icon: '7', bpm: 58, unlock: 6, gameType: 'chord',
     chordSeq: ['D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em', 'D', 'Eb', 'Dm', 'Gm', 'A7', 'C', 'Em', 'D'],
     teach: 'פעמיים ברצף — מהירות עם דיוק.',
-    tip: '62 BPM — רק אם כל האקורדים נקיים!',
+    tip: '58 BPM — רק אם כל האקורדים נקיים!',
+  },
+  {
+    id: 'c8', num: 8, name: 'רה7 → סול → סול מ', subtitle: 'מעברים',
+    icon: '8', bpm: 52, unlock: 7, gameType: 'chord',
+    chordSeq: ['D', 'D7', 'G', 'Gm', 'D', 'D7', 'G', 'Gm'],
+    teach: 'D7 מוביל ל-G — מעבר דומיננטי קלאסי.',
+    tip: 'D7 = רק שינוי אצבע אחת מ-D.',
+  },
+  {
+    id: 'c9', num: 9, name: 'Am · F · C · G', subtitle: 'ליווי מערבי',
+    icon: '9', bpm: 54, unlock: 8, gameType: 'chord',
+    chordSeq: ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G'],
+    teach: 'ארבעה אקורדים שמופיעים בכל שיר — תרגול חשוב.',
+    tip: 'Am ו-F — שתי הפוזיציות הראשונות ללמוד.',
+  },
+  {
+    id: 'c10', num: 10, name: 'סבאח · ג׳אז', subtitle: 'צבעים',
+    icon: '10', bpm: 50, unlock: 9, gameType: 'chord',
+    chordSeq: ['Dm', 'Gm6', 'A7', 'D', 'Dm7', 'Gm', 'A7', 'D'],
+    teach: 'Gm6 לאקורד סבאח + Dm7 לליווי מודרני.',
+    tip: 'Gm6 — האקורד הכי "יווני" אחרי Gm.',
+  },
+  {
+    id: 'c11', num: 11, name: 'מינורה — מלא', subtitle: 'דרמטי',
+    icon: '11', bpm: 48, unlock: 10, gameType: 'chord',
+    chordSeq: ['Dm', 'Em7b5', 'A7', 'Dm', 'Gm', 'A7', 'Dm', 'Dm'],
+    teach: 'התקדמות מינורה: Dm → Em7♭5 → A7 → Dm.',
+    tip: 'Em7♭5 = מעבר דרמטי לפני A7.',
+  },
+  {
+    id: 'c12', num: 12, name: 'מאסטר — הכל', subtitle: '12 אקורדים',
+    icon: '12', bpm: 56, unlock: 11, gameType: 'chord',
+    chordSeq: ['D', 'Eb', 'Dm', 'Gm6', 'A7', 'C', 'F', 'G', 'Am', 'D7', 'Gm', 'D'],
+    teach: 'סיבוב מלא — ברזל + מז׳ור + מינור + צבעים.',
+    tip: '56 BPM — המטרה: ליווי שלם בלי לחשוב.',
   },
 ];
 
 function matchChordId(chordId, freq) {
-  const ch = IRON_7.find(c => c.id === chordId) || { id: chordId, tones: chordMidis(CHORD_LIB[chordId]?.shape || []) };
+  const ch = getChord(chordId) || IRON_7.find(c => c.id === chordId);
   return matchChord(ch, freq);
 }

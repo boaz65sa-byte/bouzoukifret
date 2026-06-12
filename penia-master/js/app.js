@@ -46,22 +46,33 @@ const UI = (() => {
   }
 
   function goHub(target) {
-    stopGame();
-    stopChordDrill();
-    if (target === 'pick-levels') { renderLevelMap(); showScreen('pick-levels'); }
-    else if (target === 'chords') { renderChordFlowMap(); renderChordGrid(); showScreen('chords'); }
-    else if (target === 'modes') { renderModeMap(); showScreen('modes'); }
+    try { stopGame(); stopChordDrill(); } catch (e) { /* */ }
+    const dest = target || 'home';
+    try {
+      if (dest === 'pick-levels') renderLevelMap();
+      else if (dest === 'chords') { renderChordFlowMap(); renderChordGrid(); }
+      else if (dest === 'modes') renderModeMap();
+    } catch (e) {
+      console.warn('render maps', e);
+    }
+    if (dest === 'pick-levels') showScreen('pick-levels');
+    else if (dest === 'chords') showScreen('chords');
+    else if (dest === 'modes') showScreen('modes');
     else showScreen('home');
   }
 
+  /* גיבוי — onclick ב-HTML אם האירועים נכשלים */
+  window.__peniaGoHub = goHub;
+
   function bindHubNavigation() {
-    const hub = $('#game-hub');
-    if (!hub) return;
-    hub.addEventListener('click', e => {
-      const card = e.target.closest('[data-hub]');
-      if (!card) return;
-      e.preventDefault();
-      goHub(card.dataset.hub);
+    $$('[data-hub]').forEach(btn => {
+      const hub = btn.getAttribute('data-hub');
+      if (!hub) return;
+      const activate = e => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        goHub(hub);
+      };
+      btn.addEventListener('click', activate);
     });
   }
 
@@ -76,24 +87,32 @@ const UI = (() => {
     splashDone = true;
     const sp = $('#splash');
     if (sp) sp.classList.add('hide');
+    try { localStorage.setItem('penia-booted', '1'); } catch (e) { /* */ }
     boot();
   }
 
   function boot() {
     showScreen('home');
-    refreshPlayerChip();
+    try { refreshPlayerChip(); } catch (e) { console.warn('chip', e); }
     try { renderLevelMap(); renderModeMap(); renderChordFlowMap(); } catch (e) { console.warn('maps', e); }
-    refreshCommunity();
+    try { refreshCommunity(); } catch (e) { console.warn('community', e); }
   }
 
   /* ---- Splash ---- */
   function initSplash() {
     const sp = $('#splash');
-    sp?.addEventListener('click', dismissSplash);
-    sp?.addEventListener('keydown', e => {
+    if (!sp) { boot(); return; }
+    if (localStorage.getItem('penia-booted') === '1') {
+      sp.classList.add('hide');
+      splashDone = true;
+      boot();
+      return;
+    }
+    sp.addEventListener('click', dismissSplash);
+    sp.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') dismissSplash();
     });
-    setTimeout(dismissSplash, 900);
+    setTimeout(dismissSplash, 600);
   }
 
   /* ---- Onboarding ---- */
@@ -106,11 +125,11 @@ const UI = (() => {
       dots.forEach((d, j) => d.classList.toggle('active', j === i));
       step = i;
     }
-    $('#ob-next').addEventListener('click', () => {
+    $('#ob-next')?.addEventListener('click', () => {
       if (step < steps.length - 1) showStep(step + 1);
       else { localStorage.setItem('penia-tutorial', '1'); seenTutorial = true; showScreen('home'); }
     });
-    $('#ob-skip').addEventListener('click', () => {
+    $('#ob-skip')?.addEventListener('click', () => {
       localStorage.setItem('penia-tutorial', '1');
       seenTutorial = true;
       showScreen('home');
@@ -118,24 +137,43 @@ const UI = (() => {
     showStep(0);
   }
 
+  function renderChordCard(c, rank) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'chord-card-btn';
+    card.innerHTML = `
+      <span class="cc-rank">${rank || c.id}</span>
+      <div class="cc-diag"></div>
+      <div class="cc-info">
+        <b>${c.id}</b>
+        <small>${c.he}</small>
+        <span>${c.role || ''}</span>
+      </div>`;
+    ChordDiagram.draw(card.querySelector('.cc-diag'), c.id, { noLabel: true });
+    card.addEventListener('click', () => openChordPlay(c));
+    return card;
+  }
+
   function renderChordGrid() {
-    const grid = $('#chord-grid');
-    grid.innerHTML = '';
-    IRON_7.forEach((c, i) => {
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'chord-card-btn';
-      card.innerHTML = `
-        <span class="cc-rank">${i + 1}</span>
-        <div class="cc-diag"></div>
-        <div class="cc-info">
-          <b>${c.id}</b>
-          <small>${c.he}</small>
-          <span>${c.role}</span>
-        </div>`;
-      ChordDiagram.draw(card.querySelector('.cc-diag'), c.id, { noLabel: true });
-      card.addEventListener('click', () => openChordPlay(c));
-      grid.appendChild(card);
+    renderChordLibrary();
+  }
+
+  function renderChordLibrary() {
+    const wrap = $('#chord-library');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    CHORD_CATEGORIES.forEach(cat => {
+      const title = document.createElement('h4');
+      title.className = 'chord-cat-title';
+      title.textContent = cat.label;
+      wrap.appendChild(title);
+      const grid = document.createElement('div');
+      grid.className = 'chord-grid';
+      cat.ids.forEach((id, i) => {
+        const c = getChord(id);
+        if (c) grid.appendChild(renderChordCard(c, cat.id === 'iron' ? i + 1 : id));
+      });
+      wrap.appendChild(grid);
     });
   }
 
@@ -169,13 +207,16 @@ const UI = (() => {
     try {
       await MicInput.start(({ freq }) => {
         if (!chordDrillActive || roundScored) return;
-        if (matchChord(currentChord, freq)) {
+        if (freq) {
+          $('#chord-drill-status').textContent = `שומע: ${MicInput.freqLabel(freq)} — ${currentChord.id}?`;
+        }
+        if (freq && matchChord(currentChord, freq)) {
           roundScored = true;
           chordDrillHits++;
           $('#chord-drill-status').textContent = '✓ נשמע נכון!';
           $('#chord-drill-status').className = 'chord-drill-status ok';
         }
-      });
+      }, null, { pitchMode: true });
     } catch (e) {
       chordDrillActive = false;
       $('#chord-prep').classList.remove('hide');
@@ -225,8 +266,10 @@ const UI = (() => {
     list.forEach(lv => {
       const unlocked = Players.isUnlocked(lv.id);
       const prog = p.progress[lv.id] || {};
-      const card = document.createElement('div');
-      card.className = 'level-card' + (unlocked ? '' : ' locked');
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'level-card' + (unlocked ? '' : ' locked') + (lv.song ? ' song-level' : '');
+      card.disabled = !unlocked;
       card.innerHTML = `
         <div class="lc-num">${lv.icon}</div>
         <div class="lc-body">
@@ -245,11 +288,14 @@ const UI = (() => {
   }
 
   function renderModeMap() {
-    renderGenericMap(MODE_LEVELS, '#mode-map', lv => openPlay(lv, 'modes', 'modes'));
+    renderGenericMap(MODE_LEVELS, '#mode-map', lv => openPrep(lv, 'modes', 'modes'));
   }
 
   function renderChordFlowMap() {
-    renderGenericMap(CHORD_FLOW_LEVELS, '#chord-flow-map', lv => openPlay(lv, 'chords', 'chords'));
+    const flow = CHORD_FLOW_LEVELS.filter(l => !l.song);
+    const songs = CHORD_FLOW_LEVELS.filter(l => l.song);
+    renderGenericMap(flow, '#chord-flow-map', lv => openPrep(lv, 'chords', 'chords'));
+    renderGenericMap(songs, '#chord-song-map', lv => openPrep(lv, 'chords', 'chords'));
   }
 
   function refreshPlayerChip() {
@@ -329,18 +375,25 @@ const UI = (() => {
   async function startMicForGame() {
     if (inputMode !== 'mic') return;
     const gt = currentLevel.gameType || 'pick';
+    const needsPitch = gt === 'note' || gt === 'chord';
     try {
       await MicInput.start(
-        ({ dir, freq }) => {
-          if (gt === 'pick') Engine.handleInput(dir);
-          else if (gt === 'note') Engine.handleNoteHit(freq);
-          else Engine.handleChordHit(freq);
+        ({ dir, freq, hitTime }) => {
+          if (gt === 'pick') Engine.handleInput(dir, hitTime);
+          else if (gt === 'note') {
+            if (freq) $('#mic-status').textContent = '🎤 זוהה: ' + MicInput.freqLabel(freq);
+            Engine.handleNoteHit(freq, hitTime);
+          } else {
+            if (freq) $('#mic-status').textContent = '🎤 זוהה: ' + MicInput.freqLabel(freq);
+            Engine.handleChordHit(freq, hitTime);
+          }
         },
-        lvl => { $('#mic-fill').style.width = (lvl * 100) + '%'; }
+        lvl => { $('#mic-fill').style.width = (lvl * 100) + '%'; },
+        { pitchMode: needsPitch }
       );
       const msg = gt === 'pick' ? '🎤 שומע — פרטו בזמן'
-        : gt === 'note' ? '🎤 שומע — נגנו כל צליל בקו'
-        : '🎤 שומע — החזיקו אקורד ופרטו ↓';
+        : gt === 'note' ? '🎤 שומע — צליל אחד, סריג ברור, ליד הקו'
+        : '🎤 שומע — החזיקו אקורד, פרטו ↓ ליד הקו';
       $('#mic-status').textContent = msg;
     } catch (e) {
       inputMode = 'touch';
@@ -357,6 +410,37 @@ const UI = (() => {
     MicInput.stop();
     $('#mic-fill').style.width = '0%';
     if (inputMode === 'mic') $('#mic-status').textContent = 'פרטו על מיתר מושתק — המשחק שומע';
+  }
+
+  /* ---- Prep (מפת מודוס / אקורדים) ---- */
+  function openPrep(lv, backTo, kind) {
+    currentLevel = lv;
+    currentGameKind = kind || kindFromLevel(lv);
+    playBackTarget = backTo || 'home';
+    const gt = lv.gameType || 'pick';
+    $('#prep-title').textContent = lv.name;
+    $('#prep-sub').textContent = lv.subtitle + ' · ' + lv.bpm + ' BPM';
+    $('#prep-teach').textContent = lv.teach;
+    $('#prep-tip').textContent = '💡 ' + lv.tip;
+    const vis = $('#prep-visual');
+    if (gt === 'note') {
+      $('#prep-badge').textContent = lv.dromos
+        ? '🗺 מפת מודוס · ' + lv.dromos
+        : '🗺 מפת מודוס · מיתר רה';
+      ModeDiagram.draw(vis, ModeDiagram.uniqueScaleNotes(lv.notes), {
+        playNotes: lv.notes,
+        title: (lv.dromos || lv.name) + ' · מיתר רה',
+      });
+    } else {
+      $('#prep-badge').textContent = lv.song ? '🎵 מצב שיר יווני' : '🗺 מפת אקורדים';
+      ChordMap.drawProgression(vis, lv.chordSeq, { fullSeq: lv.chordSeq, song: !!lv.song });
+    }
+    $('#prep-flow-hint').textContent = gt === 'note'
+      ? 'כשמוכנים — הצלילים יזרמו לקו הזהב · נגנו כל צליל על מיתר רה'
+      : lv.song
+        ? 'כשמוכנים — האקורדים יזרמו כמו בשיר · פרטו ↓ על הבוזוקי בזמן'
+        : 'כשמוכנים — האקורדים יזרמו לקו הזהב · החזיקו צורה ופרטו ↓';
+    showScreen('prep');
   }
 
   /* ---- Play ---- */
@@ -623,6 +707,8 @@ const UI = (() => {
 
     $$('[data-back]').forEach(btn => bind(btn, 'click', () => goHub(btn.dataset.back)));
     bind($('#btn-back-play'), 'click', () => goHub(playBackTarget));
+    bind($('#btn-back-prep'), 'click', () => goHub(playBackTarget));
+    bind($('#btn-prep-play'), 'click', () => openPlay(currentLevel, playBackTarget, currentGameKind));
     bind($('#btn-back-chord'), 'click', () => { stopChordDrill(); goHub('chords'); });
     bind($('#btn-chord-play'), 'click', () => startChordDrill());
 

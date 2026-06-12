@@ -50,7 +50,7 @@ const Engine = (() => {
       } else {
         tg.chordId = item.chordId;
         tg.label = item.chordId;
-        const ch = IRON_7.find(c => c.id === item.chordId);
+        const ch = getChord(item.chordId);
         tg.he = ch?.he || '';
       }
       targets.push(tg);
@@ -122,27 +122,46 @@ const Engine = (() => {
     onHud({ score, combo, maxCombo });
   }
 
-  function handleInput(dir) {
+  function handleInput(dir, hitTime) {
     if (calibrating) { calibTaps.push(now()); laneFlash = performance.now(); return; }
     if (!running || gameType !== 'pick') return;
     const h = canvas.clientHeight;
-    const { best, bestDt } = findBestTarget(now() + inputOffset);
+    const tHit = (hitTime ?? now()) + inputOffset;
+    const { best, bestDt } = findBestTarget(tHit);
     scoreHit(best, bestDt, dir === 'u' ? h * 0.28 : h * 0.72, best?.dir === dir, 'כיוון הפוך!', dir);
   }
 
-  function handleNoteHit(freq) {
+  function handleNoteHit(freq, hitTime) {
     if (calibrating || !running || gameType !== 'note') return;
     const h = canvas.clientHeight;
-    const { best, bestDt } = findBestTarget(now() + inputOffset);
-    const ok = best && matchNote(best.note, freq);
+    const tHit = (hitTime ?? now()) + inputOffset;
+    const { best, bestDt } = findBestTarget(tHit);
+    if (!best || Math.abs(bestDt) > W_REGISTER) {
+      addPopup('מוקדם מדי...', '#7d92a8');
+      return;
+    }
+    if (!freq) {
+      addPopup('לא זוהה צליל — פרטו חזק/קרוב', '#7d92a8');
+      return;
+    }
+    const ok = matchNote(best.note, freq);
     scoreHit(best, bestDt, yCenter(h), ok, 'צליל לא נכון!', 'd');
   }
 
-  function handleChordHit(freq) {
+  function handleChordHit(freq, hitTime) {
     if (calibrating || !running || gameType !== 'chord') return;
     const h = canvas.clientHeight;
-    const { best, bestDt } = findBestTarget(now() + inputOffset);
-    const ok = best && matchChordId(best.chordId, freq);
+    const tHit = (hitTime ?? now()) + inputOffset;
+    const { best, bestDt } = findBestTarget(tHit);
+    if (!best || Math.abs(bestDt) > W_REGISTER) {
+      addPopup('מוקדם מדי...', '#7d92a8');
+      return;
+    }
+    if (!freq) {
+      addPopup('לא זוהה אקורד — החזיקו ופרטו ↓', '#7d92a8');
+      return;
+    }
+    const ok = matchChordId(best.chordId, freq);
     scoreHit(best, bestDt, yCenter(h), ok, 'אקורד לא נכון!', 'd');
   }
 

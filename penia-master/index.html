@@ -70,20 +70,23 @@
     <h2 class="hub-title">🎮 המשחקים</h2>
 
     <div class="game-cubes" id="game-hub">
-      <button type="button" class="game-cube cube-pick" data-hub="pick-levels">
+      <button type="button" class="game-cube cube-pick" data-hub="pick-levels"
+        onclick="window.__peniaGoHub&&window.__peniaGoHub('pick-levels')">
         <span class="gc-icon">↓↑</span>
         <span class="gc-name">מאסטר הפריטה</span>
         <span class="gc-meta">8 שלבים</span>
       </button>
-      <button type="button" class="game-cube cube-modes" data-hub="modes">
+      <button type="button" class="game-cube cube-modes" data-hub="modes"
+        onclick="window.__peniaGoHub&&window.__peniaGoHub('modes')">
         <span class="gc-icon">♩</span>
         <span class="gc-name">מאסטר המודוסים</span>
-        <span class="gc-meta">6 שלבים</span>
+        <span class="gc-meta">15 שלבים</span>
       </button>
-      <button type="button" class="game-cube cube-chords" data-hub="chords">
+      <button type="button" class="game-cube cube-chords" data-hub="chords"
+        onclick="window.__peniaGoHub&&window.__peniaGoHub('chords')">
         <span class="gc-icon">🎸</span>
         <span class="gc-name">מאסטר האקורדים</span>
-        <span class="gc-meta">7+7 שלבים</span>
+        <span class="gc-meta">15+26</span>
       </button>
     </div>
   </section>
@@ -101,9 +104,9 @@
   <section class="screen" id="screen-modes">
     <header class="sub-head">
       <button class="btn icon sub-back" data-back="home">→</button>
-      <div><h2>מאסטר המודוסים</h2><small>6 שלבים · מיתר רה · מיקרופון</small></div>
+      <div><h2>מאסטר המודוסים</h2><small>15 דרומוסים · מיתר רה · מיקרופון</small></div>
     </header>
-    <p class="chords-lead">דרומוסים יווניים על מיתר רה — כל צליל מגיע לקו, אתם מנגנים על הבוזוקי.</p>
+    <p class="chords-lead">לחצו שלב — תראו מפת מודוס, ואז ▶ שחק. כל צליל מגיע לקו, אתם מנגנים על הבוזוקי.</p>
     <div class="level-map" id="mode-map"></div>
   </section>
 
@@ -111,15 +114,41 @@
   <section class="screen" id="screen-chords">
     <header class="sub-head">
       <button class="btn icon sub-back" data-back="home">→</button>
-      <div><h2>מאסטר האקורדים</h2><small>משחק זורם + תרגול</small></div>
+      <div><h2>מאסטר האקורדים</h2><small>12 שלבי זורם + 3 שירים + 26 אקורדים</small></div>
     </header>
-    <h3 class="section-sub">🎮 משחק זורם — 7 שלבים</h3>
-    <p class="chords-lead">אקורדים זורמים על המסלול — פרטו את האקורד הנכון בזמן.</p>
+    <h3 class="section-sub">🎮 משחק זורם — 12 שלבים</h3>
+    <p class="chords-lead">לחצו שלב — תראו מפת אקורדים, ואז ▶ שחק. פרטו את האקורד הנכון בזמן.</p>
     <div class="level-map" id="chord-flow-map"></div>
-    <h3 class="section-sub">📖 תרגול בודד — 7 הברזל</h3>
-    <p class="chords-lead">הברזל — שבעת האקורדים שמובילים כל ליווי רבטיקו. לחצו לתרגול עם המיקרופון.</p>
-    <div class="chord-grid" id="chord-grid"></div>
-    <p class="chords-more">+ עוד 101 פוזיציות בדרך — כולן יקבלו כבוד 🎸</p>
+    <h3 class="section-sub">🎵 שירים יווניים — 3 שלבים</h3>
+    <p class="chords-lead">ליווי שיר אמיתי — האקורדים זורמים כמו בטברנה יוונית.</p>
+    <div class="level-map" id="chord-song-map"></div>
+    <h3 class="section-sub">📖 ספריית אקורדים — תרגול</h3>
+    <p class="chords-lead">לחצו על אקורד — תרגלו עם המיקרופון. 7 הברזל + מז׳ור, מינור, ג׳אז וצבעים.</p>
+    <div id="chord-library"></div>
+  </section>
+
+  <!-- תצוגה מקדימה — מודוס / אקורדים -->
+  <section class="screen" id="screen-prep">
+    <header class="play-top">
+      <button class="btn icon" id="btn-back-prep" type="button">→</button>
+      <div class="play-head-text">
+        <h2 id="prep-title"></h2>
+        <small id="prep-sub"></small>
+      </div>
+    </header>
+    <div class="prep-stage">
+      <p class="prep-badge" id="prep-badge">🗺 מפה</p>
+      <div id="prep-visual"></div>
+      <details class="play-details prep-details" open>
+        <summary>📖 הסבר</summary>
+        <div class="teach-box">
+          <p id="prep-teach"></p>
+          <p class="tip" id="prep-tip"></p>
+        </div>
+      </details>
+      <p class="prep-flow-hint">כשמוכנים — האקורדים/צלילים יזרמו לקו הזהב · נגנו על הבוזוקי</p>
+      <button class="btn gold play-main" id="btn-prep-play" type="button">▶ שחק</button>
+    </div>
   </section>
 
   <!-- תרגול אקורד בודד -->
@@ -233,6 +262,9 @@
 <script src="js/chords-data.js"></script>
 <script src="js/chords-levels.js"></script>
 <script src="js/modes-data.js"></script>
+<script src="js/songs-data.js"></script>
+<script src="js/mode-diagram.js"></script>
+<script src="js/chord-map.js"></script>
 <script src="js/chord-diagram.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/mic.js"></script>

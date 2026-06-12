@@ -40,7 +40,7 @@ const Players = (() => {
 
   function levelListFor(id) {
     if (id.startsWith('m')) return MODE_LEVELS;
-    if (id.startsWith('c')) return CHORD_FLOW_LEVELS;
+    if (id.startsWith('c') || id.startsWith('s')) return CHORD_FLOW_LEVELS;
     return LEVELS;
   }
 
