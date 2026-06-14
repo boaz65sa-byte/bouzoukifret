@@ -261,12 +261,13 @@ button, input, select {
 .lane-box.lane-chords .zone { display: none; }
 .lane-box.lane-highway .zone { display: none; }
 .lane-box.lane-highway {
-  min-height: 260px;
-  background: linear-gradient(180deg, #1a120c 0%, #0c141c 100%);
-  border-color: rgba(180,140,80,0.25);
+  min-height: 320px;
+  background: #0c141c;
+  border-color: rgba(180,140,80,0.2);
 }
-.lane-box.lane-highway #game-canvas { min-height: 260px; }
-.lane-box.lane-highway.game-running #game-canvas { min-height: min(52vh, 420px); }
+.lane-box.lane-highway #game-canvas { min-height: 320px; cursor: crosshair; }
+.lane-box.lane-highway.game-running #game-canvas { min-height: min(58vh, 480px); }
+.fb-svg.fb-8str { max-width: min(360px, 96vw); }
 
 /* ===== RESULTS (overlay on lane) ===== */
 .lane-wrap .results-panel {

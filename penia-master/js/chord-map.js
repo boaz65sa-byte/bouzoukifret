@@ -27,6 +27,9 @@ const ChordMap = (() => {
     Fretboard.draw(wrap, {
       compact: opts.compact,
       markers: Fretboard.markersFromChord(chordId),
+      onCellClick(c, f, txt) {
+        if (opts.onCellClick) opts.onCellClick(c, f, txt);
+      },
     });
     return fbHost;
   }
@@ -40,7 +43,7 @@ const ChordMap = (() => {
     LearnGraph.wrapLearnHeader(
       container,
       '📍 גרף לימוד — דיאגרמת בוזוקי',
-      'כמו בגיטרה אמיתית · מיתרים ↕ · סריגים ↔ · נקודות = איפה ללחוץ'
+      '8 מיתרים (4 זוגות) · לחצו על תא — שם מיתר + מספר סריג'
     );
 
     const panel = LearnGraph.focusPanel(container);

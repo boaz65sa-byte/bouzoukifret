@@ -40,6 +40,12 @@ const ModeDiagram = (() => {
         compact: opts.compact,
         markers: scaleMarkers,
         positionStart: positionFor(fret),
+        onCellClick(c, f, txt) {
+          if (opts.onFocus) {
+            const n = playNotes.find(p => p.fret === f && (f > 0 || c === 3)) || playNotes[0];
+            opts.onFocus(n, txt, false);
+          }
+        },
       });
     }
 
@@ -69,7 +75,7 @@ const ModeDiagram = (() => {
     LearnGraph.wrapLearnHeader(
       container,
       '📍 גרף לימוד — דיאגרמת בוזוקי',
-      'כמו בגיטרה אמיתית: מיתרים ↕ · סריגים ↔ · נקודות = איפה ללחוץ'
+      '8 מיתרים (4 זוגות) · מיתרים ↕ · סריגים ↔ · לחצו על תא לראות מיתר + סריג'
     );
 
     const panel = LearnGraph.focusPanel(container);

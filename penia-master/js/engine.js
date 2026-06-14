@@ -16,6 +16,7 @@ const Engine = (() => {
   let lastUpcomingIdx = -1;
   let seqLen = 1;
   let highwayPos = 0;
+  let clickHint = null;
   let previewMode = false;
   let previewStart = 0;
 
@@ -198,8 +199,8 @@ const Engine = (() => {
   function hitPoint(w, h) {
     if (gameType === 'pick') return { x: HIT_X, y: h * 0.5 };
     const g = Highway.geom(w, h);
-    if (gameType === 'note') return { x: g.hitX, y: g.strY(3) };
-    return { x: g.hitX, y: (g.strY(1) + g.strY(2)) / 2 };
+    if (gameType === 'note') return { x: g.courseCenterX(3), y: g.rowY(0, highwayPos) };
+    return { x: g.courseCenterX(1), y: g.nutY + g.gridH * 0.5 };
   }
   function emitUpcoming(tNow) {
     if (!running || calibrating || gameType === 'pick') return;
@@ -377,6 +378,7 @@ const Engine = (() => {
       targets: drawTargets,
       upcoming,
       countIn,
+      clickHint,
     });
 
     if (performance.now() - laneFlash < 100) {
@@ -622,9 +624,22 @@ const Engine = (() => {
     });
     canvasEl.addEventListener('pointerdown', e => {
       e.preventDefault();
+      const r = canvasEl.getBoundingClientRect();
       if (gameType === 'pick') {
-        const r = canvasEl.getBoundingClientRect();
         handleInput(e.clientY - r.top < r.height / 2 ? 'u' : 'd');
+        return;
+      }
+      if (gameType === 'note' || gameType === 'chord') {
+        const hit = Highway.hitTest(e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+        if (hit) {
+          clickHint = { course: hit.course, fret: hit.fret };
+          addPopup(hit.text, '#4fd9e8');
+          if (previewMode || running) drawFrame();
+          setTimeout(() => {
+            clickHint = null;
+            if (previewMode || running) drawFrame();
+          }, 1200);
+        }
       }
     });
   }

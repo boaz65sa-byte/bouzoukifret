@@ -43,7 +43,7 @@ const PlayLearnGraph = (() => {
         compact: true,
         markers: [{ stringIdx: 3, fret: n.fret, id: 'now', label: n.label || n.solfege }],
         positionStart: posStart,
-        activeStringIdx: 3,
+        activeCourseIdx: 3,
       });
     } else if (gt === 'chord') {
       const id = level.chordSeq[idx];
