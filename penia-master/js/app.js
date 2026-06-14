@@ -47,6 +47,7 @@ const UI = (() => {
 
   function goHub(target) {
     try { stopGame(); stopChordDrill(); } catch (e) { /* */ }
+    if (typeof Engine !== 'undefined') Engine.stopPreview();
     if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
     const dest = target || 'home';
     /* מעבר מסך קודם — גם אם הרינדור נכשל */
@@ -521,6 +522,14 @@ const UI = (() => {
     setPlayUIState(false);
     updateInputModeUI();
     showScreen('play');
+    requestAnimationFrame(() => {
+      Engine.resize($('#game-canvas'));
+      if (gt === 'note' || gt === 'chord') {
+        Engine.showPreview(lv, $('#game-canvas'));
+      } else {
+        Engine.stopPreview();
+      }
+    });
   }
 
   function renderPlayPattern(lv, gt) {
@@ -563,6 +572,7 @@ const UI = (() => {
   }
 
   function startGame() {
+    Engine.stopPreview();
     Engine.stop();
     stopMicForGame();
     AudioEngine.ensureCtx();
@@ -582,6 +592,10 @@ const UI = (() => {
     Engine.stop();
     stopMicForGame();
     setPlayUIState(false);
+    const gt = currentLevel?.gameType || 'pick';
+    if (gt === 'note' || gt === 'chord') {
+      requestAnimationFrame(() => Engine.showPreview(currentLevel, $('#game-canvas')));
+    }
   }
 
   function showResults(r) {

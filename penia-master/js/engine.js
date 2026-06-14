@@ -16,6 +16,8 @@ const Engine = (() => {
   let lastUpcomingIdx = -1;
   let seqLen = 1;
   let highwayPos = 0;
+  let previewMode = false;
+  let previewStart = 0;
 
   const actx = () => AudioEngine.ctx;
   const now = () => actx().currentTime;
@@ -331,16 +333,45 @@ const Engine = (() => {
     cctx.fillText(`${calibTaps.length} / 8 הקשות`, w / 2, h * 0.82);
   }
 
+  function buildPreviewTargets() {
+    const beat = 60 / bpm;
+    const step = beat;
+    const out = [];
+    if (gameType === 'note' && level.notes) {
+      level.notes.slice(0, 6).forEach((n, i) => {
+        out.push({ t: 1.2 + i * step, note: n, status: null, label: n.label || n.solfege });
+      });
+    } else if (gameType === 'chord' && level.chordSeq) {
+      level.chordSeq.slice(0, 6).forEach((id, i) => {
+        const ch = getChord(id);
+        out.push({ t: 1.2 + i * step, chordId: id, status: null, label: id, he: ch?.he || '' });
+      });
+    }
+    return out;
+  }
+
   function drawHighwayFrame(w, h, tNow, beat) {
     const pxPerSec = PX_PER_BEAT / beat;
-    const upcoming = getUpcomingTarget(tNow);
+    let countIn = 0;
+    if (running && tNow < t0 + COUNT_IN * beat) {
+      countIn = Math.ceil((t0 + COUNT_IN * beat - tNow) / beat);
+    }
+
+    const preview = previewMode && !running;
+    const drawT = preview ? ((performance.now() - previewStart) / 1000) % 12 : tNow;
+    const drawTargets = preview ? buildPreviewTargets() : targets;
+
+    let upcoming = getUpcomingTarget(drawT);
+    if (preview && drawTargets.length) {
+      upcoming = drawTargets.find(tg => !tg.status && tg.t - drawT >= -W_REGISTER) || drawTargets[0];
+    }
     if (upcoming) updateHighwayPos(upcoming);
 
     Highway.drawFrame(cctx, {
-      w, h, tNow, pxPerSec,
+      w, h, tNow: drawT, pxPerSec,
       posStart: highwayPos,
       gameType,
-      targets,
+      targets: drawTargets,
       upcoming,
       pulse: performance.now(),
       countIn,
@@ -417,8 +448,12 @@ const Engine = (() => {
   }
 
   function drawFrame() {
-    if (!running && !calibrating) return;
+    if (!running && !calibrating && !previewMode) return;
     const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (w < 2 || h < 2) {
+      rafId = requestAnimationFrame(drawFrame);
+      return;
+    }
     const tNow = now(), beat = 60 / bpm, pxPerSec = PX_PER_BEAT / beat;
 
     cctx.fillStyle = '#060b12';
@@ -472,7 +507,9 @@ const Engine = (() => {
     });
 
     if (running && tNow > endT + 0.5) { finish(); return; }
-    rafId = requestAnimationFrame(drawFrame);
+    if (previewMode || running || calibrating) {
+      rafId = requestAnimationFrame(drawFrame);
+    }
   }
 
   function finish() {
@@ -487,6 +524,7 @@ const Engine = (() => {
   }
 
   function start(lv, bpmVal, canvasEl, hudCb, finishCb) {
+    previewMode = false;
     calibrating = false;
     level = lv; bpm = bpmVal;
     gameType = lv.gameType || 'pick';
@@ -503,12 +541,36 @@ const Engine = (() => {
     drawFrame();
   }
 
+  function showPreview(lv, canvasEl) {
+    if (!canvasEl || !lv) return;
+    previewMode = true;
+    running = false;
+    calibrating = false;
+    level = lv;
+    gameType = lv.gameType || 'pick';
+    bpm = lv.bpm;
+    previewStart = performance.now();
+    highwayPos = 0;
+    canvas = canvasEl;
+    setupCanvas(canvasEl);
+    cancelAnimationFrame(rafId);
+    if (gameType === 'note' || gameType === 'chord') drawFrame();
+  }
+
+  function stopPreview() {
+    previewMode = false;
+    cancelAnimationFrame(rafId);
+  }
+
   function stop() {
-    running = false; calibrating = false;
+    running = false;
+    calibrating = false;
     cancelAnimationFrame(rafId);
     scheduledClicks.forEach(o => { try { o.stop(); } catch (e) { /* */ } });
     scheduledClicks = [];
-    if (cctx && canvas) cctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    if (!previewMode && cctx && canvas) {
+      cctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    }
   }
 
   function calibrate(canvasEl, onDone, onProgress) {
@@ -571,5 +633,5 @@ const Engine = (() => {
 
   function getGameType() { return gameType; }
 
-  return { start, stop, calibrate, bindInput, handleInput, handleNoteHit, handleChordHit, resize, getGameType };
+  return { start, stop, showPreview, stopPreview, calibrate, bindInput, handleInput, handleNoteHit, handleChordHit, resize, getGameType };
 })();
