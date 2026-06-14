@@ -239,8 +239,9 @@ select {
 .hist p { font-size: 13.8px; line-height: 1.7; color: var(--text-dim); margin: 0; }
 
 /* ===================== לוח סריגים ===================== */
-.fretboard-wrap { overflow-x: auto; padding: 8px 0; margin: 14px 0; }
+.fretboard-wrap { overflow-x: auto; padding: 8px 0; margin: 14px 0; position: relative; }
 .fretboard { min-width: 980px; width: 100%; height: auto; display: block; }
+.fretboard-scroll-hint { display: none; text-align: center; font-size: 11px; color: var(--text-dim); opacity: 0.6; padding: 4px 0; }
 
 .fb-dot { cursor: pointer; transition: r 0.12s; }
 .fb-dot:hover { filter: brightness(1.3); }
@@ -798,9 +799,40 @@ select {
   .meter-badge { font-size: 16px; }
   .rhythm-controls input[type='range'] { width: 100%; flex-basis: 100%; }
   .fretboard-wrap, .tab-wrap { -webkit-overflow-scrolling: touch; }
+  .fretboard-scroll-hint { display: block; }
   .penia-strip, .beat-strip, .beat-penia, .strum-strip, .ls-chips { padding: 12px 8px; gap: 6px; }
   .grid-2, .grid-3 { gap: 14px; }
   .card { margin-bottom: 16px; }
+
+  /* --- מאסטר מודוסים + אקורדים: מובייל --- */
+  .mm-control-row { flex-direction: column; gap: 8px; }
+  .mm-control-row > div { min-width: 100%; }
+  .mm-control-row select { padding: 10px 12px; font-size: 15px; }
+  .mm-action-row { flex-direction: column; gap: 10px; }
+  .mm-action-row .btn { width: 100%; font-size: 16px; padding: 12px; }
+
+  .mm-stats-bar { gap: 6px; }
+  .mm-stat { min-width: 55px; padding: 8px 4px; border-radius: 8px; }
+  .mm-stat span { font-size: 10px; }
+  .mm-stat b { font-size: 18px; }
+  .mm-stat.prog b { font-size: 12px; }
+
+  .mm-big-note { font-size: 48px; }
+  .mm-solfege { font-size: 18px; }
+  .mm-fret-hint { font-size: 12px; }
+  .mm-detected-row { font-size: 13px; padding: 5px 12px; }
+  .mm-detected-row b { font-size: 14px; }
+  .mm-feedback { font-size: 18px; padding: 5px 14px; }
+  .mm-label { font-size: 13px; }
+
+  .mc-chord-name { font-size: 36px; }
+  .mc-chord-eng { font-size: 15px; }
+  .mc-chord-frets { font-size: 12px; letter-spacing: 1px; }
+  .mc-note-chips { gap: 5px; }
+  .mc-chip { padding: 4px 10px; font-size: 11px; }
+  .mc-timer-wrap { max-width: 100%; }
+
+  #mm-hero-canvas { height: 200px !important; }
 }
 
 /* מסכים צרים מאוד */
@@ -809,7 +841,83 @@ select {
   .stroke-cell { width: 42px; height: 66px; }
   .stroke-arrow { font-size: 24px; }
   .stroke-cell.accent .stroke-arrow { font-size: 32px; }
+
+  .mm-stats-bar { gap: 4px; }
+  .mm-stat { min-width: 48px; padding: 6px 2px; }
+  .mm-stat span { font-size: 9px; }
+  .mm-stat b { font-size: 15px; }
+  .mm-big-note { font-size: 40px; }
+  .mm-solfege { font-size: 16px; }
+  .mc-chord-name { font-size: 30px; }
+  .mc-chip { padding: 3px 8px; font-size: 10px; }
+  .mm-feedback { font-size: 16px; }
+  #mm-hero-canvas { height: 160px !important; }
 }
+
+/* ===================== מאסטר מודוסים + אקורדים ===================== */
+.mm-controls { display: flex; flex-direction: column; gap: 14px; }
+.mm-control-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.mm-control-row > div { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px; }
+.mm-control-row label { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+.mm-control-row select { background: var(--bg-elev); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; }
+.mm-action-row { display: flex; align-items: center; gap: 14px; }
+
+.mm-mic { font-size: 13px; padding: 4px 12px; border-radius: 20px; }
+.mm-mic.on { background: rgba(95, 200, 143, 0.15); color: var(--ok); }
+.mm-mic.off { background: rgba(217, 100, 89, 0.15); color: var(--accent-red); }
+
+.mm-stats-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+.mm-stat { flex: 1; min-width: 70px; text-align: center; padding: 10px 6px; border-radius: 10px; background: var(--bg-elev); }
+.mm-stat span { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.mm-stat b { font-size: 22px; }
+.mm-stat.ok b { color: var(--ok); }
+.mm-stat.bad b { color: var(--accent-red); }
+.mm-stat.streak b { color: var(--aegean); }
+.mm-stat.acc b { color: var(--gold); }
+.mm-stat.prog b { color: var(--text-dim); font-size: 14px; }
+
+.mm-play-area { text-align: center; }
+.mm-target-info, .mc-play-area { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.mm-label { font-size: 14px; color: var(--text-dim); }
+.mm-note-display { text-align: center; }
+.mm-big-note { font-size: 64px; font-weight: 900; color: var(--gold); line-height: 1.1; text-shadow: 0 0 30px rgba(227,179,65,0.3); }
+.mm-solfege { font-size: 22px; color: var(--gold-soft); }
+.mm-fret-hint { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+.mm-detected-row { font-size: 15px; color: var(--text-dim); padding: 6px 18px; background: var(--bg-elev); border-radius: 20px; }
+.mm-detected-row b { color: var(--aegean); font-size: 17px; margin-right: 6px; }
+
+.mm-feedback { font-size: 22px; font-weight: 700; padding: 6px 20px; border-radius: 10px; opacity: 0; transition: opacity 0.3s; min-height: 38px; }
+.mm-feedback.correct { color: var(--ok); background: rgba(95,200,143,0.15); }
+.mm-feedback.wrong { color: var(--accent-red); background: rgba(217,100,89,0.15); }
+
+/* אקורדים */
+.mc-chord-info { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.mc-chord-display { text-align: center; }
+.mc-chord-name { font-size: 48px; font-weight: 900; color: var(--gold); line-height: 1.1; }
+.mc-chord-eng { font-size: 18px; color: var(--text-dim); }
+.mc-chord-frets { font-size: 14px; color: var(--aegean); font-family: monospace; margin-top: 4px; letter-spacing: 2px; }
+
+.mc-note-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.mc-chip { padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; background: var(--bg-elev); border: 2px solid var(--line); color: var(--text-dim); transition: all 0.3s; }
+.mc-chip.hit { background: rgba(95,200,143,0.2); border-color: var(--ok); color: var(--ok); }
+
+.mc-timer-wrap { width: 100%; max-width: 400px; height: 6px; background: var(--bg-elev); border-radius: 3px; overflow: hidden; }
+.mc-timer-bar { height: 100%; background: var(--ok); border-radius: 3px; transition: width 0.1s linear; }
+.mc-timer-bar.danger { background: var(--accent-red); }
+
+/* הדגשות על הגריף */
+.fb-dot.mm-target circle { fill: var(--ok) !important; stroke: #a0ffc8 !important; }
+.fb-dot.mm-glow circle { filter: drop-shadow(0 0 8px var(--ok)); }
+.fb-dot.mc-target circle { fill: var(--gold) !important; stroke: var(--gold-soft) !important; filter: drop-shadow(0 0 8px var(--gold)); }
+.fb-dot.mc-hit circle { fill: var(--ok) !important; stroke: #a0ffc8 !important; filter: drop-shadow(0 0 8px var(--ok)); }
+
+@keyframes mm-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+.fb-dot.mm-target { animation: mm-pulse 1s ease-in-out infinite; transform-origin: center; }
+.fb-dot.mc-target { animation: mm-pulse 1.2s ease-in-out infinite; transform-origin: center; }
 
 /* פס גלילה מעוצב */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

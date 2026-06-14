@@ -37,6 +37,9 @@ function stopAllPlayback() {
   if (typeof stopExercise === 'function') stopExercise();
   if (typeof Listen !== 'undefined') Listen.stopAll();
   if (typeof Game !== 'undefined') Game.stop();
+  if (typeof MasterModes !== 'undefined') MasterModes.stop();
+  if (typeof MasterChords !== 'undefined') MasterChords.stop();
+  if (typeof MicEngine !== 'undefined') MicEngine.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
