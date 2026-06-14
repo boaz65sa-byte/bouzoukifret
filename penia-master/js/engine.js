@@ -189,9 +189,12 @@ const Engine = (() => {
   function updateHighwayPos(tg) {
     if (!tg || typeof Highway === 'undefined') return;
     if (gameType === 'note') {
-      highwayPos = Highway.positionForFret(tg.note.fret);
-    } else if (gameType === 'chord' && typeof Fretboard !== 'undefined') {
-      highwayPos = Fretboard.calcPositionStart(Fretboard.markersFromChord(tg.chordId));
+      highwayPos = Math.max(0, tg.note.fret);
+    } else if (gameType === 'chord') {
+      const ch = getChord(tg.chordId);
+      if (!ch) return;
+      const frets = ch.shape.filter(f => typeof f === 'number' && f > 0);
+      highwayPos = frets.length ? Math.min(...frets) : 0;
     }
   }
 
@@ -366,14 +369,16 @@ const Engine = (() => {
       upcoming = drawTargets.find(tg => !tg.status && tg.t - drawT >= -W_REGISTER) || drawTargets[0];
     }
     if (upcoming) updateHighwayPos(upcoming);
+    else if (drawTargets.length) {
+      highwayPos = Highway.targetViewStart(drawTargets, drawT, gameType);
+    }
 
     Highway.drawFrame(cctx, {
       w, h, tNow: drawT, pxPerSec,
-      posStart: highwayPos,
+      viewStart: highwayPos,
       gameType,
       targets: drawTargets,
       upcoming,
-      pulse: performance.now(),
       countIn,
     });
 

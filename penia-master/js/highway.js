@@ -1,79 +1,102 @@
-/* כביש בוזוקי — מיתרים אופקיים, סריגים אנכיים, תווים זזים לקו */
+/* גרף בוזוקי — מיתרים + סריגים, מתקדם לפי מיקום על הצוואר */
 const Highway = (() => {
   const STRING_HE = ['דו', 'פה', 'לה', 'רה'];
-  const STRING_COLORS = ['#5ec8e8', '#e8c85e', '#c88ee8', '#e3b341'];
-  const NUM_FRETS = 5;
-  const HIT_X_RATIO = 0.26;
+  const STRING_COLORS = ['#4ec8e8', '#e8c85e', '#c88ee8', '#e3b341'];
+  const VISIBLE_FRETS = 7;
+  const HIT_X_RATIO = 0.22;
 
   function positionForFret(fret) {
-    if (fret <= 5) return 0;
-    return Math.max(0, Math.min(fret - 3, 12 - NUM_FRETS));
+    if (fret <= 0) return 0;
+    if (fret <= VISIBLE_FRETS - 1) return 0;
+    return Math.min(fret - 2, 12 - VISIBLE_FRETS + 1);
   }
 
   function geom(w, h) {
-    const capH = Math.min(36, h * 0.14);
-    const neckTop = capH + 6;
-    const neckBot = h - 14;
+    const capH = Math.min(32, h * 0.12);
+    const neckTop = capH + 4;
+    const neckBot = h - 10;
     const strGap = (neckBot - neckTop) / 3;
     const strY = si => neckTop + si * strGap;
     const hitX = w * HIT_X_RATIO;
-    const fretW = Math.min(w * 0.105, 72);
-    const nutX = hitX;
+    const fretW = Math.max(36, Math.min(w * 0.11, 64));
 
-    function fretX(fret, posStart) {
-      if (fret === 0) return nutX;
-      return nutX + (fret - posStart - 0.5) * fretW;
+    function columnX(fret, viewStart) {
+      return hitX + (fret - viewStart) * fretW;
     }
 
-    return { w, h, capH, neckTop, neckBot, strGap, strY, hitX, fretW, nutX, fretX };
+    return { w, h, capH, neckTop, neckBot, strGap, strY, hitX, fretW, columnX };
   }
 
   function drawWood(cctx, g) {
     const grd = cctx.createLinearGradient(0, g.neckTop, 0, g.neckBot);
-    grd.addColorStop(0, '#5c4030');
-    grd.addColorStop(0.35, '#7a5238');
-    grd.addColorStop(0.65, '#6b4528');
-    grd.addColorStop(1, '#4a3020');
+    grd.addColorStop(0, '#6b4a32');
+    grd.addColorStop(0.5, '#8b6244');
+    grd.addColorStop(1, '#5a3824');
     cctx.fillStyle = grd;
-    cctx.fillRect(0, g.neckTop - 4, g.w, g.neckBot - g.neckTop + 8);
-
-    /* תבנית עץ */
-    cctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    cctx.lineWidth = 1;
-    for (let i = 0; i < 12; i++) {
-      const y = g.neckTop + (g.neckBot - g.neckTop) * (i / 12);
-      cctx.beginPath();
-      cctx.moveTo(0, y);
-      cctx.lineTo(g.w, y + 3);
-      cctx.stroke();
-    }
+    cctx.fillRect(0, g.neckTop - 6, g.w, g.neckBot - g.neckTop + 12);
   }
 
-  function drawFrets(cctx, g, posStart) {
-    /* נוט */
-    cctx.strokeStyle = '#e8dcc8';
-    cctx.lineWidth = 5;
+  function drawFretGrid(cctx, g, viewStart) {
+    const p = 0.5 + 0.5 * Math.sin(performance.now() / 160);
+    cctx.shadowColor = '#4fd9e8';
+    cctx.shadowBlur = 12 + p * 10;
+    cctx.strokeStyle = `rgba(79,217,232,${0.75 + p * 0.25})`;
+    cctx.lineWidth = 3;
     cctx.beginPath();
-    cctx.moveTo(g.nutX, g.neckTop - 2);
-    cctx.lineTo(g.nutX, g.neckBot + 2);
+    cctx.moveTo(g.hitX, g.neckTop - 10);
+    cctx.lineTo(g.hitX, g.neckBot + 10);
     cctx.stroke();
+    cctx.shadowBlur = 0;
 
-    for (let f = 1; f <= NUM_FRETS + 2; f++) {
-      const x = g.nutX + (f - 0.5) * g.fretW;
-      if (x > g.w + 10) break;
-      cctx.strokeStyle = 'rgba(180,190,200,0.75)';
-      cctx.lineWidth = 2.5;
+    if (viewStart > 0) {
+      cctx.strokeStyle = '#b8c4d0';
+      cctx.lineWidth = 4;
       cctx.beginPath();
-      cctx.moveTo(x, g.neckTop - 2);
-      cctx.lineTo(x, g.neckBot + 2);
+      cctx.moveTo(g.hitX - 3, g.neckTop - 8);
+      cctx.lineTo(g.hitX - 3, g.neckBot + 8);
       cctx.stroke();
+      cctx.fillStyle = '#e3b341';
+      cctx.font = '900 12px Heebo, sans-serif';
+      cctx.textAlign = 'right';
+      cctx.textBaseline = 'top';
+      cctx.fillText(String(viewStart), g.hitX - 8, g.neckTop - 8);
+    } else {
+      cctx.strokeStyle = '#f0e8d8';
+      cctx.lineWidth = 5;
+      cctx.beginPath();
+      cctx.moveTo(g.hitX, g.neckTop - 8);
+      cctx.lineTo(g.hitX, g.neckBot + 8);
+      cctx.stroke();
+    }
 
-      const label = posStart + f;
-      cctx.fillStyle = '#f0cc74';
-      cctx.font = '800 13px Heebo, sans-serif';
-      cctx.textAlign = 'center';
-      cctx.textBaseline = 'bottom';
-      cctx.fillText(String(label), x, g.neckTop - 6);
+    for (let fi = -2; fi <= VISIBLE_FRETS + 2; fi++) {
+      const fretNum = viewStart + fi;
+      if (fretNum < 0) continue;
+      const x = g.hitX + fi * g.fretW;
+      if (x < -20) continue;
+      if (x > g.w + 20) break;
+      cctx.strokeStyle = 'rgba(190,200,210,0.7)';
+      cctx.lineWidth = fi === 0 && viewStart === 0 ? 0 : 2;
+      if (cctx.lineWidth > 0) {
+        cctx.beginPath();
+        cctx.moveTo(x, g.neckTop - 4);
+        cctx.lineTo(x, g.neckBot + 4);
+        cctx.stroke();
+      }
+      if (fi > 0 || viewStart > 0) {
+        cctx.fillStyle = '#f0cc74';
+        cctx.font = '800 12px Heebo, sans-serif';
+        cctx.textAlign = 'center';
+        cctx.textBaseline = 'bottom';
+        cctx.fillText(String(fretNum), x - g.fretW * 0.5, g.neckTop - 8);
+      }
+      if ([3, 5, 7, 9, 12].includes(fretNum) && fi > 0) {
+        const dotY = (g.neckTop + g.neckBot) / 2;
+        cctx.fillStyle = 'rgba(0,0,0,0.45)';
+        cctx.beginPath();
+        cctx.arc(x - g.fretW * 0.5, dotY, 4, 0, Math.PI * 2);
+        cctx.fill();
+      }
     }
   }
 
@@ -81,11 +104,11 @@ const Highway = (() => {
     const active = activeStrings ? new Set(activeStrings) : null;
     for (let s = 0; s < 4; s++) {
       const y = g.strY(s);
-      const isOn = !active || active.has(s);
-      cctx.strokeStyle = isOn
-        ? (s === 3 ? 'rgba(255,220,120,0.95)' : 'rgba(220,230,240,0.7)')
-        : 'rgba(120,140,160,0.3)';
-      cctx.lineWidth = isOn ? (s === 3 ? 2.5 : 1.8) : 1;
+      const on = !active || active.has(s);
+      cctx.strokeStyle = on
+        ? (s === 3 ? 'rgba(255,230,140,0.95)' : 'rgba(230,238,248,0.75)')
+        : 'rgba(100,120,140,0.25)';
+      cctx.lineWidth = on ? (s === 3 ? 2.4 : 1.6) : 0.8;
       cctx.beginPath();
       cctx.moveTo(0, y);
       cctx.lineTo(g.w, y);
@@ -93,65 +116,45 @@ const Highway = (() => {
     }
   }
 
-  function drawHitLine(cctx, g, pulse) {
-    const p = 0.5 + 0.5 * Math.sin(pulse / 160);
-    cctx.shadowColor = '#4fd9e8';
-    cctx.shadowBlur = 14 + p * 16;
-    cctx.strokeStyle = `rgba(79,217,232,${0.65 + p * 0.35})`;
-    cctx.lineWidth = 3 + p * 2;
-    cctx.beginPath();
-    cctx.moveTo(g.hitX, g.neckTop - 8);
-    cctx.lineTo(g.hitX, g.neckBot + 8);
-    cctx.stroke();
-    cctx.shadowBlur = 0;
-  }
-
-  function drawReceptors(cctx, g, activeStrings, upcoming) {
-    for (let s = 0; s < 4; s++) {
-      const y = g.strY(s);
-      const isActive = activeStrings && activeStrings.has(s);
-      const r = isActive ? 13 : 8;
-      cctx.beginPath();
-      cctx.arc(g.hitX, y, r, 0, Math.PI * 2);
-      cctx.fillStyle = isActive ? 'rgba(79,217,232,0.2)' : 'rgba(20,30,45,0.5)';
-      cctx.fill();
-      cctx.strokeStyle = isActive ? '#4fd9e8' : 'rgba(100,130,160,0.4)';
-      cctx.lineWidth = isActive ? 2.5 : 1;
-      cctx.stroke();
-    }
-
-    cctx.fillStyle = '#8fa6bc';
+  function drawStringLabels(cctx, g) {
     cctx.font = '700 10px Heebo, sans-serif';
-    cctx.textAlign = 'right';
+    cctx.textAlign = 'left';
     cctx.textBaseline = 'middle';
     for (let s = 0; s < 4; s++) {
       cctx.fillStyle = s === 3 ? '#e3b341' : '#8fa6bc';
-      cctx.fillText(`מ${s + 1}·${STRING_HE[s]}`, g.hitX - 14, g.strY(s));
+      cctx.fillText(`מיתר ${s + 1} · ${STRING_HE[s]}`, 6, g.strY(s));
     }
+  }
 
-    if (upcoming?.text) {
-      cctx.fillStyle = '#f0cc74';
-      cctx.font = '800 15px Heebo, sans-serif';
-      cctx.textAlign = 'center';
-      cctx.textBaseline = 'middle';
-      cctx.fillText(upcoming.text, g.w * 0.55, g.capH * 0.55);
-    }
+  function drawReceptors(cctx, g, markers, viewStart) {
+    if (!markers) return;
+    markers.forEach(m => {
+      if (m.fret === 'x') return;
+      const y = g.strY(m.stringIdx);
+      const x = g.columnX(m.fret === 0 ? 0 : m.fret, viewStart);
+      cctx.beginPath();
+      cctx.arc(x, y, 10, 0, Math.PI * 2);
+      cctx.strokeStyle = 'rgba(79,217,232,0.5)';
+      cctx.lineWidth = 2;
+      cctx.stroke();
+    });
   }
 
   function gemColor(status, base) {
     if (status === 'wrong' || status === 'miss') return '#d96459';
-    if (status === 'perfect' || status === 'good') return 'rgba(227,179,65,0.35)';
+    if (status === 'perfect' || status === 'good') return 'rgba(227,179,65,0.3)';
     return base;
   }
 
   function drawGem(cctx, x, y, r, color, label, status, glow) {
+    if (x < -30 || x > cctx.canvas.width / (window.devicePixelRatio || 1) + 30) return;
     let alpha = 1;
-    if (status === 'perfect' || status === 'good') alpha = 0.25;
+    if (status === 'perfect' || status === 'good') alpha = 0.22;
     cctx.save();
     cctx.globalAlpha = alpha;
     if (glow && !status) {
       cctx.shadowColor = color;
-      cctx.shadowBlur = 18;
+      cctx.shadowBlur = 16;
     }
     cctx.beginPath();
     cctx.arc(x, y, r, 0, Math.PI * 2);
@@ -162,8 +165,8 @@ const Highway = (() => {
     cctx.stroke();
     if (label) {
       cctx.shadowBlur = 0;
-      cctx.fillStyle = '#1a1408';
-      cctx.font = `900 ${r > 9 ? 13 : 10}px Heebo, sans-serif`;
+      cctx.fillStyle = '#1a1008';
+      cctx.font = `900 ${r > 10 ? 12 : 10}px Heebo, sans-serif`;
       cctx.textAlign = 'center';
       cctx.textBaseline = 'middle';
       cctx.fillText(label, x, y);
@@ -171,58 +174,42 @@ const Highway = (() => {
     cctx.restore();
   }
 
-  /* תו יורד לאורך מיתר — x זז מימין לקו */
-  function drawNoteGem(cctx, g, scrollX, note, posStart, status) {
-    const si = 3;
-    const y = g.strY(si);
-    const x = g.hitX + scrollX;
-    const col = gemColor(status, STRING_COLORS[si]);
-    const label = note.fret === 0 ? '○' : String(note.fret);
-    drawGem(cctx, x, y, 14, col, label, status, true);
-    if (!status && note.label) {
-      cctx.fillStyle = '#f0cc74';
-      cctx.font = '700 10px Heebo, sans-serif';
-      cctx.textAlign = 'center';
-      cctx.fillText(note.label || note.solfege, x, y - 20);
-    }
+  function noteMarkers(note) {
+    return [{ stringIdx: 3, fret: note.fret, label: note.label || note.solfege }];
+  }
+
+  function chordMarkers(chordId) {
+    const ch = getChord(chordId);
+    if (!ch) return [];
+    return ch.shape.map((f, stringIdx) => ({ stringIdx, fret: f, label: '' }));
+  }
+
+  function gemPos(g, fret, stringIdx, viewStart, timeToHit, pxPerSec) {
+    const y = g.strY(stringIdx);
+    const f = fret === 'x' ? 0 : fret;
+    const colX = g.columnX(typeof f === 'number' ? f : 0, viewStart);
+    const x = colX + timeToHit * pxPerSec;
     return { x, y };
   }
 
-  function drawChordGems(cctx, g, scrollX, chordId, posStart, status) {
-    const ch = getChord(chordId);
-    if (!ch) return { x: g.hitX, y: g.strY(1) };
-    let first = null;
-    ch.shape.forEach((f, si) => {
-      const y = g.strY(si);
-      const x = g.hitX + scrollX;
-      const col = gemColor(status, STRING_COLORS[si]);
-      if (f === 'x') {
+  function drawMarkers(cctx, g, markers, viewStart, timeToHit, pxPerSec, status) {
+    markers.forEach(m => {
+      if (m.fret === 'x') {
+        const { x, y } = gemPos(g, 0, m.stringIdx, viewStart, timeToHit, pxPerSec);
         cctx.fillStyle = '#d96459';
-        cctx.font = '800 14px Heebo, sans-serif';
+        cctx.font = '800 15px Heebo, sans-serif';
         cctx.textAlign = 'center';
-        cctx.fillText('×', x, y - 16);
-      } else if (f === 0) {
-        drawGem(cctx, x, y, 9, gemColor(status, '#5fc88f'), '○', status, false);
-      } else {
-        drawGem(cctx, x, y, 12, col, String(f), status, true);
+        cctx.textBaseline = 'bottom';
+        cctx.fillText('×', x, y - 14);
+        return;
       }
-      if (!first) first = { x, y };
-    });
-    return first || { x: g.hitX, y: g.strY(1) };
-  }
-
-  function drawMuteMarkers(cctx, g, scrollX, chordId, status) {
-    const ch = getChord(chordId);
-    if (!ch || status) return;
-    ch.shape.forEach((f, si) => {
-      if (f !== 'x') return;
-      const x = g.hitX + scrollX;
-      const y = g.strY(si);
-      cctx.fillStyle = '#d96459';
-      cctx.font = '800 16px Heebo, sans-serif';
-      cctx.textAlign = 'center';
-      cctx.textBaseline = 'middle';
-      cctx.fillText('×', x, y);
+      const { x, y } = gemPos(g, m.fret, m.stringIdx, viewStart, timeToHit, pxPerSec);
+      const col = gemColor(status, STRING_COLORS[m.stringIdx]);
+      if (m.fret === 0) {
+        drawGem(cctx, x, y, 10, gemColor(status, '#5fc88f'), '○', status, true);
+      } else {
+        drawGem(cctx, x, y, 13, col, String(m.fret), status, true);
+      }
     });
   }
 
@@ -239,50 +226,77 @@ const Highway = (() => {
     if (!tg) return '';
     if (gameType === 'note') {
       const n = tg.note;
-      if (n.fret === 0) return `${n.label || n.solfege}  ·  מיתר רה — פתוח ○`;
-      return `${n.label || n.solfege}  ·  סריג ${n.fret}  ·  מיתר רה (${STRING_HE[3]})`;
+      if (n.fret === 0) return `${n.label || n.solfege} · מיתר 4 רה — פתוח ○`;
+      return `${n.label || n.solfege} · סריג ${n.fret} · מיתר 4 (${STRING_HE[3]})`;
     }
-    return `${tg.chordId}  ·  ${LearnGraph.shapeHint(tg.chordId)}`;
+    return `${tg.chordId} · ${LearnGraph.shapeHint(tg.chordId)}`;
+  }
+
+  function targetViewStart(targets, tNow, gameType) {
+    let best = null, bestDt = Infinity;
+    targets.forEach(tg => {
+      if (tg.status) return;
+      const dt = tg.t - tNow;
+      if (dt >= -0.2 && dt < bestDt) { bestDt = dt; best = tg; }
+    });
+    if (!best) return 0;
+    if (gameType === 'note') return Math.max(0, best.note.fret);
+    const ch = getChord(best.chordId);
+    if (!ch) return 0;
+    const frets = ch.shape.filter(f => typeof f === 'number' && f > 0);
+    return frets.length ? Math.min(...frets) : 0;
   }
 
   function drawFrame(cctx, opts) {
-    const { w, h, tNow, pxPerSec, posStart, gameType, targets, upcoming, pulse, countIn } = opts;
+    const { w, h, tNow, pxPerSec, viewStart, gameType, targets, upcoming, countIn } = opts;
     const g = geom(w, h);
 
-    cctx.fillStyle = '#0a1218';
+    cctx.fillStyle = '#0c141c';
     cctx.fillRect(0, 0, w, h);
 
     drawWood(cctx, g);
-    drawFrets(cctx, g, posStart);
+    drawFretGrid(cctx, g, viewStart);
     const activeStr = upcoming ? activeStringsForTarget(upcoming, gameType) : null;
     drawStrings(cctx, g, activeStr);
-    drawHitLine(cctx, g, pulse);
-    drawReceptors(cctx, g, activeStr, {
-      text: upcoming ? upcomingCaption(upcoming, gameType) : '',
-    });
+    drawStringLabels(cctx, g);
+
+    if (upcoming) {
+      const cap = upcomingCaption(upcoming, gameType);
+      cctx.fillStyle = '#f0cc74';
+      cctx.font = '800 14px Heebo, sans-serif';
+      cctx.textAlign = 'center';
+      cctx.textBaseline = 'middle';
+      cctx.fillText(cap, w * 0.58, g.capH * 0.55);
+      const preview = gameType === 'note'
+        ? noteMarkers(upcoming.note)
+        : chordMarkers(upcoming.chordId);
+      drawReceptors(cctx, g, preview.map(m => ({ ...m, fret: m.fret === 'x' ? 0 : m.fret })), viewStart);
+    }
 
     if (countIn > 0) {
+      cctx.fillStyle = 'rgba(8,15,24,0.55)';
+      cctx.fillRect(w * 0.38, h * 0.38, w * 0.24, 64);
       cctx.fillStyle = '#f0cc74';
-      cctx.font = '900 48px Heebo, sans-serif';
+      cctx.font = '900 44px Heebo, sans-serif';
       cctx.textAlign = 'center';
-      cctx.fillText(String(countIn), w / 2, h * 0.5);
+      cctx.fillText(String(countIn), w / 2, h * 0.44);
     }
 
     for (const tg of targets) {
-      const scrollX = (tg.t - tNow) * pxPerSec;
-      if (scrollX < -80 || scrollX > w - g.hitX + 40) continue;
-      if (gameType === 'note') {
-        drawNoteGem(cctx, g, scrollX, tg.note, posStart, tg.status);
-      } else {
-        drawChordGems(cctx, g, scrollX, tg.chordId, posStart, tg.status);
-      }
+      const timeToHit = tg.t - tNow;
+      if (timeToHit < -0.3 || timeToHit * pxPerSec > w - g.hitX + 80) continue;
+      const markers = gameType === 'note'
+        ? noteMarkers(tg.note)
+        : chordMarkers(tg.chordId);
+      drawMarkers(cctx, g, markers, viewStart, timeToHit, pxPerSec, tg.status);
     }
 
     return g;
   }
 
   return {
-    geom, drawFrame, activeStringsForTarget, upcomingCaption, positionForFret,
-    HIT_X_RATIO, STRING_HE, NUM_FRETS,
+    geom, drawFrame, activeStringsForTarget, upcomingCaption,
+    positionForFret, targetViewStart, noteMarkers, chordMarkers,
+    HIT_X_RATIO, STRING_HE, VISIBLE_FRETS,
   };
 })();
