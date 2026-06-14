@@ -13,6 +13,8 @@ const Engine = (() => {
   let calibClicks = [], calibTaps = [], calibStart0 = 0;
   let canvas, cctx, dpr = 1, rafId = null, laneFlash = 0;
   let onHud = () => {}, onFinish = () => {};
+  let lastUpcomingIdx = -1;
+  let seqLen = 1;
 
   const actx = () => AudioEngine.ctx;
   const now = () => actx().currentTime;
@@ -57,6 +59,10 @@ const Engine = (() => {
       step++;
     }
     endT = playStart + step * stepDur;
+
+    seqLen = gameType === 'note' ? level.notes.length
+      : gameType === 'chord' ? level.chordSeq.length : 1;
+    lastUpcomingIdx = -1;
 
     scheduledClicks = [];
     const totalBeats = Math.ceil((endT - t0) / beat);
@@ -163,6 +169,22 @@ const Engine = (() => {
     }
     const ok = matchChordId(best.chordId, freq);
     scoreHit(best, bestDt, yCenter(h), ok, 'אקורד לא נכון!', 'd');
+  }
+
+  function emitUpcoming(tNow) {
+    if (!running || calibrating || gameType === 'pick') return;
+    let idx = -1;
+    let bestDt = Infinity;
+    targets.forEach((tg, i) => {
+      if (tg.status) return;
+      const dt = tg.t - tNow;
+      if (dt >= -W_REGISTER && dt < bestDt) { bestDt = dt; idx = i; }
+    });
+    const seqIdx = idx >= 0 ? idx % seqLen : -1;
+    if (seqIdx !== lastUpcomingIdx) {
+      lastUpcomingIdx = seqIdx;
+      onHud({ score, combo, maxCombo, upcomingIdx: seqIdx, upcomingLive: true });
+    }
   }
 
   function addPopup(text, color) {
@@ -390,6 +412,7 @@ const Engine = (() => {
     }
 
     if (running) {
+      emitUpcoming(tNow);
       for (const tg of targets) {
         if (!tg.status && tNow - tg.t > W_REGISTER) {
           tg.status = 'miss'; counts.miss++; combo = 0;

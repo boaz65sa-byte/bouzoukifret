@@ -47,6 +47,7 @@ const UI = (() => {
 
   function goHub(target) {
     try { stopGame(); stopChordDrill(); } catch (e) { /* */ }
+    if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
     const dest = target || 'home';
     /* מעבר מסך קודם — גם אם הרינדור נכשל */
     if (dest === 'pick-levels') showScreen('pick-levels');
@@ -325,15 +326,15 @@ const UI = (() => {
 
   function renderModeMap() {
     const list = typeof MODE_LEVELS !== 'undefined' ? MODE_LEVELS : [];
-    renderGenericMap(list, '#mode-map', lv => openPrep(lv, 'modes', 'modes'));
+    renderGenericMap(list, '#mode-map', lv => openPlay(lv, 'modes', 'modes'));
   }
 
   function renderChordFlowMap() {
     const all = typeof CHORD_FLOW_LEVELS !== 'undefined' ? CHORD_FLOW_LEVELS : [];
     const flow = all.filter(l => !l.song);
     const songs = all.filter(l => l.song);
-    renderGenericMap(flow, '#chord-flow-map', lv => openPrep(lv, 'chords', 'chords'));
-    renderGenericMap(songs, '#chord-song-map', lv => openPrep(lv, 'chords', 'chords'));
+    renderGenericMap(flow, '#chord-flow-map', lv => openPlay(lv, 'chords', 'chords'));
+    renderGenericMap(songs, '#chord-song-map', lv => openPlay(lv, 'chords', 'chords'));
   }
 
   function refreshPlayerChip() {
@@ -514,6 +515,18 @@ const UI = (() => {
     $('#results-panel').classList.remove('show');
     $('#hud-score').textContent = '0';
     $('#hud-combo').textContent = '';
+    const learnWrap = $('#play-learn-wrap');
+    const learnGraph = $('#play-learn-graph');
+    if (gt === 'note' || gt === 'chord') {
+      learnWrap.hidden = false;
+      if (typeof PlayLearnGraph !== 'undefined') {
+        PlayLearnGraph.mount(learnGraph, lv);
+      }
+    } else {
+      learnWrap.hidden = true;
+      if (learnGraph) learnGraph.innerHTML = '';
+      if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
+    }
     setPlayUIState(false);
     updateInputModeUI();
     showScreen('play');
@@ -565,9 +578,12 @@ const UI = (() => {
     setPlayUIState(true);
     $('#calib-msg').textContent = '';
     Engine.start(currentLevel, bpm, $('#game-canvas'),
-      ({ score, combo }) => {
+      ({ score, combo, upcomingIdx, upcomingLive }) => {
         $('#hud-score').textContent = Math.round(score);
         $('#hud-combo').textContent = combo > 1 ? combo + '×' : '';
+        if (upcomingIdx >= 0 && typeof PlayLearnGraph !== 'undefined') {
+          PlayLearnGraph.highlight(upcomingIdx, !!upcomingLive);
+        }
       },
       result => showResults(result)
     );

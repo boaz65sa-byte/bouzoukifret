@@ -177,5 +177,104 @@ const ModeDiagram = (() => {
     return { highlightStep };
   }
 
-  return { draw, uniqueScaleNotes };
+  /* גרף קומpактי — בתוך מסך המשחק */
+  function drawPlay(container, notes, opts = {}) {
+    container.innerHTML = '';
+    container.className = 'mode-diagram play-learn-inline';
+    const playNotes = opts.playNotes || notes;
+    const scaleNotes = notes.length ? notes : uniqueScaleNotes(playNotes);
+    const { min: fMin, max: fMax } = fretRange(scaleNotes.length ? scaleNotes : playNotes);
+
+    const head = document.createElement('div');
+    head.className = 'pli-head';
+    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">לחצו צליל · ראו איפה על הסריג</span>';
+    container.appendChild(head);
+
+    const focus = document.createElement('div');
+    focus.className = 'pli-focus';
+    focus.innerHTML = '<span class="pli-fret">—</span><span class="pli-name">לחצו על צליל</span><span class="pli-hint"></span>';
+    container.appendChild(focus);
+    const lfpFret = focus.querySelector('.pli-fret');
+    const lfpName = focus.querySelector('.pli-name');
+    const lfpHint = focus.querySelector('.pli-hint');
+
+    const fretW = 32, strH = 18, padL = 28, padT = 28;
+    const fretCount = fMax - fMin + 1;
+    const w = padL + fretCount * fretW + 16;
+    const h = padT + 4 * strH + 28;
+    const svgWrap = document.createElement('div');
+    svgWrap.className = 'pli-fret-wrap';
+    const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, class: 'mode-svg pli-svg' }, svgWrap);
+    const dY = padT + D_COURSE * strH;
+
+    el('rect', {
+      x: padL - 6, y: dY - strH / 2 - 1, width: fretCount * fretW + 12, height: strH + 2,
+      fill: 'rgba(227,179,65,0.14)', rx: 4
+    }, svg);
+
+    const noteEls = new Map();
+    for (let f = fMin; f <= fMax; f++) {
+      const x = padL + (f - fMin) * fretW;
+      el('line', {
+        x1: x, y1: padT - 2, x2: x, y2: padT + 3 * strH + 2,
+        stroke: f === 0 ? '#e8d9b0' : '#3b566f', 'stroke-width': 1
+      }, svg);
+    }
+    for (let s = 0; s < 4; s++) {
+      const y = padT + s * strH;
+      el('line', {
+        x1: padL, y1: y, x2: padL + (fretCount - 1) * fretW, y2: y,
+        stroke: s === D_COURSE ? '#e3b341' : '#5a7187', 'stroke-width': s === D_COURSE ? 1.5 : 0.8
+      }, svg);
+    }
+    scaleNotes.forEach(n => {
+      const x = padL + (n.fret - fMin) * fretW;
+      const g = el('g', { class: 'mode-note-dot' }, svg);
+      el('circle', { cx: x, cy: dY, r: 11, fill: '#e3b341', class: 'note-ring' }, g);
+      el('text', {
+        x, y: dY + 4, fill: '#1a1408', 'font-size': 9, 'font-weight': 900,
+        'text-anchor': 'middle', 'font-family': 'Heebo'
+      }, g).textContent = n.fret;
+      noteEls.set(n.fret, g);
+    });
+    container.appendChild(svgWrap);
+
+    const seqWrap = document.createElement('div');
+    seqWrap.className = 'pli-seq';
+    seqWrap.dir = 'ltr';
+    container.appendChild(seqWrap);
+
+    function highlightStep(idx, live) {
+      playNotes.forEach((_, i) => {
+        const chip = seqWrap.querySelector(`.mode-seq-chip[data-i="${i}"]`);
+        if (!chip) return;
+        chip.classList.toggle('active', i === idx);
+        chip.classList.toggle('live', live && i === idx);
+      });
+      noteEls.forEach(g => g.classList.remove('pulse'));
+      const n = playNotes[idx];
+      if (!n) return;
+      const g = noteEls.get(n.fret);
+      if (g) g.classList.add('pulse');
+      lfpFret.textContent = n.fret;
+      lfpName.textContent = n.label || n.solfege;
+      lfpHint.textContent = n.fret === 0 ? 'מיתר רה פתוח' : `סריג ${n.fret} · מיתר D`;
+      focus.classList.add('show');
+    }
+
+    playNotes.forEach((n, i) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'mode-seq-chip pli-chip';
+      chip.dataset.i = i;
+      chip.innerHTML = `<span>${n.label || n.solfege}</span><small>${n.fret}</small>`;
+      chip.addEventListener('click', () => highlightStep(i, false));
+      seqWrap.appendChild(chip);
+    });
+
+    highlightStep(0, false);
+    return { highlightStep };
+  }
+
+  return { draw, drawPlay, uniqueScaleNotes };
 })();
