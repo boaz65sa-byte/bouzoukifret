@@ -189,12 +189,9 @@ const Engine = (() => {
   function updateHighwayPos(tg) {
     if (!tg || typeof Highway === 'undefined') return;
     if (gameType === 'note') {
-      highwayPos = Math.max(0, tg.note.fret);
+      highwayPos = Highway.calcViewStart(Highway.noteMarkers(tg.note));
     } else if (gameType === 'chord') {
-      const ch = getChord(tg.chordId);
-      if (!ch) return;
-      const frets = ch.shape.filter(f => typeof f === 'number' && f > 0);
-      highwayPos = frets.length ? Math.min(...frets) : 0;
+      highwayPos = Highway.calcViewStart(Highway.chordMarkers(tg.chordId));
     }
   }
 
