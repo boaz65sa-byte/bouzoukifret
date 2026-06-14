@@ -27,7 +27,8 @@ button, input, select {
   font: inherit; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.hub-btn, .btn, .nav-item, .player-chip, .av-btn, .game-cube, .level-card {
+.hub-btn, .btn, .nav-item, .player-chip, .av-btn, .game-cube, .level-card,
+.mode-seq-chip, .chord-map-item, .chord-tl-step {
   appearance: none; -webkit-appearance: none;
 }
 
@@ -543,52 +544,139 @@ button, input, select {
   margin: 0; text-align: center; color: var(--dim); font-size: 14px; font-weight: 600;
   max-width: 340px; line-height: 1.45;
 }
-#prep-visual { width: 100%; max-width: 520px; }
-.prep-stage .play-main { width: min(280px, 92vw); margin-top: 4px; }
+#prep-visual { width: 100%; max-width: 560px; }
+.prep-stage .play-main { width: min(300px, 92vw); margin-top: 8px; font-size: 17px; }
+
+/* ===== גרף לימוד ===== */
+.learn-graph-box {
+  background: linear-gradient(180deg, rgba(22,38,54,0.95), rgba(8,15,24,0.6));
+  border: 1px solid rgba(227,179,65,0.25);
+  border-radius: 16px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+.learn-graph-head { text-align: center; margin-bottom: 14px; }
+.learn-graph-title {
+  font-size: 17px; font-weight: 900; color: var(--gold2); margin: 0 0 6px;
+}
+.learn-graph-sub {
+  font-size: 13px; color: var(--dim); line-height: 1.45; margin: 0;
+}
+.learn-fret-wrap {
+  background: rgba(0,0,0,0.25); border-radius: 12px; padding: 8px 4px;
+  margin-bottom: 12px; overflow-x: auto;
+}
+.learn-fret-svg { min-width: 280px; }
+.mode-note-dot .note-ring { transition: r 0.2s, filter 0.2s; }
+.mode-note-dot.pulse .note-ring {
+  filter: drop-shadow(0 0 12px rgba(227,179,65,0.9));
+  animation: learnPulse 1.2s ease infinite;
+}
+@keyframes learnPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+.learn-seq-label {
+  font-size: 13px; font-weight: 700; color: var(--aegean);
+  text-align: center; margin: 12px 0 8px;
+}
+.learn-seq-row { margin-bottom: 8px; }
+
+.learn-focus-panel {
+  display: none;
+  margin: 14px 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(227,179,65,0.15), rgba(79,179,217,0.08));
+  border: 2px solid rgba(227,179,65,0.45);
+  text-align: center;
+}
+.learn-focus-panel.show { display: block; }
+.lfp-label {
+  font-size: 14px; font-weight: 800; color: var(--gold2); margin: 0 0 12px;
+}
+.lfp-visual {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.lfp-big-fret {
+  display: block; font-size: 48px; font-weight: 900; color: var(--gold);
+  line-height: 1;
+}
+.lfp-big-name {
+  display: block; font-size: 22px; font-weight: 800; color: #e8f0f8;
+}
+.lfp-chord-big { width: min(260px, 85vw); }
+.lfp-chord-big .chord-diagram.large { width: 100%; }
+.lfp-chord-name {
+  font-size: 15px; font-weight: 700; color: var(--gold2); margin: 8px 0 0;
+}
+.lfp-hint {
+  font-size: 13px; color: var(--dim); line-height: 1.5; margin: 12px 0 0;
+  padding: 10px; background: rgba(8,15,24,0.4); border-radius: 8px;
+}
 
 .mode-diagram, .chord-map { width: 100%; }
 .mode-svg, .chord-map .chord-svg { width: 100%; height: auto; display: block; }
 .mode-seq-row, .chord-map-row {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 6px; margin-top: 12px; padding: 10px; border-radius: 12px;
+  gap: 6px; margin-top: 4px; padding: 10px; border-radius: 12px;
   background: rgba(8,15,24,0.6); border: 1px solid rgba(79,179,217,0.15);
 }
 .mode-seq-chip {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 6px 10px; border-radius: 10px; background: rgba(227,179,65,0.12);
-  border: 1px solid rgba(227,179,65,0.25); min-width: 52px;
+  padding: 8px 12px; border-radius: 10px; background: rgba(227,179,65,0.08);
+  border: 2px solid rgba(227,179,65,0.2); min-width: 56px;
+  cursor: pointer; color: inherit; font: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.mode-seq-chip:active { transform: scale(0.96); }
+.mode-seq-chip.active {
+  border-color: var(--gold); background: rgba(227,179,65,0.22);
+  box-shadow: 0 0 16px rgba(227,179,65,0.25);
 }
 .mode-seq-chip b { color: var(--gold); font-size: 11px; }
 .mode-seq-chip span { color: #e8f0f8; font-weight: 800; font-size: 14px; }
 .mode-seq-chip small { color: var(--dim); font-size: 10px; }
 .mode-seq-arrow, .chord-map-arrow { color: var(--dim); font-size: 16px; font-weight: 700; padding: 0 2px; }
 .mode-map-hint, .chord-map-hint {
-  margin: 10px 0 0; text-align: center; color: var(--dim); font-size: 13px; line-height: 1.4;
+  margin: 12px 0 0; text-align: center; color: var(--dim); font-size: 13px; line-height: 1.4;
 }
-.chord-map-title {
-  margin: 0 0 8px; text-align: center; color: var(--gold2); font-weight: 700; font-size: 15px;
-}
-.chord-map-row { gap: 8px; }
+.learn-chord-row { gap: 10px; }
 .chord-map-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 8px; border-radius: 12px; background: rgba(227,179,65,0.08);
-  border: 1px solid rgba(227,179,65,0.2); min-width: 72px;
+  padding: 10px; border-radius: 12px; background: rgba(227,179,65,0.06);
+  border: 2px solid rgba(227,179,65,0.2); min-width: 80px;
+  cursor: pointer; color: inherit; font: inherit;
+  transition: border-color 0.15s, transform 0.1s;
 }
-.chord-map-item b { color: var(--gold); font-size: 15px; }
+.chord-map-item:active { transform: scale(0.96); }
+.chord-map-item.active {
+  border-color: var(--gold); background: rgba(227,179,65,0.18);
+  box-shadow: 0 0 14px rgba(227,179,65,0.2);
+}
+.chord-map-item b { color: var(--gold); font-size: 16px; }
 .chord-map-item small { color: var(--dim); font-size: 10px; text-align: center; }
-.chord-map-item .cm-diag { width: 64px; }
+.chord-map-item .cm-diag { width: 72px; }
+.learn-timeline { margin-top: 4px; }
 .chord-timeline {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
-  margin-top: 12px; padding: 10px; border-radius: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  padding: 12px; border-radius: 12px;
   background: rgba(79,179,217,0.06); border: 1px dashed rgba(79,179,217,0.2);
 }
 .chord-tl-step {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 8px; border-radius: 8px; font-weight: 800; font-size: 13px;
-  background: rgba(8,15,24,0.5); color: #c8d8e8; border: 1px solid rgba(59,86,111,0.5);
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 12px; border-radius: 10px; font-weight: 800; font-size: 14px;
+  background: rgba(8,15,24,0.5); color: #c8d8e8; border: 2px solid rgba(59,86,111,0.5);
+  cursor: pointer; font: inherit; min-width: 48px;
+  transition: border-color 0.15s, background 0.15s;
 }
 .chord-tl-step b { color: var(--dim); font-size: 10px; font-weight: 700; }
-.chord-tl-step.first { border-color: var(--gold); color: var(--gold2); background: rgba(227,179,65,0.1); }
+.chord-tl-step span { font-size: 14px; font-weight: 800; color: var(--gold2); }
+.chord-tl-step.first, .chord-tl-step.active {
+  border-color: var(--gold); background: rgba(227,179,65,0.15);
+  box-shadow: 0 0 12px rgba(227,179,65,0.2);
+}
+.chord-tl-step.active span { color: var(--gold); }
 .level-card.song-level { border-color: rgba(79,179,217,0.35); }
 .level-card.song-level .lc-num { background: linear-gradient(135deg, rgba(79,179,217,0.25), rgba(227,179,65,0.2)); }
 

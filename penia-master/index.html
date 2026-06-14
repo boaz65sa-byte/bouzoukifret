@@ -9,7 +9,7 @@
 <title>בוזוקי מאסטר — מאסטר הפריטה · המודוסים · האקורדים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/game.css?v=4">
+<link rel="stylesheet" href="css/game.css?v=5">
 </head>
 <body>
 
@@ -106,7 +106,7 @@
       <button class="btn icon sub-back" data-back="home">→</button>
       <div><h2>מאסטר המודוסים</h2><small>22 דרומוסים · מיתר רה · מיקרופון</small></div>
     </header>
-    <p class="chords-lead">לחצו שלב — תראו מפת מודוס, ואז ▶ שחק. כל צליל מגיע לקו, אתם מנגנים על הבוזוקי.</p>
+    <p class="chords-lead">לחצו שלב → <b>גרף לימוד</b> (איפה ללחוץ) → ▶ שחק. כל צליל על מיתר רה.</p>
     <div class="level-map" id="mode-map"></div>
   </section>
 
@@ -117,7 +117,7 @@
       <div><h2>מאסטר האקורדים</h2><small>18 שלבי זורם + 8 שירים + 26 אקורדים</small></div>
     </header>
     <h3 class="section-sub">🎮 משחק זורם — 18 שלבים</h3>
-    <p class="chords-lead">לחצו שלב — תראו מפת אקורדים, ואז ▶ שחק. פרטו את האקורד הנכון בזמן.</p>
+    <p class="chords-lead">לחצו שלב → <b>גרף לימוד</b> (איפה ללחוץ) → ▶ שחק. פרטו את האקורד הנכון בזמן.</p>
     <div class="level-map" id="chord-flow-map"></div>
     <h3 class="section-sub">🎵 שירים יווניים — 8 שלבים</h3>
     <p class="chords-lead">ליווי שיר אמיתי — האקורדים זורמים כמו בטברנה יוונית.</p>
@@ -137,17 +137,17 @@
       </div>
     </header>
     <div class="prep-stage">
-      <p class="prep-badge" id="prep-badge">🗺 מפה</p>
+      <p class="prep-badge" id="prep-badge">📍 גרף לימוד</p>
       <div id="prep-visual"></div>
-      <details class="play-details prep-details" open>
-        <summary>📖 הסבר</summary>
+      <details class="play-details prep-details">
+        <summary>📖 הסבר נוסף</summary>
         <div class="teach-box">
           <p id="prep-teach"></p>
           <p class="tip" id="prep-tip"></p>
         </div>
       </details>
-      <p class="prep-flow-hint">כשמוכנים — האקורדים/צלילים יזרמו לקו הזהב · נגנו על הבוזוקי</p>
-      <button class="btn gold play-main" id="btn-prep-play" type="button">▶ שחק</button>
+      <p class="prep-flow-hint" id="prep-flow-hint">למדו את הגרף למעלה — אז ▶ שחק</p>
+      <button class="btn gold play-main" id="btn-prep-play" type="button">▶ הבנתי — שחק!</button>
     </div>
   </section>
 
@@ -278,19 +278,20 @@
 })();
 </script>
 <script src="config.js" onerror="void 0"></script>
-<script src="js/levels.js?v=4"></script>
-<script src="js/chords-data.js?v=4"></script>
-<script src="js/chords-levels.js?v=4"></script>
-<script src="js/modes-data.js?v=4"></script>
-<script src="js/songs-data.js?v=4"></script>
-<script src="js/mode-diagram.js?v=4"></script>
-<script src="js/chord-map.js?v=4"></script>
-<script src="js/chord-diagram.js?v=4"></script>
-<script src="js/audio.js?v=4"></script>
-<script src="js/mic.js?v=4"></script>
-<script src="js/community.js?v=4"></script>
-<script src="js/players.js?v=4"></script>
-<script src="js/engine.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/levels.js?v=5"></script>
+<script src="js/chords-data.js?v=5"></script>
+<script src="js/chords-levels.js?v=5"></script>
+<script src="js/modes-data.js?v=5"></script>
+<script src="js/songs-data.js?v=5"></script>
+<script src="js/learn-graph.js?v=5"></script>
+<script src="js/mode-diagram.js?v=5"></script>
+<script src="js/chord-map.js?v=5"></script>
+<script src="js/chord-diagram.js?v=5"></script>
+<script src="js/audio.js?v=5"></script>
+<script src="js/mic.js?v=5"></script>
+<script src="js/community.js?v=5"></script>
+<script src="js/players.js?v=5"></script>
+<script src="js/engine.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>

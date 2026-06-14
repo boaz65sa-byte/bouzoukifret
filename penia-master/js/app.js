@@ -464,8 +464,8 @@ const UI = (() => {
     try {
       if (gt === 'note') {
         $('#prep-badge').textContent = lv.dromos
-          ? '🗺 מפת מודוס · ' + lv.dromos
-          : '🗺 מפת מודוס · מיתר רה';
+          ? '📍 גרף לימוד · ' + lv.dromos
+          : '📍 גרף לימוד · מיתר רה';
         if (typeof ModeDiagram !== 'undefined' && lv.notes?.length) {
           ModeDiagram.draw(vis, ModeDiagram.uniqueScaleNotes(lv.notes), {
             playNotes: lv.notes,
@@ -475,7 +475,7 @@ const UI = (() => {
           vis.innerHTML = '<p class="map-empty">מפת מודוס · ' + (lv.notes?.length || 0) + ' צלילים</p>';
         }
       } else {
-        $('#prep-badge').textContent = lv.song ? '🎵 מצב שיר יווני' : '🗺 מפת אקורדים';
+        $('#prep-badge').textContent = lv.song ? '📍 גרף לימוד · שיר יווני' : '📍 גרף לימוד · אקורדים';
         if (typeof ChordMap !== 'undefined' && lv.chordSeq?.length) {
           ChordMap.drawProgression(vis, lv.chordSeq, { fullSeq: lv.chordSeq, song: !!lv.song });
         } else if (vis) {
