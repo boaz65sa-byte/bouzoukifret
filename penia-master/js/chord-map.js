@@ -43,7 +43,7 @@ const ChordMap = (() => {
     LearnGraph.wrapLearnHeader(
       container,
       '📍 גרף לימוד — דיאגרמת בוזוקי',
-      '8 מיתרים (4 זוגות) · לחצו על תא — שם מיתר + מספר סריג'
+      '8 מיתרים (4 זוגות) · גרף לרוחב · לחצו על תא'
     );
 
     const panel = LearnGraph.focusPanel(container);

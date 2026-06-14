@@ -242,6 +242,175 @@ const AudioEngine = (() => {
     }
   }
 
+  /* ---------- Virtual Ensemble (רקע רבטיקו) ---------- */
+  let ensemble = null;
+
+  const ENSEMBLE_PATTERNS = {
+    chifteteli: {
+      bpm: 94, stepsPerBeat: 2,
+      steps: [
+        { dum: 1, bass: 1, pulse: 0.32 },
+        { tek: 0.55, pulse: 0.11 },
+        { pulse: 0.16 },
+        { tek: 0.48, pulse: 0.12 },
+        { dum: 0.82, bass: 0.65, pulse: 0.26 },
+        { tek: 0.5, pulse: 0.11 },
+        { pulse: 0.14, tek: 0.38 },
+        { tek: 0.46, pulse: 0.12 },
+      ],
+    },
+    zeibekiko: {
+      bpm: 60, stepsPerBeat: 1,
+      steps: [
+        { dum: 1, bass: 1, pulse: 0.38 },
+        { pulse: 0.07 },
+        { tek: 0.42, pulse: 0.09 },
+        { pulse: 0.06 },
+        { dum: 0.72, pulse: 0.2 },
+        { pulse: 0.06 },
+        { tek: 0.38, pulse: 0.08 },
+        { pulse: 0.06 },
+        { dum: 0.58, bass: 0.45, pulse: 0.16 },
+      ],
+    },
+  };
+
+  const ZEIBEK_DROMOI = new Set([
+    'ousak', 'sabah', 'minore', 'niavent', 'hitzazkiar', 'pireotikos',
+  ]);
+
+  function midiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  function rhythmForDromos(dromosId) {
+    return ZEIBEK_DROMOI.has(dromosId) ? 'zeibekiko' : 'chifteteli';
+  }
+
+  function ensPulse(when, gain, bus, rootMidi) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(midiFreq(rootMidi - 12), when);
+    osc.frequency.exponentialRampToValueAtTime(midiFreq(rootMidi - 14), when + 0.08);
+    f.type = 'lowpass'; f.frequency.value = 280;
+    g.gain.setValueAtTime(gain * 0.2, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.14);
+    osc.connect(f).connect(g).connect(bus);
+    osc.start(when); osc.stop(when + 0.16);
+  }
+
+  function ensDum(when, gain, bus) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(108, when);
+    osc.frequency.exponentialRampToValueAtTime(50, when + 0.1);
+    g.gain.setValueAtTime(gain * 0.26, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.2);
+    osc.connect(g).connect(bus);
+    osc.start(when); osc.stop(when + 0.22);
+
+    const len = Math.floor(ctx.sampleRate * 0.04);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 180;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(gain * 0.11, when);
+    ng.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+    src.connect(lp).connect(ng).connect(bus);
+    src.start(when);
+  }
+
+  function ensTek(when, gain, bus) {
+    const len = Math.floor(ctx.sampleRate * 0.035);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 0.9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain * 0.13, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
+    src.connect(bp).connect(g).connect(bus);
+    src.start(when);
+  }
+
+  function playEnsembleStep(ev, when, rootMidi, bus) {
+    if (ev.dum) ensDum(when, ev.dum, bus);
+    if (ev.tek) ensTek(when, ev.tek, bus);
+    if (ev.bass) ensPulse(when, ev.bass, bus, rootMidi);
+    if (ev.pulse) ensPulse(when, ev.pulse * 0.5, bus, rootMidi);
+  }
+
+  function startEnsemble(opts = {}) {
+    stopEnsemble();
+    ensureCtx();
+    const rhythm = opts.rhythm || rhythmForDromos(opts.dromosId || '');
+    const pat = ENSEMBLE_PATTERNS[rhythm] || ENSEMBLE_PATTERNS.chifteteli;
+    const rootPc = ((opts.rootPc ?? 2) % 12 + 12) % 12;
+    const rootMidi = 48 + rootPc;
+
+    const bus = ctx.createGain();
+    bus.gain.setValueAtTime(0, ctx.currentTime);
+    bus.gain.linearRampToValueAtTime(0.17, ctx.currentTime + 0.75);
+    bus.connect(masterGain);
+
+    const padGain = ctx.createGain();
+    padGain.gain.value = 0.05;
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = 'lowpass'; padFilter.frequency.value = 500;
+    padGain.connect(padFilter).connect(bus);
+
+    const padOscs = [0, 7].map(iv => {
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = midiFreq(rootMidi + iv) * 0.5;
+      o.connect(padGain);
+      o.start();
+      return o;
+    });
+
+    const stepDur = 60 / pat.bpm / pat.stepsPerBeat;
+    let step = 0;
+    let nextTime = ctx.currentTime + 0.06;
+
+    const timer = setInterval(() => {
+      if (!ensemble) return;
+      while (nextTime < ctx.currentTime + 0.14) {
+        playEnsembleStep(pat.steps[step % pat.steps.length], nextTime, rootMidi, bus);
+        nextTime += stepDur;
+        step++;
+      }
+    }, 22);
+
+    ensemble = { bus, padOscs, timer, rhythm, rootPc };
+  }
+
+  function stopEnsemble() {
+    if (!ensemble) return;
+    clearInterval(ensemble.timer);
+    if (ctx) {
+      ensemble.bus.gain.cancelScheduledValues(ctx.currentTime);
+      ensemble.bus.gain.setValueAtTime(ensemble.bus.gain.value, ctx.currentTime);
+      ensemble.bus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
+    }
+    const snap = ensemble;
+    ensemble = null;
+    setTimeout(() => {
+      snap.padOscs?.forEach(o => { try { o.stop(); } catch (e) { /* */ } });
+      try { snap.bus.disconnect(); } catch (e) { /* */ }
+    }, 420);
+  }
+
+  function isEnsembleActive() { return !!ensemble; }
+
   return { ensureCtx, pluckMidi, pluckCourse, dum, tek, click, strum, strumChord, bassOfChord, Scheduler,
+    startEnsemble, stopEnsemble, isEnsembleActive, rhythmForDromos,
     get ctx() { return ctx; } };
 })();

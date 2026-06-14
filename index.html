@@ -51,6 +51,12 @@
       <button class="nav-btn" data-screen="game">
         <span class="nav-ico">🎮</span> מאסטר הפנייה
       </button>
+      <button class="nav-btn" data-screen="master-modes">
+        <span class="nav-ico">🛤️</span> מאסטר מודוסים
+      </button>
+      <button class="nav-btn" data-screen="master-chords">
+        <span class="nav-ico">🎸</span> מאסטר אקורדים
+      </button>
       <button class="nav-btn" data-screen="listen">
         <span class="nav-ico">🎤</span> מאמן מאזין
       </button>
@@ -150,7 +156,7 @@
           </div>
 
           <div class="fretboard-wrap" dir="ltr"><svg id="fb-dromos" class="fretboard"></svg></div>
-          <p class="hint">🟡 = טוניקה · 🔵 = צלילי הדרומוס · לחצו על נקודה לשמיעה. ההילה מסמנת את הצליל המתנגן.</p>
+          <p class="hint">🟡 = טוניקה · 🔵 = צלילי הדרומוס · ✨ הילה זהובה = תווים בטוחים (1, 4, 5) כשהלהקה פעילה · לחצו על נקודה לשמיעה</p>
 
           <div class="grid-2">
             <div class="info-block">
@@ -359,6 +365,163 @@
       </div>
     </section>
 
+    <!-- ========== מסך: מאסטר מודוסים ========== -->
+    <section class="screen" id="screen-master-modes">
+      <header class="screen-head">
+        <h1>מאסטר מודוסים</h1>
+        <p class="lead">נגנו על הבוזוקי — האפליקציה מקשיבה, בודקת כל תו, ומלמדת אתכם את הדרומוס בזמן אמת</p>
+      </header>
+
+      <div class="card">
+        <div class="mm-controls">
+          <div class="mm-control-row">
+            <div>
+              <label>דרומוס:</label>
+              <select id="mm-dromos-select"></select>
+            </div>
+            <div>
+              <label>טוניקה:</label>
+              <select id="mm-root-select"></select>
+            </div>
+            <div>
+              <label>סגנון:</label>
+              <select id="mm-mode-select">
+                <option value="note-by-note">תו אחר תו</option>
+                <option value="full-scale">סולם מלא</option>
+              </select>
+            </div>
+            <div>
+              <label>קושי:</label>
+              <select id="mm-diff-select">
+                <option value="easy">קל</option>
+                <option value="medium">בינוני</option>
+                <option value="hard">קשה</option>
+              </select>
+            </div>
+          </div>
+          <div class="mm-action-row">
+            <button class="btn gold" id="mm-start">▶ שחק</button>
+            <span class="mm-mic" id="mm-mic-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mm-stats-bar">
+          <div class="mm-stat ok"><span>נכון</span><b id="mm-correct">0</b></div>
+          <div class="mm-stat bad"><span>שגוי</span><b id="mm-wrong">0</b></div>
+          <div class="mm-stat streak"><span>רצף</span><b id="mm-streak">0</b></div>
+          <div class="mm-stat acc"><span>דיוק</span><b id="mm-accuracy">—</b></div>
+          <div class="mm-stat prog"><span>התקדמות</span><b id="mm-progress">0 / 0</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mm-play-area">
+          <div class="mm-target-info">
+            <div class="mm-feedback" id="mm-feedback"></div>
+            <p class="mm-label">נגנו את התו:</p>
+            <div class="mm-note-display">
+              <div class="mm-big-note" id="mm-current-note">—</div>
+              <div class="mm-solfege" id="mm-current-solfege"></div>
+              <div class="mm-fret-hint" id="mm-current-fret"></div>
+            </div>
+            <div class="mm-detected-row">
+              <span>זוהה:</span> <b id="mm-detected">—</b>
+            </div>
+            <button class="btn" id="mm-play-note">🔊 השמע</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>מפת הסולם על לוח הסריגים</h2>
+        <p class="hint">🟡 = טוניקה · 🔵 = צלילי הדרומוס · 🟢 מהבהב = התו שצריך לנגן עכשיו</p>
+        <div class="fretboard-scroll-hint">← גללו ימינה ושמאלה לראות את כל הצוואר →</div>
+        <div class="fretboard-wrap" dir="ltr">
+          <canvas id="mm-hero-canvas" style="display:none; width:100%; border-radius:10px; background:rgba(11,22,35,0.8); margin-bottom:10px;"></canvas>
+          <svg id="fb-master-modes" class="fretboard"></svg>
+        </div>
+      </div>
+
+      <div class="ls-results" id="mm-results"></div>
+    </section>
+
+    <!-- ========== מסך: מאסטר אקורדים ========== -->
+    <section class="screen" id="screen-master-chords">
+      <header class="screen-head">
+        <h1>מאסטר אקורדים</h1>
+        <p class="lead">למדו אקורדים על הבוזוקי — האפליקציה מראה את הצורה ומקשיבה לנגינה שלכם</p>
+      </header>
+
+      <div class="card">
+        <div class="mm-controls">
+          <div class="mm-control-row">
+            <div>
+              <label>קטגוריה:</label>
+              <select id="mc-cat-select">
+                <option value="all">הכל</option>
+                <option value="greek">יווני</option>
+                <option value="oriental">מזרחי</option>
+              </select>
+            </div>
+            <div>
+              <label>קושי:</label>
+              <select id="mc-diff-select">
+                <option value="easy">קל (5 אקורדים)</option>
+                <option value="medium">בינוני (8 אקורדים)</option>
+                <option value="hard">קשה (12 אקורדים)</option>
+              </select>
+            </div>
+          </div>
+          <div class="mm-action-row">
+            <button class="btn gold" id="mc-start">▶ שחק</button>
+            <span class="mm-mic" id="mc-mic-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mm-stats-bar">
+          <div class="mm-stat ok"><span>נכון</span><b id="mc-correct">0</b></div>
+          <div class="mm-stat bad"><span>שגוי</span><b id="mc-wrong">0</b></div>
+          <div class="mm-stat streak"><span>רצף</span><b id="mc-streak">0</b></div>
+          <div class="mm-stat acc"><span>דיוק</span><b id="mc-accuracy">—</b></div>
+          <div class="mm-stat prog"><span>התקדמות</span><b id="mc-progress">0 / 0</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mc-play-area">
+          <div class="mc-chord-info">
+            <div class="mm-feedback" id="mc-feedback"></div>
+            <div class="mc-chord-display">
+              <div class="mc-chord-name" id="mc-chord-name">—</div>
+              <div class="mc-chord-eng" id="mc-chord-eng"></div>
+              <div class="mc-chord-frets" id="mc-chord-frets"></div>
+            </div>
+            <div class="mc-note-chips" id="mc-note-chips"></div>
+            <div class="mc-timer-wrap">
+              <div class="mc-timer-bar" id="mc-timer" style="width:100%"></div>
+            </div>
+            <div class="mm-detected-row">
+              <span>זוהה:</span> <b id="mc-detected">—</b>
+            </div>
+            <button class="btn" id="mc-play-chord">🔊 השמע אקורד</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>צורת האקורד על לוח הסריגים</h2>
+        <p class="hint">🟡 = תווי האקורד · 🟢 = תו שזוהה — נגנו את כל התווים!</p>
+        <div class="fretboard-scroll-hint">← גללו ימינה ושמאלה לראות את כל הצוואר →</div>
+        <div class="fretboard-wrap" dir="ltr"><svg id="fb-master-chords" class="fretboard"></svg></div>
+      </div>
+
+      <div class="ls-results" id="mc-results"></div>
+    </section>
+
     <!-- ========== מסך: מאמן מאזין ========== -->
     <section class="screen" id="screen-listen">
       <header class="screen-head">
@@ -467,5 +630,6 @@
 <script src="js/exercises.js"></script>
 <script src="js/listen.js"></script>
 <script src="js/game.js"></script>
+<script src="js/master.js"></script>
 </body>
 </html>

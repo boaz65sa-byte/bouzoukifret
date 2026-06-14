@@ -75,7 +75,7 @@ const ModeDiagram = (() => {
     LearnGraph.wrapLearnHeader(
       container,
       '📍 גרף לימוד — דיאגרמת בוזוקי',
-      '8 מיתרים (4 זוגות) · מיתרים ↕ · סריגים ↔ · לחצו על תא לראות מיתר + סריג'
+      '8 מיתרים (4 זוגות) · גרף לרוחב · לחצו על תא לראות מיתר + סריג'
     );
 
     const panel = LearnGraph.focusPanel(container);

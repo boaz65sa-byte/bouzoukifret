@@ -37,6 +37,9 @@ function stopAllPlayback() {
   if (typeof stopExercise === 'function') stopExercise();
   if (typeof Listen !== 'undefined') Listen.stopAll();
   if (typeof Game !== 'undefined') Game.stop();
+  if (typeof MasterModes !== 'undefined') MasterModes.stop();
+  if (typeof MasterChords !== 'undefined') MasterChords.stop();
+  if (typeof MicEngine !== 'undefined') MicEngine.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
@@ -132,7 +135,8 @@ function drawFretboard(svg, getNoteState, opts = {}) {
       const state = getNoteState ? getNoteState(ci, f, midi) : null;
       if (!state) continue;
       const cx = fretCenterX(f);
-      const g = svgEl('g', { class: 'fb-dot', 'data-course': ci, 'data-fret': f }, svg);
+      const dotClass = 'fb-dot' + (state.safe ? ' safe-note-glow' : '');
+      const g = svgEl('g', { class: dotClass, 'data-course': ci, 'data-fret': f }, svg);
       const isRoot = state.type === 'root';
       svgEl('circle', {
         cx, cy: y, r: 11,
@@ -301,7 +305,25 @@ function drawAnatomy() {
 /* ===================== מסך דרומוסים ===================== */
 let currentDromos = DROMOI[0];
 let currentRoot = 2; // D = pitch class 2
-let droneNodes = null;
+
+function getSafeNoteIntervals(dromos) {
+  const labels = dromos.degrees.split(/\s+/);
+  const safe = new Set([0]);
+  labels.forEach((lab, i) => {
+    if (/^4$|^♯4$|^♭4$/.test(lab)) safe.add(dromos.intervals[i]);
+    if (/^5$|^♭5$|^♯5$/.test(lab)) safe.add(dromos.intervals[i]);
+  });
+  if (safe.size < 3 && dromos.intervals.length >= 5) {
+    safe.add(dromos.intervals[3]);
+    safe.add(dromos.intervals[4]);
+  }
+  return safe;
+}
+
+function refreshEnsembleIfActive() {
+  if (!AudioEngine.isEnsembleActive()) return;
+  AudioEngine.startEnsemble({ rootPc: currentRoot, dromosId: currentDromos.id });
+}
 
 function initDromoi() {
   const list = $('#dromoi-list');
@@ -313,6 +335,7 @@ function initDromoi() {
       $$('.dromos-item').forEach(x => x.classList.remove('active'));
       item.classList.add('active');
       currentDromos = d;
+      refreshEnsembleIfActive();
       renderDromos();
     });
     list.appendChild(item);
@@ -328,6 +351,7 @@ function initDromoi() {
   });
   rootSel.addEventListener('change', () => {
     currentRoot = parseInt(rootSel.value, 10);
+    refreshEnsembleIfActive();
     renderDromos();
   });
 
@@ -408,11 +432,18 @@ function renderDromos() {
 
   // לוח סריגים — צלילי הדרומוס
   const pcs = d.intervals.map(iv => (currentRoot + iv) % 12);
+  const safeIv = getSafeNoteIntervals(d);
+  const ensembleOn = AudioEngine.isEnsembleActive();
   drawFretboard($('#fb-dromos'), (ci, f, midi) => {
     const pc = midi % 12;
     const idx = pcs.indexOf(pc);
     if (idx === -1) return null;
-    return { type: idx === 0 ? 'root' : 'note', label: NOTE_NAMES[pc] };
+    const iv = d.intervals[idx];
+    return {
+      type: idx === 0 ? 'root' : 'note',
+      label: NOTE_NAMES[pc],
+      safe: ensembleOn && safeIv.has(iv),
+    };
   });
 
   // תרגיל מיתר בודד
@@ -477,34 +508,28 @@ function playSingleString() {
 
 function toggleDrone() {
   const btn = $('#dr-drone');
-  if (droneNodes) { stopDrone(); btn.classList.remove('playing'); return; }
+  if (AudioEngine.isEnsembleActive()) {
+    AudioEngine.stopEnsemble();
+    btn.classList.remove('playing');
+    btn.textContent = '🎵 צליל רקע (איזון)';
+    renderDromos();
+    return;
+  }
   AudioEngine.ensureCtx();
-  const ctx = AudioEngine.ctx;
-  const freq = 440 * Math.pow(2, (48 + currentRoot - 69) / 12) * 2; // אוקטבה נוחה
-  const g = ctx.createGain();
-  g.gain.value = 0.0;
-  g.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.6);
-  g.connect(ctx.destination);
-  const oscs = [0, 7].map(iv => {
-    const o = ctx.createOscillator();
-    o.type = 'sawtooth';
-    o.frequency.value = freq * Math.pow(2, iv / 12) / 2;
-    const f = ctx.createBiquadFilter();
-    f.type = 'lowpass'; f.frequency.value = 900;
-    o.connect(f).connect(g);
-    o.start();
-    return o;
-  });
-  droneNodes = { oscs, g };
+  const rhythm = AudioEngine.rhythmForDromos(currentDromos.id);
+  AudioEngine.startEnsemble({ rootPc: currentRoot, dromosId: currentDromos.id });
   btn.classList.add('playing');
+  btn.textContent = rhythm === 'zeibekiko' ? '🎵 להקה · Ζεϊμπέκικο' : '🎵 להקה · Τσιφτετέλι';
+  renderDromos();
 }
+
 function stopDrone() {
-  if (!droneNodes) return;
-  const ctx = AudioEngine.ctx;
-  droneNodes.g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
-  const nodes = droneNodes;
-  setTimeout(() => nodes.oscs.forEach(o => o.stop()), 400);
-  droneNodes = null;
+  AudioEngine.stopEnsemble();
+  const btn = $('#dr-drone');
+  if (btn) {
+    btn.classList.remove('playing');
+    btn.textContent = '🎵 צליל רקע (איזון)';
+  }
 }
 
 /* ===================== מסך פנייה ===================== */

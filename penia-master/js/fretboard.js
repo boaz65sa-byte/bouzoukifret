@@ -1,8 +1,8 @@
-/* גרף סריגים — 8 מיתרים (4 זוגות), מיתרים אנכיים, סריגים אופקיים */
+/* גרף סריגים — לרוחב · 8 מיתרים · סריגים אנכיים */
 const Fretboard = (() => {
   const STRING_NAMES = ['C', 'F', 'A', 'D'];
   const STRING_HE = ['דו', 'פה', 'לה', 'רה'];
-  const NUM_FRETS = 5;
+  const NUM_FRETS = 6;
   const PAIRS = 4;
 
   function el(tag, attrs, parent) {
@@ -25,11 +25,8 @@ const Fretboard = (() => {
     const course = m.courseIdx != null ? m.courseIdx
       : (m.stringIdx != null ? m.stringIdx : (m.string - 1));
     return {
-      courseIdx: course,
-      stringIdx: course,
-      string: course + 1,
-      fret: m.fret,
-      label: m.label || '',
+      courseIdx: course, stringIdx: course, string: course + 1,
+      fret: m.fret, label: m.label || '',
       id: m.id || `m-${course}-${m.fret}`,
     };
   }
@@ -39,31 +36,40 @@ const Fretboard = (() => {
       .filter(m => m.fret !== 'x' && typeof m.fret === 'number' && m.fret > 0)
       .map(m => m.fret);
     if (!frets.length) return 0;
-    const maxF = Math.max(...frets);
-    if (maxF <= NUM_FRETS) return 0;
+    if (Math.max(...frets) <= NUM_FRETS) return 0;
     return Math.max(0, Math.min(...frets) - 1);
   }
 
   function layout(compact) {
-    const courseW = compact ? 34 : 42;
-    const pairGap = compact ? 6 : 8;
-    const padT = compact ? 30 : 38;
-    const padL = compact ? 34 : 42;
-    const padB = compact ? 44 : 52;
-    const frH = compact ? 26 : 32;
-    const w = padL + courseW * PAIRS + 12;
-    const h = padT + frH * NUM_FRETS + padB;
+    const frW = compact ? 26 : 32;
+    const courseStep = compact ? 18 : 24;
+    const pairGap = compact ? 4 : 5;
+    const padL = compact ? 32 : 40;
+    const padT = compact ? 20 : 26;
+    const nutX = padL + 4;
+    const w = padL + frW * NUM_FRETS + 20;
+    const h = padT + courseStep * 3 + 10;
 
-    function courseCenterX(course) {
-      return padL + course * courseW + courseW / 2;
+    function stringCenterY(course) {
+      return padT + course * courseStep + courseStep * 0.42;
     }
 
-    function stringLineX(course, side) {
-      const cx = courseCenterX(course);
-      return cx - pairGap / 2 + side * pairGap;
+    function stringY(course, side) {
+      const cy = stringCenterY(course);
+      return cy - pairGap / 2 + side * pairGap;
     }
 
-    return { courseW, pairGap, padT, padL, padB, frH, w, h, courseCenterX, stringLineX };
+    function columnX(fret, posStart) {
+      if (fret === 0) return nutX - frW * 0.12;
+      return nutX + (fret - posStart - 0.5) * frW;
+    }
+
+    function fretWireX(fi) { return nutX + fi * frW; }
+
+    return {
+      frW, courseStep, pairGap, padL, padT, nutX, w, h,
+      stringCenterY, stringY, columnX, fretWireX,
+    };
   }
 
   function draw(container, opts = {}) {
@@ -74,91 +80,89 @@ const Fretboard = (() => {
     const L = layout(compact);
     const onCellClick = opts.onCellClick;
     const activeCourse = opts.activeCourseIdx != null ? opts.activeCourseIdx : opts.activeStringIdx;
+    const gridBot = L.padT + L.courseStep * 3 + 4;
 
     const svg = el('svg', {
       viewBox: `0 0 ${L.w} ${L.h}`,
-      class: 'fb-svg real-fretboard fb-8str' + (compact ? ' fb-compact' : ''),
+      class: 'fb-svg real-fretboard fb-8str fb-landscape' + (compact ? ' fb-compact' : ''),
     }, container);
 
+    const defs = el('defs', {}, svg);
+    const wood = el('linearGradient', { id: 'fb-wood', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#a0724a' }, wood);
+    el('stop', { offset: '50%', 'stop-color': '#6b4428' }, wood);
+    el('stop', { offset: '100%', 'stop-color': '#3d2514' }, wood);
+    const pearl = el('radialGradient', { id: 'fb-pearl', cx: '35%', cy: '30%', r: '65%' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#fff8e8' }, pearl);
+    el('stop', { offset: '45%', 'stop-color': '#e8c868' }, pearl);
+    el('stop', { offset: '100%', 'stop-color': '#a07828' }, pearl);
+    const fretG = el('linearGradient', { id: 'fb-fret', x1: '0', y1: '0', x2: '1', y2: '0' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#707880' }, fretG);
+    el('stop', { offset: '50%', 'stop-color': '#f0f2f5' }, fretG);
+    el('stop', { offset: '100%', 'stop-color': '#606870' }, fretG);
+
     el('rect', {
-      x: L.padL - 10, y: L.padT - 6,
-      width: L.courseW * PAIRS + 20, height: L.frH * NUM_FRETS + 12,
-      fill: 'rgba(42,24,16,0.92)', rx: 6,
-      stroke: 'rgba(232,217,176,0.3)', 'stroke-width': 1.5,
+      x: L.nutX - 6, y: L.padT - 4,
+      width: L.frW * NUM_FRETS + 14, height: gridBot - L.padT + 8,
+      fill: 'url(#fb-wood)', rx: 4,
+      stroke: 'rgba(40,28,18,0.55)', 'stroke-width': 1.5,
     }, svg);
 
-    if (posStart > 0) {
-      el('text', {
-        x: L.padL - 16, y: L.padT + 12,
-        fill: '#e3b341', 'font-size': compact ? 12 : 14, 'font-weight': 900,
-        'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = posStart;
-      el('line', {
-        x1: L.padL - 6, y1: L.padT, x2: L.padL + L.courseW * PAIRS + 6, y2: L.padT,
-        stroke: '#8fa6bc', 'stroke-width': 3.5,
-      }, svg);
-    } else {
-      el('line', {
-        x1: L.padL - 6, y1: L.padT, x2: L.padL + L.courseW * PAIRS + 6, y2: L.padT,
-        stroke: '#f0e8d8', 'stroke-width': compact ? 4.5 : 5.5,
-      }, svg);
-    }
+    el('rect', {
+      x: L.nutX - 2, y: L.padT - 2, width: 4, height: gridBot - L.padT + 4,
+      fill: posStart > 0 ? '#c8d4e0' : '#f5ead8', rx: 1,
+    }, svg);
 
     for (let f = 1; f <= NUM_FRETS; f++) {
-      const y = L.padT + f * L.frH;
+      const x = L.fretWireX(f);
       el('line', {
-        x1: L.padL, y1: y, x2: L.padL + L.courseW * PAIRS, y2: y,
-        stroke: '#5a7088', 'stroke-width': 1.5,
+        x1: x, y1: L.padT, x2: x, y2: gridBot,
+        stroke: 'url(#fb-fret)', 'stroke-width': 2.2,
       }, svg);
+      const label = posStart + f;
       el('text', {
-        x: L.padL - 14, y: L.padT + (f - 0.5) * L.frH + 5,
-        fill: '#8fa6bc', 'font-size': compact ? 10 : 12, 'font-weight': 700,
+        x: x - L.frW * 0.5, y: L.padT - 4,
+        fill: '#9aabb8', 'font-size': compact ? 9 : 10, 'font-weight': 700,
         'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = String(posStart + f);
+      }, svg).textContent = String(label);
     }
 
     for (let c = 0; c < PAIRS; c++) {
       const isActive = activeCourse === c;
+      const x2 = L.nutX + L.frW * NUM_FRETS;
       for (let side = 0; side < 2; side++) {
-        const x = L.stringLineX(c, side);
+        const y = L.stringY(c, side);
         el('line', {
-          x1: x, y1: L.padT, x2: x, y2: L.padT + L.frH * NUM_FRETS,
-          stroke: isActive ? '#ffd86b' : '#c8d4de',
-          'stroke-width': isActive ? (compact ? 2.4 : 3) : (compact ? 1.2 : 1.5),
+          x1: L.nutX, y1: y, x2: x2, y2: y,
+          stroke: isActive ? '#ffe8a0' : '#c8d4de',
+          'stroke-width': isActive ? (1.6 + c * 0.25) : (0.9 + c * 0.15),
         }, svg);
       }
-      const cx = L.courseCenterX(c);
+      const cy = L.stringCenterY(c);
       el('text', {
-        x: cx, y: L.h - (compact ? 8 : 10),
+        x: L.padL - 4, y: cy - 4,
         fill: isActive ? '#ffd86b' : '#e3b341',
-        'font-size': compact ? 11 : 13, 'font-weight': 800,
-        'text-anchor': 'middle', 'font-family': 'Heebo',
+        'font-size': compact ? 10 : 11, 'font-weight': 800,
+        'text-anchor': 'end', 'font-family': 'Heebo',
       }, svg).textContent = STRING_HE[c];
       el('text', {
-        x: cx, y: L.h - (compact ? 22 : 26),
+        x: L.padL - 4, y: cy + 8,
         fill: isActive ? '#e3b341' : '#6a8098',
-        'font-size': compact ? 9 : 10, 'font-weight': isActive ? 800 : 600,
-        'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = `מיתר ${stringNum(c)}`;
-      el('text', {
-        x: cx, y: L.h - (compact ? 34 : 40),
-        fill: '#5a7088', 'font-size': compact ? 8 : 9,
-        'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = 'זוג';
+        'font-size': compact ? 8 : 9, 'font-weight': 600,
+        'text-anchor': 'end', 'font-family': 'Heebo',
+      }, svg).textContent = `מ${stringNum(c)}`;
     }
 
     if (onCellClick) {
       for (let c = 0; c < PAIRS; c++) {
         for (let f = 0; f <= NUM_FRETS; f++) {
-          const rel = f - posStart;
-          if (f > 0 && (rel < 1 || rel > NUM_FRETS)) continue;
-          const cy = f === 0 ? L.padT - 12 : L.padT + (rel - 0.5) * L.frH;
-          const cx = L.courseCenterX(c);
+          if (f > 0 && (f - posStart < 1 || f - posStart > NUM_FRETS)) continue;
+          const cx = f === 0 ? L.nutX - 4 : L.columnX(f, posStart);
+          const cy = L.stringCenterY(c);
           const hit = el('rect', {
-            x: cx - L.courseW / 2 + 2, y: cy - L.frH / 2 + 2,
-            width: L.courseW - 4, height: L.frH - 4,
+            x: cx - L.frW * 0.4, y: cy - L.courseStep * 0.35,
+            width: L.frW * 0.8, height: L.courseStep * 0.7,
             fill: 'transparent', class: 'fb-hit',
-            'data-course': c, 'data-fret': f,
           }, svg);
           hit.style.cursor = 'pointer';
           hit.addEventListener('click', () => onCellClick(c, f, pressText(c, f)));
@@ -167,42 +171,34 @@ const Fretboard = (() => {
     }
 
     const markerEls = new Map();
-
     markers.forEach(m => {
-      const cx = L.courseCenterX(m.courseIdx);
+      const cy = L.stringCenterY(m.courseIdx);
       const g = el('g', { class: 'fb-marker', 'data-id': m.id }, svg);
 
       if (m.fret === 'x') {
         el('text', {
-          x: cx, y: L.padT - 8, fill: '#d96459',
-          'font-size': compact ? 14 : 16, 'font-weight': 900,
-          'text-anchor': 'middle', 'font-family': 'Heebo',
+          x: L.nutX - 8, y: cy, fill: '#d96459',
+          'font-size': compact ? 13 : 15, 'font-weight': 900,
+          'text-anchor': 'end', 'dominant-baseline': 'middle', 'font-family': 'Heebo',
         }, g).textContent = '×';
       } else if (m.fret === 0) {
         el('circle', {
-          cx, cy: L.padT - 12, r: compact ? 5 : 6,
-          fill: 'none', stroke: '#5fc88f', 'stroke-width': 2.5,
+          cx: L.nutX - 4, cy, r: compact ? 4 : 5,
+          fill: 'none', stroke: '#5fc88f', 'stroke-width': 2,
         }, g);
       } else {
-        const rel = m.fret - posStart;
-        if (rel < 1 || rel > NUM_FRETS) return;
-        const cy = L.padT + (rel - 0.5) * L.frH;
-        const r = compact ? 9 : 11;
+        const cx = L.columnX(m.fret, posStart);
+        if (cx < L.nutX || cx > L.nutX + L.frW * NUM_FRETS) return;
         el('ellipse', {
-          cx, cy, rx: L.pairGap * 0.85 + 2, ry: r,
-          fill: '#e3b341', stroke: '#f0cc74', 'stroke-width': 2,
+          cx, cy, rx: L.pairGap + 2, ry: compact ? 8 : 9,
+          fill: 'url(#fb-pearl)', stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1.5,
           class: 'fb-dot',
         }, g);
         el('text', {
           x: cx, y: cy + 1, fill: '#1a1408',
           'font-size': compact ? 9 : 10, 'font-weight': 900,
-          'text-anchor': 'middle', 'font-family': 'Heebo',
+          'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-family': 'Heebo',
         }, g).textContent = m.label || String(m.fret);
-        el('text', {
-          x: cx, y: cy - r - 6, fill: '#f0cc74',
-          'font-size': compact ? 8 : 9, 'font-weight': 700,
-          'text-anchor': 'middle', 'font-family': 'Heebo',
-        }, g).textContent = `מ${m.courseIdx + 1}·ס${m.fret}`;
       }
       markerEls.set(m.id, g);
     });
@@ -222,10 +218,7 @@ const Fretboard = (() => {
     const ch = getChord(id);
     if (!ch) return [];
     return ch.shape.map((f, i) => ({
-      courseIdx: i,
-      stringIdx: i,
-      fret: f,
-      id: `${id}-c${i}`,
+      courseIdx: i, stringIdx: i, fret: f, id: `${id}-c${i}`,
     }));
   }
 
@@ -236,11 +229,8 @@ const Fretboard = (() => {
       seen.add(n.fret);
       return true;
     }).map(n => ({
-      courseIdx: 3,
-      stringIdx: 3,
-      fret: n.fret,
-      label: n.label || n.solfege,
-      id: `scale-f${n.fret}`,
+      courseIdx: 3, stringIdx: 3, fret: n.fret,
+      label: n.label || n.solfege, id: `scale-f${n.fret}`,
     }));
   }
 

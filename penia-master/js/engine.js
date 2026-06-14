@@ -201,7 +201,7 @@ const Engine = (() => {
     const g = Highway.geom(w, h);
     const cp = Highway.catchPoint(gameType === 'note' ? 3 : 1);
     if (cp) return cp;
-    return { x: g.courseCenterX(3), y: g.catchY };
+    return { x: g.catchX, y: g.stringCenterY(3) };
   }
   function emitUpcoming(tNow) {
     if (!running || calibrating || gameType === 'pick') return;
