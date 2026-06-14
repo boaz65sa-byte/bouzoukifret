@@ -2,6 +2,7 @@
 const Engine = (() => {
   const W_PERFECT = 0.05, W_GOOD = 0.11, W_REGISTER = 0.16;
   const LOOPS = 4, COUNT_IN = 4, PX_PER_BEAT = 155, HIT_X = 92;
+  const PX_PER_BEAT_Y = 140;
 
   let level, bpm, gameType = 'pick', running = false, calibrating = false;
   let targets = [], beats = [], particles = [];
@@ -15,6 +16,7 @@ const Engine = (() => {
   let onHud = () => {}, onFinish = () => {};
   let lastUpcomingIdx = -1;
   let seqLen = 1;
+  let highwayPos = 0;
 
   const actx = () => AudioEngine.ctx;
   const now = () => actx().currentTime;
@@ -63,6 +65,7 @@ const Engine = (() => {
     seqLen = gameType === 'note' ? level.notes.length
       : gameType === 'chord' ? level.chordSeq.length : 1;
     lastUpcomingIdx = -1;
+    highwayPos = 0;
 
     scheduledClicks = [];
     const totalBeats = Math.ceil((endT - t0) / beat);
@@ -93,14 +96,15 @@ const Engine = (() => {
   }
 
   function scoreHit(best, bestDt, yHit, ok, wrongMsg, sfxDir) {
-    const w = canvas.clientWidth;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const hp = hitPoint(w, h);
     if (!best || Math.abs(bestDt) > W_REGISTER) {
       addPopup('מוקדם מדי...', '#7d92a8'); return;
     }
     if (!ok) {
       best.status = 'wrong'; counts.wrong++; combo = 0;
       addPopup(wrongMsg, '#d96459');
-      spawnParticles(HIT_X, yHit, '#d96459');
+      spawnParticles(hp.x, hp.y, '#d96459');
       onHud({ score, combo }); return;
     }
     const adt = Math.abs(bestDt);
@@ -121,7 +125,7 @@ const Engine = (() => {
     }
     maxCombo = Math.max(maxCombo, combo);
     addPopup(label, color);
-    spawnParticles(HIT_X, yHit, color);
+    spawnParticles(hp.x, hp.y, color);
     laneFlash = performance.now();
     if (gameType === 'pick') AudioEngine.strum(0, sfxDir, best.accent);
     else AudioEngine.strum(0, 'd', false);
@@ -171,6 +175,31 @@ const Engine = (() => {
     scoreHit(best, bestDt, yCenter(h), ok, 'אקורד לא נכון!', 'd');
   }
 
+  function getUpcomingTarget(tNow) {
+    let best = null, bestDt = Infinity;
+    for (const tg of targets) {
+      if (tg.status) continue;
+      const dt = tg.t - tNow;
+      if (dt >= -W_REGISTER && dt < bestDt) { bestDt = dt; best = tg; }
+    }
+    return best;
+  }
+
+  function updateHighwayPos(tg) {
+    if (!tg || typeof Highway === 'undefined') return;
+    if (gameType === 'note') {
+      highwayPos = Highway.positionForFret(tg.note.fret);
+    } else if (gameType === 'chord' && typeof Fretboard !== 'undefined') {
+      highwayPos = Fretboard.calcPositionStart(Fretboard.markersFromChord(tg.chordId));
+    }
+  }
+
+  function hitPoint(w, h) {
+    if (gameType === 'pick') return { x: HIT_X, y: h * 0.5 };
+    const g = Highway.geom(w, h);
+    if (gameType === 'note') return { x: g.strX(3, g.hitY), y: g.hitY };
+    return { x: g.w / 2, y: g.hitY };
+  }
   function emitUpcoming(tNow) {
     if (!running || calibrating || gameType === 'pick') return;
     let idx = -1;
@@ -181,6 +210,8 @@ const Engine = (() => {
       if (dt >= -W_REGISTER && dt < bestDt) { bestDt = dt; idx = i; }
     });
     const seqIdx = idx >= 0 ? idx % seqLen : -1;
+    const upcoming = getUpcomingTarget(tNow);
+    if (upcoming) updateHighwayPos(upcoming);
     if (seqIdx !== lastUpcomingIdx) {
       lastUpcomingIdx = seqIdx;
       onHud({ score, combo, maxCombo, upcomingIdx: seqIdx, upcomingLive: true });
@@ -301,36 +332,56 @@ const Engine = (() => {
     cctx.fillText(`${calibTaps.length} / 8 הקשות`, w / 2, h * 0.82);
   }
 
-  function drawFrame() {
-    if (!running && !calibrating) return;
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const tNow = now(), beat = 60 / bpm, pxPerSec = PX_PER_BEAT / beat;
+  function drawHighwayFrame(w, h, tNow, beat) {
+    const pxPerSec = PX_PER_BEAT_Y / beat;
+    const g = Highway.geom(w, h);
+    const upcoming = getUpcomingTarget(tNow);
+    if (upcoming) updateHighwayPos(upcoming);
 
     cctx.fillStyle = '#060b12';
     cctx.fillRect(0, 0, w, h);
 
-    if (gameType === 'pick') {
-      const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
-      gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
-      cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
-      const gDn = cctx.createLinearGradient(0, h * 0.5, w, h);
-      gDn.addColorStop(0, 'rgba(60,45,18,0.25)'); gDn.addColorStop(1, 'rgba(28,20,8,0.55)');
-      cctx.fillStyle = gDn; cctx.fillRect(0, h / 2, w, h / 2);
-    } else if (gameType === 'note') {
-      const g = cctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, 'rgba(30,60,90,0.5)'); g.addColorStop(1, 'rgba(12,20,32,0.8)');
-      cctx.fillStyle = g; cctx.fillRect(0, 0, w, h);
-      /* חמשה קווים — סטאף מיני */
-      cctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      for (let i = -2; i <= 2; i++) {
-        const ly = yCenter(h) + i * 8;
-        cctx.beginPath(); cctx.moveTo(0, ly); cctx.lineTo(w, ly); cctx.stroke();
-      }
-    } else {
-      const g = cctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, 'rgba(50,40,15,0.45)'); g.addColorStop(1, 'rgba(15,25,40,0.85)');
-      cctx.fillStyle = g; cctx.fillRect(0, 0, w, h);
+    if (performance.now() - laneFlash < 100) {
+      cctx.fillStyle = 'rgba(227,179,65,0.12)'; cctx.fillRect(0, 0, w, h);
     }
+
+    Highway.drawBackground(cctx, g);
+    Highway.drawFretLines(cctx, g, highwayPos);
+    const activeStr = upcoming ? Highway.activeStringsForTarget(upcoming, gameType) : null;
+    Highway.drawStrings(cctx, g, activeStr);
+    Highway.drawHitLine(cctx, g, performance.now());
+    Highway.drawReceptors(cctx, g, activeStr, {
+      text: upcoming ? Highway.upcomingCaption(upcoming, gameType) : '',
+    });
+
+    if (running && tNow < t0 + COUNT_IN * beat) {
+      const n = Math.ceil((t0 + COUNT_IN * beat - tNow) / beat);
+      cctx.fillStyle = 'rgba(8,15,24,0.5)';
+      cctx.fillRect(w * 0.35, h * 0.35, w * 0.3, 80);
+      cctx.fillStyle = '#f0cc74';
+      cctx.font = '900 52px Heebo, sans-serif';
+      cctx.textAlign = 'center';
+      cctx.fillText(n, w / 2, h * 0.42);
+    }
+
+    for (const tg of targets) {
+      const y = g.hitY - (tg.t - tNow) * pxPerSec;
+      if (y < g.vanY - 40 || y > g.hitY + 40) continue;
+      if (gameType === 'note') {
+        Highway.drawNoteGem(cctx, g, y, tg.note, tg.status);
+      } else {
+        Highway.drawChordGems(cctx, g, y, tg.chordId, tg.status);
+      }
+    }
+  }
+
+  function drawPickFrame(w, h, tNow, beat, pxPerSec) {
+    const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
+    gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
+    cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
+    const gDn = cctx.createLinearGradient(0, h * 0.5, w, h);
+    gDn.addColorStop(0, 'rgba(60,45,18,0.25)'); gDn.addColorStop(1, 'rgba(28,20,8,0.55)');
+    cctx.fillStyle = gDn; cctx.fillRect(0, h / 2, w, h / 2);
 
     for (let i = 0; i < 16; i++) {
       const sx = (Math.sin(i * 2.1 + tNow * 0.3) * 0.5 + 0.5) * w;
@@ -339,20 +390,8 @@ const Engine = (() => {
       cctx.beginPath(); cctx.arc(sx, sy, 2, 0, Math.PI * 2); cctx.fill();
     }
 
-    if (gameType === 'pick') {
-      cctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      cctx.beginPath(); cctx.moveTo(0, h / 2); cctx.lineTo(w, h / 2); cctx.stroke();
-    }
-
-    if (performance.now() - laneFlash < 100) {
-      cctx.fillStyle = 'rgba(227,179,65,0.15)'; cctx.fillRect(0, 0, w, h);
-    }
-
-    if (calibrating) {
-      drawCalibOverlay(w, h, tNow, beat, calibStart0);
-      rafId = requestAnimationFrame(drawFrame);
-      return;
-    }
+    cctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    cctx.beginPath(); cctx.moveTo(0, h / 2); cctx.lineTo(w, h / 2); cctx.stroke();
 
     cctx.strokeStyle = 'rgba(157,178,199,0.12)';
     for (const bt of beats) {
@@ -368,17 +407,11 @@ const Engine = (() => {
     cctx.beginPath(); cctx.moveTo(HIT_X, 0); cctx.lineTo(HIT_X, h); cctx.stroke();
     cctx.shadowBlur = 0; cctx.lineWidth = 1;
 
-    if (gameType === 'pick') {
-      [[h * 0.28, '#4fb3d9'], [h * 0.72, '#e3b341']].forEach(([cy, col]) => {
-        cctx.strokeStyle = col + '66';
-        cctx.lineWidth = 2;
-        cctx.beginPath(); cctx.arc(HIT_X, cy, 22, 0, Math.PI * 2); cctx.stroke();
-      });
-    } else {
-      cctx.strokeStyle = '#e3b34166';
+    [[h * 0.28, '#4fb3d9'], [h * 0.72, '#e3b341']].forEach(([cy, col]) => {
+      cctx.strokeStyle = col + '66';
       cctx.lineWidth = 2;
-      cctx.beginPath(); cctx.arc(HIT_X, yCenter(h), 26, 0, Math.PI * 2); cctx.stroke();
-    }
+      cctx.beginPath(); cctx.arc(HIT_X, cy, 22, 0, Math.PI * 2); cctx.stroke();
+    });
 
     if (running && tNow < t0 + COUNT_IN * beat) {
       const n = Math.ceil((t0 + COUNT_IN * beat - tNow) / beat);
@@ -391,24 +424,42 @@ const Engine = (() => {
     for (const tg of targets) {
       const x = HIT_X + (tg.t - tNow) * pxPerSec;
       if (x < -60 || x > w + 60) continue;
-      if (gameType === 'pick') {
-        const y = tg.dir === 'u' ? h * 0.28 : h * 0.72;
-        const size = tg.accent ? 24 : 17;
-        let color = tg.dir === 'u' ? '#4fb3d9' : '#e3b341';
-        let alpha = 1;
-        if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
-        else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
-        drawArrow(x, y, tg.dir, size, color, tg.accent && !tg.status, alpha);
-        if (!tg.status && x > HIT_X) {
-          cctx.strokeStyle = color + '44';
-          cctx.lineWidth = 3;
-          cctx.beginPath(); cctx.moveTo(x - 18, y); cctx.lineTo(x - 4, y); cctx.stroke();
-        }
-      } else if (gameType === 'note') {
-        drawNoteBubble(x, yCenter(h), tg);
-      } else {
-        drawChordBubble(x, yCenter(h), tg);
+      const y = tg.dir === 'u' ? h * 0.28 : h * 0.72;
+      const size = tg.accent ? 24 : 17;
+      let color = tg.dir === 'u' ? '#4fb3d9' : '#e3b341';
+      let alpha = 1;
+      if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
+      else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
+      drawArrow(x, y, tg.dir, size, color, tg.accent && !tg.status, alpha);
+      if (!tg.status && x > HIT_X) {
+        cctx.strokeStyle = color + '44';
+        cctx.lineWidth = 3;
+        cctx.beginPath(); cctx.moveTo(x - 18, y); cctx.lineTo(x - 4, y); cctx.stroke();
       }
+    }
+  }
+
+  function drawFrame() {
+    if (!running && !calibrating) return;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const tNow = now(), beat = 60 / bpm, pxPerSec = PX_PER_BEAT / beat;
+
+    cctx.fillStyle = '#060b12';
+    cctx.fillRect(0, 0, w, h);
+
+    if (calibrating) {
+      drawCalibOverlay(w, h, tNow, beat, calibStart0);
+      rafId = requestAnimationFrame(drawFrame);
+      return;
+    }
+
+    if (gameType === 'pick') {
+      if (performance.now() - laneFlash < 100) {
+        cctx.fillStyle = 'rgba(227,179,65,0.15)'; cctx.fillRect(0, 0, w, h);
+      }
+      drawPickFrame(w, h, tNow, beat, pxPerSec);
+    } else if (typeof Highway !== 'undefined') {
+      drawHighwayFrame(w, h, tNow, beat);
     }
 
     if (running) {

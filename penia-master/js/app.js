@@ -398,12 +398,10 @@ const UI = (() => {
     lane.classList.toggle('lane-pick', gt === 'pick');
     lane.classList.toggle('lane-notes', gt === 'note');
     lane.classList.toggle('lane-chords', gt === 'chord');
+    lane.classList.toggle('lane-highway', gt === 'note' || gt === 'chord');
     const zu = $('#zone-up'), zd = $('#zone-down');
     if (gt === 'pick') {
       zu.textContent = '↑ למעלה'; zd.textContent = '↓ למטה';
-      zu.hidden = false; zd.hidden = false;
-    } else if (gt === 'note') {
-      zu.textContent = '♩ צליל'; zd.textContent = 'מיתר רה';
       zu.hidden = false; zd.hidden = false;
     } else {
       zu.hidden = true; zd.hidden = true;
@@ -516,17 +514,8 @@ const UI = (() => {
     $('#hud-score').textContent = '0';
     $('#hud-combo').textContent = '';
     const learnWrap = $('#play-learn-wrap');
-    const learnGraph = $('#play-learn-graph');
-    if (gt === 'note' || gt === 'chord') {
-      learnWrap.hidden = false;
-      if (typeof PlayLearnGraph !== 'undefined') {
-        PlayLearnGraph.mount(learnGraph, lv);
-      }
-    } else {
-      learnWrap.hidden = true;
-      if (learnGraph) learnGraph.innerHTML = '';
-      if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
-    }
+    if (learnWrap) learnWrap.hidden = true;
+    if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
     const playDetails = document.querySelector('#screen-play .play-details');
     if (playDetails) playDetails.hidden = gt === 'note' || gt === 'chord';
     setPlayUIState(false);
@@ -580,12 +569,9 @@ const UI = (() => {
     setPlayUIState(true);
     $('#calib-msg').textContent = '';
     Engine.start(currentLevel, bpm, $('#game-canvas'),
-      ({ score, combo, upcomingIdx, upcomingLive }) => {
+      ({ score, combo }) => {
         $('#hud-score').textContent = Math.round(score);
         $('#hud-combo').textContent = combo > 1 ? combo + '×' : '';
-        if (upcomingIdx >= 0 && typeof PlayLearnGraph !== 'undefined') {
-          PlayLearnGraph.highlight(upcomingIdx, !!upcomingLive);
-        }
       },
       result => showResults(result)
     );

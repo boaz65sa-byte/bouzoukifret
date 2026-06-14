@@ -251,9 +251,11 @@ button, input, select {
 .pat.note { color: var(--gold2); font-size: 15px; min-width: 36px; width: auto; padding: 0 6px; }
 .pat.chord { color: var(--gold); font-size: 14px; min-width: 40px; width: auto; padding: 0 6px; }
 
-.lane-box.lane-notes .zone.up,
-.lane-box.lane-notes .zone.down { color: var(--aegean); font-size: 11px; }
 .lane-box.lane-chords .zone { display: none; }
+.lane-box.lane-highway .zone { display: none; }
+.lane-box.lane-highway { min-height: 280px; }
+.lane-box.lane-highway #game-canvas { min-height: 280px; }
+.lane-box.lane-highway.game-running #game-canvas { min-height: min(55vh, 420px); }
 
 /* ===== RESULTS (overlay on lane) ===== */
 .lane-wrap .results-panel {
