@@ -255,9 +255,11 @@
             <h2 id="ex-name"></h2>
             <span class="badge alt" id="ex-num"></span>
           </div>
+          <p class="daily-challenge-line" id="ex-challenge-line"></p>
           <p id="ex-desc"></p>
 
           <div class="ex-controls">
+            <button class="btn daily-challenge-btn" id="ex-daily-challenge">🎲 ג'נרטור אתגר יומי</button>
             <div class="tempo-ctl">
               <button class="btn small" id="ex-bpm-down">−</button>
               <div class="bpm-display"><span id="ex-bpm">70</span><small>BPM</small></div>
@@ -384,6 +386,10 @@
               <select id="mm-root-select"></select>
             </div>
             <div>
+              <label>BPM:</label>
+              <input type="number" id="mm-bpm-input" min="45" max="160" value="80" style="width:72px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elev);color:var(--text);font:inherit;">
+            </div>
+            <div>
               <label>סגנון:</label>
               <select id="mm-mode-select">
                 <option value="note-by-note">תו אחר תו</option>
@@ -439,7 +445,10 @@
         <p class="hint">🟡 = טוניקה · 🔵 = צלילי הדרומוס · 🟢 מהבהב = התו שצריך לנגן עכשיו</p>
         <div class="fretboard-scroll-hint">← גללו ימינה ושמאלה לראות את כל הצוואר →</div>
         <div class="fretboard-wrap" dir="ltr">
-          <canvas id="mm-hero-canvas" style="display:none; width:100%; border-radius:10px; background:rgba(11,22,35,0.8); margin-bottom:10px;"></canvas>
+          <div class="mm-flow-wrap" id="mm-flow-wrap">
+            <canvas id="mm-hero-canvas" style="display:none; width:100%; border-radius:10px; background:rgba(11,22,35,0.8);"></canvas>
+            <div class="mm-flow-popups" id="mm-flow-popups"></div>
+          </div>
           <svg id="fb-master-modes" class="fretboard"></svg>
         </div>
       </div>

@@ -82,23 +82,33 @@ const MasterModes = (() => {
   let stats = { correct: 0, wrong: 0, streak: 0, best: 0 };
   let stablePc = null, stableCount = 0, armed = true, quietFrames = 0, lastReg = 0;
 
-  // Hero mode
-  let heroCanvas, heroCtx, heroNotes = [], heroSpawnIdx = 0, heroSpawnTimer = null;
-  let heroRaf = null, heroStartT = 0;
-  const HERO_FALL_PX = 280, HERO_HIT_Y = 240, HERO_WINDOW = 40;
+  // Flow / full-scale streaming game
+  let heroCanvas, heroCtx, heroRaf = null;
+  let flowNotes = [], flowSpawnIdx = 0, flowStartMs = 0;
+  let flowBpm = 80, flowBeatMs = 750, flowLookaheadSec = 2.6;
+  let flowTotalToSpawn = 0, flowMetBeat = 0, flowLastMetMs = 0;
+  const FLOW_HIT_MS = 75, FLOW_PERFECT_MS = 35;
+  let flowCanvasH = 220, flowHitY = 0;
 
   const DIFF = {
-    easy:   { stableNeeded: 2, heroSpeed: 0.04, label: 'קל' },
-    medium: { stableNeeded: 3, heroSpeed: 0.06, label: 'בינוני' },
-    hard:   { stableNeeded: 4, heroSpeed: 0.09, label: 'קשה' },
+    easy:   { stableNeeded: 2, speedMul: 0.85, label: 'קל' },
+    medium: { stableNeeded: 3, speedMul: 1, label: 'בינוני' },
+    hard:   { stableNeeded: 4, speedMul: 1.15, label: 'קשה' },
   };
 
   function buildScale() {
+    const openPc = TUNING[0].midi % 12;
     const frets = [...dromos.intervals, 12];
-    return frets.map(f => ({
-      fret: f, midi: TUNING[0].midi + f, pc: (TUNING[0].midi + f) % 12,
-      name: NOTE_NAMES[(TUNING[0].midi + f) % 12],
-    }));
+    return frets.map(iv => {
+      const fret = ((rootPc - openPc + iv) % 12 + 12) % 12;
+      const midi = TUNING[0].midi + fret;
+      const pc = (rootPc + iv) % 12;
+      return {
+        fret, midi, pc,
+        name: NOTE_NAMES[pc],
+        solfege: SOLFEGE[NOTE_NAMES[pc]],
+      };
+    });
   }
 
   function drawModeFretboard() {
@@ -129,14 +139,20 @@ const MasterModes = (() => {
     $('#mm-streak').textContent = stats.streak;
     const tot = stats.correct + stats.wrong;
     $('#mm-accuracy').textContent = tot > 0 ? Math.round(stats.correct / tot * 100) + '%' : '—';
-    $('#mm-progress').textContent = `${idx} / ${scaleNotes.length}`;
+    $('#mm-progress').textContent = heroMode
+      ? `${stats.correct + stats.wrong} / ${flowTotalToSpawn}`
+      : `${idx} / ${scaleNotes.length}`;
 
-    const n = scaleNotes[idx];
+    const n = heroMode ? flowNotes.find(x => x.status === null && performance.now() <= x.hitMs + FLOW_HIT_MS) : scaleNotes[idx];
     if (n && !heroMode) {
       $('#mm-current-note').textContent = n.name;
       $('#mm-current-solfege').textContent = SOLFEGE[n.name];
       $('#mm-current-fret').textContent = 'סריג ' + n.fret + ' על מיתר D';
-    } else if (!n) {
+    } else if (heroMode && n) {
+      $('#mm-current-note').textContent = n.name;
+      $('#mm-current-solfege').textContent = n.solfege || SOLFEGE[n.name];
+      $('#mm-current-fret').textContent = 'זרמו אל קו הפגיעה · סריג ' + n.fret;
+    } else if (!n && !heroMode) {
       $('#mm-current-note').textContent = '—';
       $('#mm-current-solfege').textContent = '';
       $('#mm-current-fret').textContent = '';
@@ -145,10 +161,17 @@ const MasterModes = (() => {
 
   function flash(type) {
     const el = $('#mm-feedback');
-    el.textContent = type === 'correct' ? '✓ נכון!' : '✗ לא מדויק';
-    el.className = 'mm-feedback ' + type;
+    const map = {
+      correct: ['✓ נכון!', 'correct'],
+      wrong: ['✗ Miss', 'wrong'],
+      perfect: ['★ Perfect!', 'perfect'],
+      good: ['✓ Good', 'good'],
+    };
+    const [text, cls] = map[type] || map.wrong;
+    el.textContent = text;
+    el.className = 'mm-feedback ' + cls;
     el.style.opacity = 1;
-    setTimeout(() => { el.style.opacity = 0; }, 700);
+    setTimeout(() => { el.style.opacity = 0; }, 650);
   }
 
   function advance(ok) {
@@ -186,109 +209,228 @@ const MasterModes = (() => {
     $('#mm-start').textContent = '▶ שחק'; $('#mm-start').classList.remove('playing');
   }
 
-  /* --- Hero mode (Canvas falling notes) --- */
+  function flowPopup(label, kind) {
+    const wrap = $('#mm-flow-popups');
+    if (!wrap) return;
+    const el = document.createElement('div');
+    el.className = 'mm-flow-popup ' + kind;
+    el.textContent = label;
+    el.style.left = (35 + Math.random() * 30) + '%';
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+    if (wrap.childElementCount > 6) wrap.firstChild?.remove();
+  }
+
+  function registerFlowHit(note, deltaMs) {
+    if (note.status) return;
+    note.status = 'hit';
+    stats.correct++;
+    stats.streak++;
+    stats.best = Math.max(stats.best, stats.streak);
+    let kind, label;
+    if (Math.abs(deltaMs) <= FLOW_PERFECT_MS) {
+      kind = 'perfect'; label = 'Perfect!';
+    } else {
+      kind = 'good'; label = 'Good';
+    }
+    flowPopup(label, kind);
+    flash(kind === 'perfect' ? 'perfect' : 'good');
+    updateUI();
+    checkFlowComplete();
+  }
+
+  function registerFlowMiss(note) {
+    if (note.status) return;
+    note.status = 'miss';
+    stats.wrong++;
+    stats.streak = 0;
+    flowPopup('Miss', 'miss');
+    flash('wrong');
+    updateUI();
+    checkFlowComplete();
+  }
+
+  function checkFlowComplete() {
+    if (!heroMode || !running) return;
+    const judged = flowNotes.filter(n => n.status).length;
+    if (judged >= flowTotalToSpawn && flowSpawnIdx >= flowTotalToSpawn) {
+      setTimeout(() => { if (running) finish(); }, 400);
+    }
+  }
+
+  /* --- Full-scale streaming (Canvas) --- */
   function initHeroCanvas() {
     heroCanvas = $('#mm-hero-canvas');
     if (!heroCanvas) return;
     heroCanvas.style.display = 'block';
-    const w = heroCanvas.parentElement.clientWidth || 800;
+    const wrap = $('#mm-flow-wrap');
+    const w = (wrap && wrap.clientWidth) || heroCanvas.parentElement.clientWidth || 800;
+    flowCanvasH = Math.max(180, Math.min(260, window.innerWidth < 720 ? 180 : 220));
+    flowHitY = flowCanvasH * 0.78;
     const dpr = window.devicePixelRatio || 1;
-    heroCanvas.width = w * dpr; heroCanvas.height = HERO_FALL_PX * dpr;
-    heroCanvas.style.width = w + 'px'; heroCanvas.style.height = HERO_FALL_PX + 'px';
+    heroCanvas.width = w * dpr;
+    heroCanvas.height = flowCanvasH * dpr;
+    heroCanvas.style.width = w + 'px';
+    heroCanvas.style.height = flowCanvasH + 'px';
     heroCtx = heroCanvas.getContext('2d');
     heroCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  function spawnFlowNotes(now) {
+    while (flowSpawnIdx < flowTotalToSpawn) {
+      const hitMs = flowStartMs + flowSpawnIdx * flowBeatMs;
+      if (hitMs - now > flowLookaheadSec * 1000) break;
+      const src = scaleNotes[flowSpawnIdx % scaleNotes.length];
+      flowNotes.push({
+        ...src,
+        hitMs,
+        status: null,
+        spawnIdx: flowSpawnIdx,
+      });
+      flowSpawnIdx++;
+    }
+  }
+
+  function flowPxPerSec() {
+    const mul = DIFF[$('#mm-diff-select').value].speedMul;
+    return (flowHitY - 24) / flowLookaheadSec * mul;
+  }
+
+  function noteY(now, hitMs) {
+    const timeToHit = (hitMs - now) / 1000;
+    return flowHitY - timeToHit * flowPxPerSec();
+  }
+
+  function tickFlowMetronome(now) {
+    if (now - flowLastMetMs < flowBeatMs - 8) return;
+    flowLastMetMs = now;
+    AudioEngine.ensureCtx();
+    AudioEngine.click(AudioEngine.ctx.currentTime + 0.02, flowMetBeat % 4 === 0);
+    flowMetBeat++;
+  }
+
   function startHero() {
     initHeroCanvas();
-    heroNotes = []; heroSpawnIdx = 0;
-    heroStartT = performance.now();
-    const speed = DIFF[$('#mm-diff-select').value].heroSpeed;
-    const interval = Math.max(600, 1200 / (speed * 20));
-    heroSpawnTimer = setInterval(() => {
-      if (heroSpawnIdx >= scaleNotes.length) { clearInterval(heroSpawnTimer); return; }
-      const n = scaleNotes[heroSpawnIdx];
-      const w = heroCanvas.clientWidth;
-      const x = 50 + (n.fret / NUM_FRETS) * (w - 100);
-      heroNotes.push({ ...n, x, y: 0, status: null });
-      heroSpawnIdx++;
-    }, interval);
+    flowNotes = [];
+    flowSpawnIdx = 0;
+    flowMetBeat = 0;
+    flowLastMetMs = 0;
+    flowBpm = Math.max(45, Math.min(160, parseInt($('#mm-bpm-input')?.value, 10) || 80));
+    flowBeatMs = 60000 / flowBpm;
+    flowTotalToSpawn = scaleNotes.length * 2;
+    flowStartMs = performance.now() + 600;
+    flowLookaheadSec = Math.max(2.2, Math.min(3.4, (flowBeatMs * 3) / 1000));
+
+    $('#mm-flow-popups').innerHTML = '';
+    $('#mm-current-note').textContent = '—';
+    $('#mm-current-solfege').textContent = 'זרמו!';
+    $('#mm-current-fret').textContent = `BPM ${flowBpm} · קו פגיעה`;
+
     heroRaf = requestAnimationFrame(drawHero);
   }
 
   function drawHero() {
-    if (!running) return;
-    const w = heroCanvas.clientWidth, h = HERO_FALL_PX;
-    const speed = DIFF[$('#mm-diff-select').value].heroSpeed;
+    if (!running || !heroMode || !heroCtx) return;
+    const now = performance.now();
+    const w = heroCanvas.clientWidth;
+    const h = flowCanvasH;
+    const pxSec = flowPxPerSec();
+
+    spawnFlowNotes(now);
+    tickFlowMetronome(now);
+
     heroCtx.clearRect(0, 0, w, h);
 
-    // קו פגיעה
-    heroCtx.strokeStyle = 'rgba(232,238,245,0.5)';
-    heroCtx.lineWidth = 2;
-    heroCtx.beginPath(); heroCtx.moveTo(0, HERO_HIT_Y); heroCtx.lineTo(w, HERO_HIT_Y); heroCtx.stroke();
+    // רקע
+    const bg = heroCtx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0a1420');
+    bg.addColorStop(1, '#060c14');
+    heroCtx.fillStyle = bg;
+    heroCtx.fillRect(0, 0, w, h);
 
-    // מספרי סריגים למעלה
-    heroCtx.fillStyle = '#5a7187'; heroCtx.font = '11px Heebo'; heroCtx.textAlign = 'center';
-    for (let f = 0; f <= NUM_FRETS; f++) {
-      const x = 50 + (f / NUM_FRETS) * (w - 100);
-      heroCtx.fillText(f, x, 14);
+    // מסילי סריג (אופקי)
+    heroCtx.fillStyle = '#5a7187';
+    heroCtx.font = '10px Heebo';
+    heroCtx.textAlign = 'center';
+    for (let f = 0; f <= Math.min(NUM_FRETS, 12); f++) {
+      const x = 40 + (f / NUM_FRETS) * (w - 80);
+      heroCtx.fillText(String(f), x, 16);
     }
 
-    heroNotes.forEach(n => {
-      if (n.status === 'hit') return;
-      n.y += speed * 16;
+    // קו פגיעה + אזור
+    const pulse = 0.5 + 0.5 * Math.sin(now / 160);
+    heroCtx.fillStyle = `rgba(79,179,217,${0.06 + pulse * 0.06})`;
+    heroCtx.fillRect(0, flowHitY - 14, w, 28);
+    heroCtx.strokeStyle = `rgba(240,204,116,${0.55 + pulse * 0.35})`;
+    heroCtx.lineWidth = 2.5;
+    heroCtx.beginPath();
+    heroCtx.moveTo(0, flowHitY);
+    heroCtx.lineTo(w, flowHitY);
+    heroCtx.stroke();
 
-      // החטאה אוטומטית
-      if (n.y > HERO_HIT_Y + HERO_WINDOW && n.status === null) {
-        n.status = 'miss';
-        stats.wrong++; stats.streak = 0;
-        updateUI();
-      }
+    flowNotes.forEach(n => {
+      if (n.status === 'hit' || n.status === 'miss') return;
+      const y = noteY(now, n.hitMs);
+      if (y < -20 || y > h + 20) return;
 
-      const inZone = Math.abs(n.y - HERO_HIT_Y) < HERO_WINDOW;
-      const r = 16;
-      heroCtx.beginPath(); heroCtx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      if (n.status === 'miss') {
-        heroCtx.fillStyle = 'rgba(217,100,89,0.3)';
-      } else if (inZone) {
+      const inWindow = Math.abs(now - n.hitMs) <= FLOW_HIT_MS;
+      const x = 40 + (n.fret / NUM_FRETS) * (w - 80);
+      const r = inWindow ? 17 : 14;
+
+      heroCtx.beginPath();
+      heroCtx.arc(x, y, r + 4, 0, Math.PI * 2);
+      heroCtx.strokeStyle = inWindow ? 'rgba(240,204,116,0.75)' : 'rgba(79,179,217,0.35)';
+      heroCtx.lineWidth = 2;
+      heroCtx.stroke();
+
+      heroCtx.beginPath();
+      heroCtx.arc(x, y, r, 0, Math.PI * 2);
+      if (inWindow) {
         heroCtx.fillStyle = '#e3b341';
-        heroCtx.shadowColor = '#e3b341'; heroCtx.shadowBlur = 12;
+        heroCtx.shadowColor = '#e3b341';
+        heroCtx.shadowBlur = 14;
       } else {
         heroCtx.fillStyle = '#4fb3d9';
+        heroCtx.shadowBlur = 0;
       }
       heroCtx.fill();
       heroCtx.shadowBlur = 0;
 
-      heroCtx.fillStyle = '#fff'; heroCtx.font = 'bold 11px Heebo'; heroCtx.textAlign = 'center';
-      heroCtx.fillText(n.name, n.x, n.y + 4);
+      heroCtx.fillStyle = inWindow ? '#1a1408' : '#fff';
+      heroCtx.font = 'bold 12px Heebo';
+      heroCtx.textAlign = 'center';
+      heroCtx.fillText(n.name, x, y + 4);
     });
 
-    // בדיקת סיום
-    const allDone = heroNotes.length >= scaleNotes.length && heroNotes.every(n => n.status !== null);
-    if (allDone) { finish(); return; }
+    // פספוסים
+    flowNotes.forEach(n => {
+      if (n.status) return;
+      if (now - n.hitMs > FLOW_HIT_MS) registerFlowMiss(n);
+    });
 
     heroRaf = requestAnimationFrame(drawHero);
   }
 
-  function heroHit(pc) {
-    for (const n of heroNotes) {
-      if (n.status !== null) continue;
+  function tryFlowHit(pc, rms) {
+    if (!heroMode || !running || rms < 0.012) return;
+    const now = performance.now();
+    let best = null, bestDt = Infinity;
+    for (const n of flowNotes) {
+      if (n.status) continue;
       if (n.pc !== pc) continue;
-      if (Math.abs(n.y - HERO_HIT_Y) <= HERO_WINDOW) {
-        n.status = 'hit';
-        stats.correct++; stats.streak++; stats.best = Math.max(stats.best, stats.streak);
-        flash('correct');
-        updateUI();
-        return true;
+      const dt = Math.abs(now - n.hitMs);
+      if (dt <= FLOW_HIT_MS && dt < bestDt) {
+        bestDt = dt;
+        best = n;
       }
     }
-    return false;
+    if (best) registerFlowHit(best, now - best.hitMs);
   }
 
   function stopHero() {
-    if (heroSpawnTimer) { clearInterval(heroSpawnTimer); heroSpawnTimer = null; }
     if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = null; }
     if (heroCanvas) heroCanvas.style.display = 'none';
+    flowNotes = [];
   }
 
   /* --- Mic callback --- */
@@ -301,9 +443,7 @@ const MasterModes = (() => {
     $('#mm-detected').textContent = data.name + ' (' + SOLFEGE[data.name] + ')';
 
     if (heroMode) {
-      if (data.pc !== stablePc) { stablePc = data.pc; stableCount = 1; }
-      else stableCount++;
-      if (stableCount >= 2) heroHit(data.pc);
+      tryFlowHit(data.pc, rms);
       return;
     }
 
@@ -325,7 +465,7 @@ const MasterModes = (() => {
   async function start() {
     dromos = DROMOI[parseInt($('#mm-dromos-select').value)];
     rootPc = parseInt($('#mm-root-select').value);
-    heroMode = $('#mm-mode-select').value === 'hero';
+    heroMode = $('#mm-mode-select').value === 'full-scale';
     scaleNotes = buildScale();
     idx = 0; stats = { correct: 0, wrong: 0, streak: 0, best: 0 };
     stablePc = null; stableCount = 0; armed = true; quietFrames = 0;
@@ -338,11 +478,12 @@ const MasterModes = (() => {
     $('#mm-mic-status').className = 'mm-mic ' + (ok ? 'on' : 'off');
 
     if (heroMode) {
+      stopHero();
       startHero();
+      drawModeFretboard();
     } else {
       stopHero();
       AudioEngine.ensureCtx();
-      // נגן את כל הסולם קודם
       scaleNotes.forEach((n, i) => {
         setTimeout(() => AudioEngine.pluckCourse(0, n.fret, 0, 0.4), i * 300);
       });
@@ -388,7 +529,16 @@ const MasterModes = (() => {
     });
     rootSel.addEventListener('change', () => {
       rootPc = parseInt(rootSel.value);
+      scaleNotes = buildScale();
       drawModeFretboard();
+    });
+    $('#mm-mode-select').addEventListener('change', () => {
+      heroMode = $('#mm-mode-select').value === 'full-scale';
+      if (!running) drawModeFretboard();
+    });
+
+    window.addEventListener('resize', () => {
+      if (running && heroMode) initHeroCanvas();
     });
 
     dromos = DROMOI[0]; scaleNotes = buildScale();
