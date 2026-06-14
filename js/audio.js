@@ -247,7 +247,7 @@ const AudioEngine = (() => {
 
   const ENSEMBLE_PATTERNS = {
     chifteteli: {
-      bpm: 94, stepsPerBeat: 2,
+      bpm: 110, stepsPerBeat: 2,
       steps: [
         { dum: 1, bass: 1, pulse: 0.32 },
         { tek: 0.55, pulse: 0.11 },
@@ -395,6 +395,7 @@ const AudioEngine = (() => {
   function stopEnsemble() {
     if (!ensemble) return;
     clearInterval(ensemble.timer);
+    ensemble.timer = null;
     if (ctx) {
       ensemble.bus.gain.cancelScheduledValues(ctx.currentTime);
       ensemble.bus.gain.setValueAtTime(ensemble.bus.gain.value, ctx.currentTime);
@@ -402,8 +403,8 @@ const AudioEngine = (() => {
     }
     const snap = ensemble;
     ensemble = null;
+    snap.padOscs?.forEach(o => { try { o.stop(); } catch (e) { /* */ } });
     setTimeout(() => {
-      snap.padOscs?.forEach(o => { try { o.stop(); } catch (e) { /* */ } });
       try { snap.bus.disconnect(); } catch (e) { /* */ }
     }, 420);
   }

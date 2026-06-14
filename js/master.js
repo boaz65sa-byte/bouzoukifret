@@ -4,27 +4,7 @@
    ============================================================ */
 'use strict';
 
-/* === אקורדים לבוזוקי === */
-const BOUZOUKI_CHORDS = [
-  { name: 'D Major', he: 'רה מז\'ור', frets: [0,2,3,2], cat: 'greek', desc: 'אקורד בסיסי לרמבטיקו' },
-  { name: 'D Minor', he: 'רה מינור', frets: [0,2,2,1], cat: 'greek', desc: 'לשירי זייבקיקו' },
-  { name: 'D7',      he: 'רה 7',     frets: [0,2,1,2], cat: 'greek', desc: 'דומיננטה יוונית' },
-  { name: 'Am',      he: 'לה מינור', frets: [5,0,0,0], cat: 'greek', desc: 'אקורד מפתח יווני' },
-  { name: 'Em',      he: 'מי מינור', frets: [2,2,0,0], cat: 'greek', desc: 'שכיח ברמבטיקו' },
-  { name: 'A7',      he: 'לה 7',     frets: [5,0,2,0], cat: 'greek', desc: 'סיום יווני' },
-  { name: 'Gm',      he: 'סול מינור',frets: [5,5,3,3], cat: 'greek', desc: 'צליל עצוב' },
-  { name: 'F',       he: 'פה מז\'ור',frets: [3,0,0,1], cat: 'greek', desc: 'שכיח' },
-  { name: 'C',       he: 'דו מז\'ור',frets: [10,9,10,0],cat:'greek', desc: 'בסיסי' },
-  { name: 'Bb',      he: 'סי♭',      frets: [8,7,8,6], cat: 'greek', desc: 'לשירים יווניים' },
-  { name: 'E7',      he: 'מי 7',     frets: [2,2,2,3], cat: 'greek', desc: 'רמבטיקו אופייני' },
-  { name: 'Hijaz D', he: 'חיג\'אז רה',frets:[0,1,4,1], cat:'oriental',desc:'מקאם חיג\'אז' },
-  { name: 'Bayat D', he: 'ביאת רה',  frets: [0,2,2,0], cat: 'oriental',desc:'מקאם ביאת' },
-  { name: 'Nahawand',he: 'נהוואנד',  frets: [0,2,2,1], cat: 'oriental',desc:'מקאם נהוואנד' },
-  { name: 'Kurd D',  he: 'כורד רה',  frets: [0,1,2,1], cat: 'oriental',desc:'מקאם כורד' },
-  { name: 'Saba',    he: 'סבא',      frets: [0,1,2,0], cat: 'oriental',desc:'מקאם סבא' },
-  { name: 'Rast',    he: 'ראסט',     frets: [0,2,3,0], cat: 'oriental',desc:'מקאם ראסט' },
-  { name: 'Nikriz',  he: 'ניקריז',   frets: [0,1,4,2], cat: 'oriental',desc:'מקאם ניקריז' },
-];
+/* === אקורדים — ספריית ChordLibrary (js/chord-library.js) === */
 
 /* ============================================================
    Shared: Mic Engine — שימוש חוזר בין המשחקים
@@ -697,7 +677,8 @@ const MasterChords = (() => {
     const cat = $('#mc-cat-select').value;
     const diff = $('#mc-diff-select').value;
     const cfg = DIFF[diff];
-    let available = cat === 'all' ? BOUZOUKI_CHORDS : BOUZOUKI_CHORDS.filter(c => c.cat === cat);
+    let available = ChordLibrary.getAll();
+    if (cat !== 'all') available = available.filter(c => c.cat === cat);
     const shuffled = [...available].sort(() => Math.random() - 0.5);
     chords = shuffled.slice(0, Math.min(cfg.count, shuffled.length));
 
@@ -721,6 +702,15 @@ const MasterChords = (() => {
   }
 
   function init() {
+    ChordLibrary.init();
+    ChordLibrary.onPreview(c => {
+      if (c) {
+        AudioEngine.ensureCtx();
+        c.frets.forEach((f, ci) => {
+          if (f !== null) setTimeout(() => AudioEngine.pluckCourse(ci, f, 0, 0.5), ci * 60);
+        });
+      }
+    });
     $('#mc-start').addEventListener('click', () => running ? stopGame() : startGame());
     $('#mc-play-chord').addEventListener('click', playChord);
     drawFretboard($('#fb-master-chords'), () => null);

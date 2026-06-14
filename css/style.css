@@ -252,24 +252,32 @@ select {
   100% { opacity: 0; }
 }
 
-/* Safe Notes — טוניקה, 4, 5 — מודגשות כשהלהקה הווירטואלית פעילה */
-.safe-note-glow circle {
-  stroke: #f0cc74 !important;
-  stroke-width: 2.5 !important;
-  filter: drop-shadow(0 0 5px rgba(227, 179, 65, 0.75)) drop-shadow(0 0 12px rgba(240, 204, 116, 0.45));
-}
-.safe-note-glow {
-  animation: safeNotePulse 2.4s ease-in-out infinite;
+/* Safe Notes — טוניקה, 4, 5 — Virtual Ensemble */
+#fb-dromos .note-dot.safe-note-glow {
+  animation: safeNotePulse 2.2s ease-in-out infinite;
   transform-origin: center;
   transform-box: fill-box;
 }
+#fb-dromos .note-dot.safe-note-glow circle {
+  stroke: #f0cc74 !important;
+  stroke-width: 2.5 !important;
+}
 @keyframes safeNotePulse {
   0%, 100% {
+    transform: scale(1);
     filter: drop-shadow(0 0 4px rgba(227, 179, 65, 0.55));
   }
   50% {
-    filter: drop-shadow(0 0 10px rgba(240, 204, 116, 0.95)) drop-shadow(0 0 18px rgba(227, 179, 65, 0.35));
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 10px rgba(240, 204, 116, 0.95))
+            drop-shadow(0 0 18px rgba(227, 179, 65, 0.4));
   }
+}
+
+#dr-drone.playing {
+  background: rgba(176, 72, 68, 0.88);
+  border-color: rgba(196, 92, 88, 0.95);
+  color: #fff;
 }
 
 .daily-challenge-line {
@@ -963,6 +971,43 @@ select {
 .mc-timer-wrap { width: 100%; max-width: 400px; height: 6px; background: var(--bg-elev); border-radius: 3px; overflow: hidden; }
 .mc-timer-bar { height: 100%; background: var(--ok); border-radius: 3px; transition: width 0.1s linear; }
 .mc-timer-bar.danger { background: var(--accent-red); }
+
+/* --- עורך אקורדים --- */
+.cl-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+.cl-import-label { cursor: pointer; margin: 0; }
+.cl-hint { margin-bottom: 12px; }
+.cl-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .cl-layout { grid-template-columns: 1fr; } }
+.cl-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; padding-left: 2px; }
+.cl-item {
+  text-align: right; width: 100%; background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; cursor: pointer; color: inherit; font: inherit;
+  position: relative; padding-left: 52px;
+}
+.cl-item:hover { border-color: var(--gold); }
+.cl-item.active { border-color: var(--gold); background: rgba(227,179,65,0.08); }
+.cl-item-name { font-weight: 800; color: var(--gold-soft); font-size: 15px; }
+.cl-item-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; font-family: monospace; direction: ltr; text-align: left; }
+.cl-badge {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 10px; padding: 2px 7px; border-radius: 10px; background: var(--bg-card); color: var(--text-dim);
+}
+.cl-item.active .cl-badge { background: rgba(227,179,65,0.2); color: var(--gold); }
+.cl-form { display: none; padding: 16px; background: var(--bg-elev); border-radius: 12px; border: 1px solid var(--line); }
+.cl-form.open { display: block; }
+.cl-form h3 { margin: 0 0 12px; font-size: 17px; color: var(--gold-soft); }
+.cl-field { margin-bottom: 10px; }
+.cl-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+.cl-field input, .cl-field select {
+  width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg-card); color: var(--text); font: inherit;
+}
+.cl-frets-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.cl-fret-field input { text-align: center; font-family: monospace; }
+.cl-form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.cl-status { font-size: 13px; margin: 10px 0 0; min-height: 18px; }
+.cl-status.ok { color: var(--ok); }
+.cl-status.err { color: var(--accent-red); }
 
 /* הדגשות על הגריף */
 .fb-dot.mm-target circle { fill: var(--ok) !important; stroke: #a0ffc8 !important; }

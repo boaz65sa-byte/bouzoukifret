@@ -135,8 +135,12 @@ function drawFretboard(svg, getNoteState, opts = {}) {
       const state = getNoteState ? getNoteState(ci, f, midi) : null;
       if (!state) continue;
       const cx = fretCenterX(f);
-      const dotClass = 'fb-dot' + (state.safe ? ' safe-note-glow' : '');
-      const g = svgEl('g', { class: dotClass, 'data-course': ci, 'data-fret': f }, svg);
+      const g = svgEl('g', {
+        class: 'fb-dot note-dot',
+        'data-course': ci,
+        'data-fret': f,
+        'data-pc': midi % 12,
+      }, svg);
       const isRoot = state.type === 'root';
       svgEl('circle', {
         cx, cy: y, r: 11,
@@ -320,6 +324,26 @@ function getSafeNoteIntervals(dromos) {
   return safe;
 }
 
+function clearSafeNoteGlow() {
+  const svg = $('#fb-dromos');
+  if (!svg) return;
+  svg.querySelectorAll('.safe-note-glow').forEach(el => el.classList.remove('safe-note-glow'));
+}
+
+/** מדגיש טוניקה (1), רביעית (4) וחמישית (5) על לוח הדרומוס */
+function highlightSafeNotes() {
+  const svg = $('#fb-dromos');
+  if (!svg) return;
+  clearSafeNoteGlow();
+  const d = currentDromos;
+  const safeIv = getSafeNoteIntervals(d);
+  const safePcs = new Set([...safeIv].map(iv => (currentRoot + iv) % 12));
+  svg.querySelectorAll('.note-dot').forEach(dot => {
+    const pc = parseInt(dot.dataset.pc, 10);
+    if (safePcs.has(pc)) dot.classList.add('safe-note-glow');
+  });
+}
+
 function refreshEnsembleIfActive() {
   if (!AudioEngine.isEnsembleActive()) return;
   AudioEngine.startEnsemble({ rootPc: currentRoot, dromosId: currentDromos.id });
@@ -432,19 +456,16 @@ function renderDromos() {
 
   // לוח סריגים — צלילי הדרומוס
   const pcs = d.intervals.map(iv => (currentRoot + iv) % 12);
-  const safeIv = getSafeNoteIntervals(d);
-  const ensembleOn = AudioEngine.isEnsembleActive();
   drawFretboard($('#fb-dromos'), (ci, f, midi) => {
     const pc = midi % 12;
     const idx = pcs.indexOf(pc);
     if (idx === -1) return null;
-    const iv = d.intervals[idx];
     return {
       type: idx === 0 ? 'root' : 'note',
       label: NOTE_NAMES[pc],
-      safe: ensembleOn && safeIv.has(iv),
     };
   });
+  if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
 
   // תרגיל מיתר בודד
   renderSingleString();
@@ -506,21 +527,23 @@ function playSingleString() {
   step();
 }
 
+const DRONE_LABEL_OFF = '🎵 צליל רקע (איזון)';
+const DRONE_LABEL_ON = '🛑 עצור הרכב וירטואלי';
+
 function toggleDrone() {
   const btn = $('#dr-drone');
   if (AudioEngine.isEnsembleActive()) {
     AudioEngine.stopEnsemble();
     btn.classList.remove('playing');
-    btn.textContent = '🎵 צליל רקע (איזון)';
-    renderDromos();
+    btn.textContent = DRONE_LABEL_OFF;
+    clearSafeNoteGlow();
     return;
   }
   AudioEngine.ensureCtx();
-  const rhythm = AudioEngine.rhythmForDromos(currentDromos.id);
   AudioEngine.startEnsemble({ rootPc: currentRoot, dromosId: currentDromos.id });
   btn.classList.add('playing');
-  btn.textContent = rhythm === 'zeibekiko' ? '🎵 להקה · Ζεϊμπέκικο' : '🎵 להקה · Τσιφτετέλι';
-  renderDromos();
+  btn.textContent = DRONE_LABEL_ON;
+  highlightSafeNotes();
 }
 
 function stopDrone() {
@@ -528,8 +551,9 @@ function stopDrone() {
   const btn = $('#dr-drone');
   if (btn) {
     btn.classList.remove('playing');
-    btn.textContent = '🎵 צליל רקע (איזון)';
+    btn.textContent = DRONE_LABEL_OFF;
   }
+  clearSafeNoteGlow();
 }
 
 /* ===================== מסך פנייה ===================== */
