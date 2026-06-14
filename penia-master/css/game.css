@@ -253,9 +253,9 @@ button, input, select {
 
 .lane-box.lane-chords .zone { display: none; }
 .lane-box.lane-highway .zone { display: none; }
-.lane-box.lane-highway { min-height: 280px; }
-.lane-box.lane-highway #game-canvas { min-height: 280px; }
-.lane-box.lane-highway.game-running #game-canvas { min-height: min(55vh, 420px); }
+.lane-box.lane-highway { min-height: 220px; }
+.lane-box.lane-highway #game-canvas { min-height: 220px; }
+.lane-box.lane-highway.game-running #game-canvas { min-height: min(50vh, 380px); }
 
 /* ===== RESULTS (overlay on lane) ===== */
 .lane-wrap .results-panel {

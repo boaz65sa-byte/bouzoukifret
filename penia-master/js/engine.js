@@ -2,7 +2,6 @@
 const Engine = (() => {
   const W_PERFECT = 0.05, W_GOOD = 0.11, W_REGISTER = 0.16;
   const LOOPS = 4, COUNT_IN = 4, PX_PER_BEAT = 155, HIT_X = 92;
-  const PX_PER_BEAT_Y = 140;
 
   let level, bpm, gameType = 'pick', running = false, calibrating = false;
   let targets = [], beats = [], particles = [];
@@ -197,8 +196,8 @@ const Engine = (() => {
   function hitPoint(w, h) {
     if (gameType === 'pick') return { x: HIT_X, y: h * 0.5 };
     const g = Highway.geom(w, h);
-    if (gameType === 'note') return { x: g.strX(3, g.hitY), y: g.hitY };
-    return { x: g.w / 2, y: g.hitY };
+    if (gameType === 'note') return { x: g.hitX, y: g.strY(3) };
+    return { x: g.hitX, y: (g.strY(1) + g.strY(2)) / 2 };
   }
   function emitUpcoming(tNow) {
     if (!running || calibrating || gameType === 'pick') return;
@@ -333,45 +332,23 @@ const Engine = (() => {
   }
 
   function drawHighwayFrame(w, h, tNow, beat) {
-    const pxPerSec = PX_PER_BEAT_Y / beat;
-    const g = Highway.geom(w, h);
+    const pxPerSec = PX_PER_BEAT / beat;
     const upcoming = getUpcomingTarget(tNow);
     if (upcoming) updateHighwayPos(upcoming);
 
-    cctx.fillStyle = '#060b12';
-    cctx.fillRect(0, 0, w, h);
-
-    if (performance.now() - laneFlash < 100) {
-      cctx.fillStyle = 'rgba(227,179,65,0.12)'; cctx.fillRect(0, 0, w, h);
-    }
-
-    Highway.drawBackground(cctx, g);
-    Highway.drawFretLines(cctx, g, highwayPos);
-    const activeStr = upcoming ? Highway.activeStringsForTarget(upcoming, gameType) : null;
-    Highway.drawStrings(cctx, g, activeStr);
-    Highway.drawHitLine(cctx, g, performance.now());
-    Highway.drawReceptors(cctx, g, activeStr, {
-      text: upcoming ? Highway.upcomingCaption(upcoming, gameType) : '',
+    Highway.drawFrame(cctx, {
+      w, h, tNow, pxPerSec,
+      posStart: highwayPos,
+      gameType,
+      targets,
+      upcoming,
+      pulse: performance.now(),
+      countIn,
     });
 
-    if (running && tNow < t0 + COUNT_IN * beat) {
-      const n = Math.ceil((t0 + COUNT_IN * beat - tNow) / beat);
-      cctx.fillStyle = 'rgba(8,15,24,0.5)';
-      cctx.fillRect(w * 0.35, h * 0.35, w * 0.3, 80);
-      cctx.fillStyle = '#f0cc74';
-      cctx.font = '900 52px Heebo, sans-serif';
-      cctx.textAlign = 'center';
-      cctx.fillText(n, w / 2, h * 0.42);
-    }
-
-    for (const tg of targets) {
-      const y = g.hitY - (tg.t - tNow) * pxPerSec;
-      if (y < g.vanY - 40 || y > g.hitY + 40) continue;
-      if (gameType === 'note') {
-        Highway.drawNoteGem(cctx, g, y, tg.note, tg.status);
-      } else {
-        Highway.drawChordGems(cctx, g, y, tg.chordId, tg.status);
-      }
+    if (performance.now() - laneFlash < 100) {
+      cctx.fillStyle = 'rgba(227,179,65,0.12)';
+      cctx.fillRect(0, 0, w, h);
     }
   }
 
