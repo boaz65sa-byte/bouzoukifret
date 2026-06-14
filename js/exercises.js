@@ -9,123 +9,10 @@ let exBpm = exItem.bpm;
 let exScheduler = null;
 let dailyChallengeActive = false;
 
-const DAILY_TECHNIQUE_CATS = ['triplets', 'tremolo', 'crossing', 'basics', 'patterns'];
-
-function dromosFretsOnCourse(course, dromos, rootPc = 2) {
-  const pos = POS1[dromos.id];
-  if (pos) {
-    return pos.filter(p => p[0] === course).map(p => p[1]);
-  }
-  const openPc = TUNING[course].midi % 12;
-  return dromos.intervals
-    .map(iv => ((rootPc + iv - openPc) % 12 + 12) % 12)
-    .filter(f => f <= NUM_FRETS);
-}
-
-function pickMelodyFrets(dromos, rootPc = 2) {
-  const frets = dromosFretsOnCourse(0, dromos, rootPc);
-  if (frets.length < 4) {
-    const up = frets.slice(0, Math.min(4, frets.length));
-    while (up.length < 4) up.push(up[up.length - 1] ?? 0);
-    return [...up, ...up.slice().reverse().slice(1)];
-  }
-  const start = Math.floor(Math.random() * (frets.length - 3));
-  const four = frets.slice(start, start + 4);
-  return [...four, ...four.slice().reverse().slice(1)];
-}
-
-function noteStepTotal(notes) {
-  return notes.reduce((s, n) => s + (n.len || 1), 0);
-}
-
-function strokeAlt(i, accentDown = true) {
-  const down = accentDown ? 'D' : 'd';
-  const up = accentDown ? 'u' : 'u';
-  return i % 2 === 0 ? down : up;
-}
-
-function buildDailyNotes(techCat, frets) {
-  const id = techCat.id;
-  let notes = [];
-
-  if (id === 'triplets') {
-    frets.forEach(f => {
-      notes.push(_n(0, f, 'D'), _n(0, f, 'u'), _n(0, f, 'd'));
-    });
-  } else if (id === 'tremolo') {
-    frets.forEach(f => {
-      notes.push(_n(0, f, 'd'), _n(0, f, 'u'), _n(0, f, 'd'), _n(0, f, 'u'));
-    });
-  } else if (id === 'crossing') {
-    frets.forEach((f, i) => {
-      const c = i % 2 === 0 ? 0 : 1;
-      notes.push(_n(c, f, strokeAlt(i), 2));
-    });
-  } else if (id === 'patterns') {
-    frets.forEach((f, i) => {
-      if (i % 3 === 0) notes.push(_n(0, f, 'D', 2));
-      else notes.push(_n(0, f, strokeAlt(i), 1));
-    });
-  } else {
-    frets.forEach((f, i) => notes.push(_n(0, f, strokeAlt(i), 2)));
-  }
-
-  return notes;
-}
-
-function expandToBars(notes, bars, sub) {
-  const target = bars * 4 * sub;
-  const out = notes.map(n => ({ ...n }));
-  while (noteStepTotal(out) < target) out.push(...notes.map(n => ({ ...n })));
-  let total = 0;
-  const trimmed = [];
-  for (const n of out) {
-    if (total >= target) break;
-    const len = n.len || 1;
-    if (total + len > target) {
-      trimmed.push({ ...n, len: target - total });
-      break;
-    }
-    trimmed.push(n);
-    total += len;
-  }
-  return trimmed;
-}
-
-function generateDailyChallenge() {
-  const catId = DAILY_TECHNIQUE_CATS[Math.floor(Math.random() * DAILY_TECHNIQUE_CATS.length)];
-  const techCat = EXERCISES.find(c => c.id === catId);
-  const dromos = DROMOI[Math.floor(Math.random() * DROMOI.length)];
-  const rootPc = 2;
-  const frets = pickMelodyFrets(dromos, rootPc);
-  const sub = techCat.id === 'triplets' ? 3 : techCat.id === 'tremolo' ? 4 : 2;
-  const notes = expandToBars(buildDailyNotes(techCat, frets), 4, sub);
-  const sample = techCat.items.find(i => i.type === 'tab');
-  const bpm = sample?.bpm || (techCat.id === 'tremolo' ? 60 : 65);
-
-  const degLabels = dromos.degrees.split(/\s+/);
-  const fretDesc = frets.slice(0, 4).join('–');
-
-  return {
-    techCat,
-    dromos,
-    item: {
-      id: 'daily-' + Date.now(),
-      name: 'אתגר יומי — ' + techCat.title,
-      bpm,
-      sub,
-      type: 'tab',
-      daily: true,
-      desc: `4 תיבות (${sub === 3 ? 'טריולים' : sub === 4 ? 'שש-עשריות' : 'שמיניות'}) על מיתר רה: סריגים ${fretDesc} בדרומוס ${dromos.nameHe} (${degLabels.slice(0, 4).join(' ')}). שמרו על פנייה ${techCat.id === 'triplets' ? '↓↑↓ בכל קבוצה' : techCat.id === 'tremolo' ? 'רציפה אחידה' : 'למטה-למעלה'}.`,
-      notes,
-    },
-  };
-}
-
 function showDailyChallenge() {
   stopExercise();
   dailyChallengeActive = true;
-  const { techCat, dromos, item } = generateDailyChallenge();
+  const { item, challengeLine } = generateDailyChallenge();
 
   exItem = item;
   exBpm = item.bpm;
@@ -133,8 +20,7 @@ function showDailyChallenge() {
   $$('#ex-list .dromos-item').forEach(x => x.classList.remove('active'));
   $('#ex-name').textContent = '🎲 אתגר יומי';
   $('#ex-num').textContent = '4 תיבות';
-  $('#ex-challenge-line').textContent =
-    `האתגר שלך היום: פניית ${techCat.title} על דרומוס ${dromos.nameHe}`;
+  $('#ex-challenge-line').textContent = challengeLine;
   $('#ex-desc').textContent = item.desc;
   setExBpm(item.bpm);
 
@@ -331,7 +217,7 @@ function initExercises() {
   $('#ex-bpm-down').addEventListener('click', () => setExBpm(exBpm - 5));
   $('#ex-bpm-up').addEventListener('click', () => setExBpm(exBpm + 5));
   $('#ex-play').addEventListener('click', toggleExercise);
-  $('#ex-daily-challenge').addEventListener('click', showDailyChallenge);
+  $('#ex-challenge-btn').addEventListener('click', showDailyChallenge);
 
   renderExList();
   selectExercise(exItem);

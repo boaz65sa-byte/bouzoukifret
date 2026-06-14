@@ -69,6 +69,7 @@ const MasterModes = (() => {
   let flowTotalToSpawn = 0, flowMetBeat = 0, flowLastMetMs = 0;
   const FLOW_HIT_MS = 75, FLOW_PERFECT_MS = 35;
   let flowCanvasH = 220, flowHitY = 0;
+  let flowPopups = [];
 
   const DIFF = {
     easy:   { stableNeeded: 2, speedMul: 0.85, label: 'קל' },
@@ -189,16 +190,43 @@ const MasterModes = (() => {
     $('#mm-start').textContent = '▶ שחק'; $('#mm-start').classList.remove('playing');
   }
 
-  function flowPopup(label, kind) {
-    const wrap = $('#mm-flow-popups');
-    if (!wrap) return;
-    const el = document.createElement('div');
-    el.className = 'mm-flow-popup ' + kind;
-    el.textContent = label;
-    el.style.left = (35 + Math.random() * 30) + '%';
-    wrap.appendChild(el);
-    setTimeout(() => el.remove(), 900);
-    if (wrap.childElementCount > 6) wrap.firstChild?.remove();
+  function flowPopup(label, kind, x, y) {
+    const w = heroCanvas?.clientWidth || 400;
+    flowPopups.push({
+      text: label,
+      kind,
+      x: x ?? w * 0.5,
+      y: y ?? flowHitY,
+      t0: performance.now(),
+    });
+    if (flowPopups.length > 8) flowPopups.shift();
+  }
+
+  function noteCanvasX(fret, w) {
+    return 40 + (fret / NUM_FRETS) * (w - 80);
+  }
+
+  function drawFlowPopups(now) {
+    const colors = { perfect: '#f0cc74', good: '#5fc88f', miss: '#d96459' };
+    flowPopups = flowPopups.filter(p => now - p.t0 < 900);
+    flowPopups.forEach(p => {
+      const age = (now - p.t0) / 900;
+      const alpha = 1 - age;
+      const y = p.y - age * 58;
+      const scale = 0.82 + age * 0.28;
+      heroCtx.save();
+      heroCtx.globalAlpha = alpha;
+      heroCtx.translate(p.x, y);
+      heroCtx.scale(scale, scale);
+      heroCtx.font = '900 26px Heebo, sans-serif';
+      heroCtx.textAlign = 'center';
+      heroCtx.textBaseline = 'middle';
+      heroCtx.fillStyle = colors[p.kind] || '#fff';
+      heroCtx.shadowColor = 'rgba(0,0,0,0.65)';
+      heroCtx.shadowBlur = 10;
+      heroCtx.fillText(p.text, 0, 0);
+      heroCtx.restore();
+    });
   }
 
   function registerFlowHit(note, deltaMs) {
@@ -211,9 +239,10 @@ const MasterModes = (() => {
     if (Math.abs(deltaMs) <= FLOW_PERFECT_MS) {
       kind = 'perfect'; label = 'Perfect!';
     } else {
-      kind = 'good'; label = 'Good';
+      kind = 'good'; label = 'Good!';
     }
-    flowPopup(label, kind);
+    const w = heroCanvas?.clientWidth || 400;
+    flowPopup(label, kind, noteCanvasX(note.fret, w), flowHitY);
     flash(kind === 'perfect' ? 'perfect' : 'good');
     updateUI();
     checkFlowComplete();
@@ -224,7 +253,8 @@ const MasterModes = (() => {
     note.status = 'miss';
     stats.wrong++;
     stats.streak = 0;
-    flowPopup('Miss', 'miss');
+    const w = heroCanvas?.clientWidth || 400;
+    flowPopup('Miss', 'miss', noteCanvasX(note.fret, w), flowHitY);
     flash('wrong');
     updateUI();
     checkFlowComplete();
@@ -242,8 +272,9 @@ const MasterModes = (() => {
   function initHeroCanvas() {
     heroCanvas = $('#mm-hero-canvas');
     if (!heroCanvas) return;
-    heroCanvas.style.display = 'block';
     const wrap = $('#mm-flow-wrap');
+    heroCanvas.style.display = 'block';
+    if (wrap) wrap.classList.add('flow-active');
     const w = (wrap && wrap.clientWidth) || heroCanvas.parentElement.clientWidth || 800;
     flowCanvasH = Math.max(180, Math.min(260, window.innerWidth < 720 ? 180 : 220));
     flowHitY = flowCanvasH * 0.78;
@@ -273,7 +304,7 @@ const MasterModes = (() => {
 
   function flowPxPerSec() {
     const mul = DIFF[$('#mm-diff-select').value].speedMul;
-    return (flowHitY - 24) / flowLookaheadSec * mul;
+    return (flowHitY - 28) / flowLookaheadSec * mul;
   }
 
   function noteY(now, hitMs) {
@@ -301,10 +332,16 @@ const MasterModes = (() => {
     flowStartMs = performance.now() + 600;
     flowLookaheadSec = Math.max(2.2, Math.min(3.4, (flowBeatMs * 3) / 1000));
 
+    flowPopups = [];
     $('#mm-flow-popups').innerHTML = '';
     $('#mm-current-note').textContent = '—';
     $('#mm-current-solfege').textContent = 'זרמו!';
-    $('#mm-current-fret').textContent = `BPM ${flowBpm} · קו פגיעה`;
+    $('#mm-current-fret').textContent = `BPM ${flowBpm} · קו פגיעה · ±${FLOW_HIT_MS}ms`;
+
+    const hint = $('#mm-fretboard-hint');
+    if (hint) {
+      hint.textContent = '🎮 מצב זרימה: נגנו כשהתו מגיע לקו הזהוב · Perfect ≤35ms · Good ≤75ms';
+    }
 
     heroRaf = requestAnimationFrame(drawHero);
   }
@@ -314,7 +351,6 @@ const MasterModes = (() => {
     const now = performance.now();
     const w = heroCanvas.clientWidth;
     const h = flowCanvasH;
-    const pxSec = flowPxPerSec();
 
     spawnFlowNotes(now);
     tickFlowMetronome(now);
@@ -328,14 +364,26 @@ const MasterModes = (() => {
     heroCtx.fillStyle = bg;
     heroCtx.fillRect(0, 0, w, h);
 
-    // מסילי סריג (אופקי)
-    heroCtx.fillStyle = '#5a7187';
-    heroCtx.font = '10px Heebo';
-    heroCtx.textAlign = 'center';
+    // מסילות סריג (אנכיות — זרימה מלמעלה)
+    heroCtx.strokeStyle = 'rgba(58,82,106,0.35)';
+    heroCtx.lineWidth = 1;
     for (let f = 0; f <= Math.min(NUM_FRETS, 12); f++) {
-      const x = 40 + (f / NUM_FRETS) * (w - 80);
-      heroCtx.fillText(String(f), x, 16);
+      const x = noteCanvasX(f, w);
+      heroCtx.beginPath();
+      heroCtx.moveTo(x, 22);
+      heroCtx.lineTo(x, h - 8);
+      heroCtx.stroke();
+      heroCtx.fillStyle = '#5a7187';
+      heroCtx.font = '10px Heebo';
+      heroCtx.textAlign = 'center';
+      heroCtx.fillText(String(f), x, 14);
     }
+
+    // חצים — כיוון הזרימה
+    heroCtx.fillStyle = 'rgba(79,179,217,0.25)';
+    heroCtx.font = '14px Heebo';
+    heroCtx.textAlign = 'right';
+    heroCtx.fillText('↓ זרימה', w - 10, 28);
 
     // קו פגיעה + אזור
     const pulse = 0.5 + 0.5 * Math.sin(now / 160);
@@ -354,8 +402,21 @@ const MasterModes = (() => {
       if (y < -20 || y > h + 20) return;
 
       const inWindow = Math.abs(now - n.hitMs) <= FLOW_HIT_MS;
-      const x = 40 + (n.fret / NUM_FRETS) * (w - 80);
+      const x = noteCanvasX(n.fret, w);
       const r = inWindow ? 17 : 14;
+
+      // זנב תנועה
+      if (y > 30) {
+        const tail = heroCtx.createLinearGradient(x, y - 28, x, y);
+        tail.addColorStop(0, 'rgba(79,179,217,0)');
+        tail.addColorStop(1, inWindow ? 'rgba(227,179,65,0.45)' : 'rgba(79,179,217,0.35)');
+        heroCtx.strokeStyle = tail;
+        heroCtx.lineWidth = 5;
+        heroCtx.beginPath();
+        heroCtx.moveTo(x, y - 26);
+        heroCtx.lineTo(x, y - 6);
+        heroCtx.stroke();
+      }
 
       heroCtx.beginPath();
       heroCtx.arc(x, y, r + 4, 0, Math.PI * 2);
@@ -382,7 +443,9 @@ const MasterModes = (() => {
       heroCtx.fillText(n.name, x, y + 4);
     });
 
-    // פספוסים
+    drawFlowPopups(now);
+
+    // פספוסים — חלון ±75ms
     flowNotes.forEach(n => {
       if (n.status) return;
       if (now - n.hitMs > FLOW_HIT_MS) registerFlowMiss(n);
@@ -410,7 +473,14 @@ const MasterModes = (() => {
   function stopHero() {
     if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = null; }
     if (heroCanvas) heroCanvas.style.display = 'none';
+    const wrap = $('#mm-flow-wrap');
+    if (wrap) wrap.classList.remove('flow-active');
     flowNotes = [];
+    flowPopups = [];
+    const hint = $('#mm-fretboard-hint');
+    if (hint) {
+      hint.textContent = '🟡 = טוניקה · 🔵 = צלילי הדרומוס · 🟢 מהבהב = התו שצריך לנגן עכשיו';
+    }
   }
 
   /* --- Mic callback --- */
@@ -514,7 +584,10 @@ const MasterModes = (() => {
     });
     $('#mm-mode-select').addEventListener('change', () => {
       heroMode = $('#mm-mode-select').value === 'full-scale';
-      if (!running) drawModeFretboard();
+      if (!running) {
+        stopHero();
+        drawModeFretboard();
+      }
     });
 
     window.addEventListener('resize', () => {
