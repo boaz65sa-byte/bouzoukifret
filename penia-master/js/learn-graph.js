@@ -7,9 +7,10 @@ const LearnGraph = (() => {
     const ch = getChord(id);
     if (!ch) return '';
     return ch.shape.map((f, i) => {
-      if (f === 'x') return `${STRINGS[i]} — × מושתק`;
-      if (f === 0) return `${STRINGS[i]} — פתוח ○`;
-      return `${STRINGS[i]} — סריג ${f}`;
+      const n = i + 1;
+      if (f === 'x') return `מיתר ${n} — מושתק ×`;
+      if (f === 0) return `מיתר ${n} — פתוח ○`;
+      return `סריג ${f} · מיתר ${n}`;
     }).join(' · ');
   }
 

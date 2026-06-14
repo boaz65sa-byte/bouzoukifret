@@ -741,6 +741,35 @@ button, input, select {
 .pli-chord-hint { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 6px 0 0; }
 .pli-chord-seq { margin-top: 0; }
 
+/* ===== גרף סריגים + מיתרים ===== */
+.fb-wrap {
+  background: rgba(0,0,0,0.22);
+  border-radius: 10px;
+  padding: 6px 4px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+.fb-wrap-compact { margin-bottom: 6px; padding: 4px 2px; }
+.fb-svg { display: block; width: 100%; min-width: 220px; height: auto; }
+.fb-compact { min-width: 200px; }
+.fb-marker .fb-dot { transition: filter 0.2s; }
+.fb-marker.active .fb-dot {
+  filter: drop-shadow(0 0 10px rgba(227,179,65,0.95));
+}
+.fb-marker.pulse .fb-dot {
+  animation: learnPulse 1s ease infinite;
+}
+.chord-fb-host { display: flex; justify-content: center; margin: 8px 0; }
+.chord-fb-play { margin: 4px 0 6px; }
+.pli-focus-chord {
+  flex-direction: column; align-items: flex-start; gap: 4px;
+}
+.pli-focus-chord .pli-chord-id { color: var(--gold); font-size: 15px; font-weight: 900; }
+.pli-focus-chord .pli-chord-pos {
+  color: #e8f0f8; font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
+}
+.pli-focus-chord .pli-chord-hint { margin: 0; font-size: 11px; color: var(--dim); line-height: 1.4; }
+
 .splash-glow {
   position: absolute; width: 280px; height: 280px; border-radius: 50%;
   background: radial-gradient(circle, rgba(227,179,65,0.15), transparent 70%);

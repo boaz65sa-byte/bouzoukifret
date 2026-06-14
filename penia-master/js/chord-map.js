@@ -1,7 +1,35 @@
-/* גרף לימוד אקורדים — איפה ללחוץ */
+/* גרף לימוד אקורדים — סריגים + מיתרים */
 const ChordMap = (() => {
   function uniqueSeq(ids) {
     return ids.filter((id, i) => i === 0 || id !== ids[i - 1]);
+  }
+
+  function chordFocusText(id) {
+    const ch = getChord(id);
+    if (!ch) return id;
+    return ch.shape
+      .map((f, i) => {
+        if (f === 'x') return null;
+        if (f === 0) return `מ${i + 1}○`;
+        return `ס${f}·מ${i + 1}`;
+      })
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  function drawChordBoard(container, chordId, opts = {}) {
+    const fbWrap = document.createElement('div');
+    fbWrap.className = opts.compact ? 'fb-wrap fb-wrap-compact' : 'fb-wrap';
+    container.appendChild(fbWrap);
+    const markers = Fretboard.markersFromChord(chordId);
+    const frets = markers.filter(m => typeof m.fret === 'number').map(m => m.fret);
+    Fretboard.draw(fbWrap, {
+      compact: opts.compact,
+      markers,
+      defMin: 0,
+      defMax: Math.max(5, ...(frets.length ? frets : [5])),
+    });
+    return fbWrap;
   }
 
   function drawProgression(container, chordIds, opts = {}) {
@@ -12,27 +40,25 @@ const ChordMap = (() => {
 
     LearnGraph.wrapLearnHeader(
       container,
-      '📍 גרף לימוד — איפה ללחוץ',
-      'כל ריבוע = אקורד · הנקודות הצהובות = איפה ללחוץ · לחצו על שלב בציר הזמן'
+      '📍 גרף לימוד — סריגים ומיתרים',
+      'ציר שמאל = סריג · למטה = מיתר · הנקודות הצהובות = איפה ללחוץ לכל אקורד'
     );
 
     const panel = LearnGraph.focusPanel(container);
     const lfpV = panel.querySelector('.lfp-visual');
     const lfpH = panel.querySelector('.lfp-hint');
     const lfpLabel = panel.querySelector('.lfp-label');
+    const boardHost = document.createElement('div');
+    boardHost.className = 'chord-fb-host';
+    container.appendChild(boardHost);
+    container.insertBefore(boardHost, panel);
 
     function showChord(id, stepNum) {
       const ch = getChord(id);
       lfpLabel.textContent = stepNum ? `שלב ${stepNum} — ${id}` : id;
-      lfpV.innerHTML = '';
-      const diagWrap = document.createElement('div');
-      diagWrap.className = 'lfp-chord-big';
-      lfpV.appendChild(diagWrap);
-      ChordDiagram.draw(diagWrap, id, { large: true, noLabel: true });
-      const nameEl = document.createElement('p');
-      nameEl.className = 'lfp-chord-name';
-      nameEl.textContent = (ch?.he || id) + (ch?.role ? ' · ' + ch.role : '');
-      lfpV.appendChild(nameEl);
+      boardHost.innerHTML = '';
+      drawChordBoard(boardHost, id, { compact: false });
+      lfpV.innerHTML = `<span class="lfp-big-name">${chordFocusText(id)}</span>`;
       lfpH.textContent = LearnGraph.shapeHint(id);
       panel.classList.add('show');
 
@@ -44,10 +70,9 @@ const ChordMap = (() => {
       });
     }
 
-    /* מפת אקורדים ייחודיים */
     const mapLabel = document.createElement('p');
     mapLabel.className = 'learn-seq-label';
-    mapLabel.textContent = 'כל האקורדים בשלב — לחצו לראות איפה ללחוץ:';
+    mapLabel.textContent = 'כל האקורדים — לחצו לראות סריג + מיתר:';
     container.appendChild(mapLabel);
 
     const row = document.createElement('div');
@@ -72,7 +97,6 @@ const ChordMap = (() => {
     });
     container.appendChild(row);
 
-    /* ציר זמן — הסדר במשחק */
     const tlLabel = document.createElement('p');
     tlLabel.className = 'learn-seq-label';
     tlLabel.textContent = opts.song ? '🎵 סדר השיר במשחק:' : 'סדר האקורדים במשחק:';
@@ -96,15 +120,14 @@ const ChordMap = (() => {
     const hint = document.createElement('p');
     hint.className = 'chord-map-hint';
     hint.textContent = opts.song
-      ? 'למדו את הגרף ↑ · ▶ שחק — האקורדים יזרמו כמו בשיר · פרטו ↓ בזמן'
-      : 'למדו את הגרף ↑ · ▶ שחק — כל אקורד מגיע לקו · החזיקו צורה ופרטו ↓';
+      ? 'למדו את הגרף ↑ · ▶ שחק — האקורדים יזרמו כמו בשיר'
+      : 'למדו את הגרף ↑ · ▶ שחק — כל אקורד מגיע לקו';
     container.appendChild(hint);
 
     showChord(seq[0], 1);
     return { showChord };
   }
 
-  /* גרף קומpактי — בתוך מסך המשחק */
   function drawPlay(container, chordIds, opts = {}) {
     container.innerHTML = '';
     container.className = 'chord-map play-learn-inline';
@@ -112,23 +135,20 @@ const ChordMap = (() => {
 
     const head = document.createElement('div');
     head.className = 'pli-head';
-    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">לחצו אקורד · ראו איפה ללחוץ</span>';
+    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">סריג · מיתר · לחצו אקורד</span>';
     container.appendChild(head);
 
-    const body = document.createElement('div');
-    body.className = 'pli-chord-body';
-    body.innerHTML = `
-      <div class="pli-chord-diag"></div>
-      <div class="pli-chord-info">
-        <b class="pli-chord-id">—</b>
-        <small class="pli-chord-he"></small>
-        <p class="pli-chord-hint"></p>
-      </div>`;
-    container.appendChild(body);
-    const diagEl = body.querySelector('.pli-chord-diag');
-    const idEl = body.querySelector('.pli-chord-id');
-    const heEl = body.querySelector('.pli-chord-he');
-    const hintEl = body.querySelector('.pli-chord-hint');
+    const focus = document.createElement('div');
+    focus.className = 'pli-focus pli-focus-chord';
+    focus.innerHTML = '<b class="pli-chord-id">—</b><span class="pli-chord-pos"></span><p class="pli-chord-hint"></p>';
+    container.appendChild(focus);
+    const idEl = focus.querySelector('.pli-chord-id');
+    const posEl = focus.querySelector('.pli-chord-pos');
+    const hintEl = focus.querySelector('.pli-chord-hint');
+
+    const boardHost = document.createElement('div');
+    boardHost.className = 'chord-fb-host chord-fb-play';
+    container.appendChild(boardHost);
 
     const timeline = document.createElement('div');
     timeline.className = 'pli-seq pli-chord-seq';
@@ -139,10 +159,12 @@ const ChordMap = (() => {
       const id = seq[idx];
       if (!id) return;
       const ch = getChord(id);
-      ChordDiagram.draw(diagEl, id, { noLabel: true });
-      idEl.textContent = id;
-      heEl.textContent = ch?.he || '';
+      boardHost.innerHTML = '';
+      drawChordBoard(boardHost, id, { compact: true });
+      idEl.textContent = id + (ch?.he ? ' · ' + ch.he : '');
+      posEl.textContent = chordFocusText(id);
       hintEl.textContent = LearnGraph.shapeHint(id);
+      focus.classList.add('show');
       timeline.querySelectorAll('.chord-tl-step').forEach((el, i) => {
         el.classList.toggle('active', i === idx);
         el.classList.toggle('live', live && i === idx);
