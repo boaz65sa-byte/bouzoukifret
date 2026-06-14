@@ -1,4 +1,4 @@
-/* גרף משחק — 8 מיתרים (זוגות), אנכי: מיתרים ↕ סריגים ↔ */
+/* גרף משחק — 8 מיתרים (זוגות), אנכי + אזור תפיסה בתחתית */
 const Highway = (() => {
   const STRING_HE = ['דו', 'פה', 'לה', 'רה'];
   const GEM_COLORS = ['#e878c8', '#f0b84a', '#5ec8e8', '#e3b341'];
@@ -19,15 +19,19 @@ const Highway = (() => {
 
   function geom(w, h) {
     const padT = Math.min(36, h * 0.1);
-    const padB = Math.min(48, h * 0.14);
+    const padB = Math.min(52, h * 0.15);
     const padL = Math.min(38, w * 0.1);
     const gridTop = padT + 8;
-    const gridBot = h - padB;
+    const catchZoneH = Math.min(44, h * 0.11);
+    const gridBot = h - padB - catchZoneH;
     const gridH = gridBot - gridTop;
     const frH = gridH / NUM_FRETS;
     const courseW = (w - padL - 12) / PAIRS;
     const pairGap = Math.min(10, courseW * 0.22);
     const nutY = gridTop;
+    const catchY = gridBot + catchZoneH * 0.48;
+    const catchTop = gridBot + 2;
+    const catchBot = gridBot + catchZoneH;
 
     function courseCenterX(course) {
       return padL + course * courseW + courseW / 2;
@@ -39,7 +43,7 @@ const Highway = (() => {
     }
 
     function rowY(fret, viewStart) {
-      if (fret === 0) return nutY - frH * 0.35;
+      if (fret === 0) return nutY + frH * 0.08;
       const rel = fret - viewStart;
       return nutY + (rel - 0.5) * frH;
     }
@@ -50,7 +54,8 @@ const Highway = (() => {
 
     return {
       w, h, padT, padB, padL, gridTop, gridBot, gridH, frH, courseW, pairGap,
-      nutY, courseCenterX, stringX, rowY, fretLineY,
+      nutY, catchY, catchTop, catchBot, catchZoneH,
+      courseCenterX, stringX, rowY, fretLineY,
     };
   }
 
@@ -66,6 +71,39 @@ const Highway = (() => {
     cctx.lineTo(x, y + r);
     cctx.quadraticCurveTo(x, y, x + r, y);
     cctx.closePath();
+  }
+
+  function drawCatchZone(cctx, g) {
+    const boardW = g.courseW * PAIRS;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+
+    cctx.fillStyle = 'rgba(79,217,232,0.1)';
+    roundRect(cctx, g.padL - 8, g.catchTop, boardW + 16, g.catchBot - g.catchTop, 5);
+    cctx.fill();
+
+    cctx.strokeStyle = `rgba(79,217,232,${0.45 + pulse * 0.35})`;
+    cctx.lineWidth = 2.5;
+    cctx.setLineDash([6, 4]);
+    cctx.beginPath();
+    cctx.moveTo(g.padL - 4, g.catchY);
+    cctx.lineTo(g.padL + boardW + 4, g.catchY);
+    cctx.stroke();
+    cctx.setLineDash([]);
+
+    for (let c = 0; c < PAIRS; c++) {
+      const cx = g.courseCenterX(c);
+      cctx.beginPath();
+      cctx.ellipse(cx, g.catchY, g.pairGap * 0.95 + 4, 14, 0, 0, Math.PI * 2);
+      cctx.strokeStyle = `rgba(79,217,232,${0.25 + pulse * 0.2})`;
+      cctx.lineWidth = 1.5;
+      cctx.stroke();
+    }
+
+    cctx.fillStyle = '#4fd9e8';
+    cctx.font = '800 10px Heebo, sans-serif';
+    cctx.textAlign = 'left';
+    cctx.textBaseline = 'middle';
+    cctx.fillText('▼ אזור תפיסה — נגנו כאן', g.padL, g.catchTop + 10);
   }
 
   function drawBoard(cctx, g, viewStart) {
@@ -124,7 +162,7 @@ const Highway = (() => {
         cctx.lineWidth = on ? (1.2 + c * 0.35) : 0.8;
         cctx.beginPath();
         cctx.moveTo(x, g.nutY);
-        cctx.lineTo(x, g.nutY + g.gridH);
+        cctx.lineTo(x, g.catchBot);
         cctx.stroke();
       }
     }
@@ -146,6 +184,37 @@ const Highway = (() => {
       cctx.font = '700 9px Heebo, sans-serif';
       cctx.fillText('זוג', cx, g.h - g.padB + 42);
     }
+  }
+
+  function drawStaticMarker(cctx, g, m, viewStart, alpha) {
+    if (m.fret === 'x') return;
+    const cx = g.courseCenterX(m.courseIdx);
+    if (m.fret === 0) {
+      cctx.globalAlpha = alpha;
+      cctx.strokeStyle = '#5fc88f';
+      cctx.lineWidth = 2;
+      cctx.beginPath();
+      cctx.arc(cx, g.nutY + 6, 5, 0, Math.PI * 2);
+      cctx.stroke();
+      cctx.globalAlpha = 1;
+      return;
+    }
+    const cy = g.rowY(m.fret, viewStart);
+    if (cy < g.nutY || cy > g.gridBot) return;
+    cctx.globalAlpha = alpha;
+    cctx.beginPath();
+    cctx.ellipse(cx, cy, g.pairGap * 0.75 + 2, 9, 0, 0, Math.PI * 2);
+    cctx.fillStyle = 'rgba(227,179,65,0.35)';
+    cctx.fill();
+    cctx.strokeStyle = 'rgba(240,204,116,0.6)';
+    cctx.lineWidth = 1.5;
+    cctx.stroke();
+    cctx.fillStyle = '#f0cc74';
+    cctx.font = '700 8px Heebo, sans-serif';
+    cctx.textAlign = 'center';
+    cctx.textBaseline = 'middle';
+    cctx.fillText(`ס${m.fret}`, cx, cy);
+    cctx.globalAlpha = 1;
   }
 
   function drawGem(cctx, cx, cy, rx, ry, color, label, sub, status) {
@@ -197,20 +266,19 @@ const Highway = (() => {
     return '';
   }
 
-  function drawMarker(cctx, g, m, viewStart, timeToHit, pxPerSec, status) {
+  function drawApproachMarker(cctx, g, m, timeToHit, pxPerSec, status) {
     const cx = g.courseCenterX(m.courseIdx);
     if (m.fret === 'x') {
       cctx.fillStyle = '#e04040';
       cctx.font = '900 17px Heebo, sans-serif';
       cctx.textAlign = 'center';
       cctx.textBaseline = 'bottom';
-      cctx.fillText('×', cx, g.nutY - 6);
+      cctx.fillText('×', cx, g.nutY - 4);
       return;
     }
-    const targetY = g.rowY(m.fret, viewStart);
-    const y = targetY - timeToHit * pxPerSec;
+    const y = g.catchY - timeToHit * pxPerSec;
     const sub = `מ${m.courseIdx + 1}·ס${m.fret}`;
-    drawGem(cctx, cx, y, g.pairGap * 0.9 + 3, 12, GEM_COLORS[m.courseIdx], markerLabel(m), sub, status);
+    drawGem(cctx, cx, y, g.pairGap * 0.85 + 2, 11, GEM_COLORS[m.courseIdx], markerLabel(m), sub, status);
   }
 
   function activeCoursesForTarget(tg, gameType) {
@@ -266,19 +334,28 @@ const Highway = (() => {
     cctx.fillRect(0, 0, w, h);
 
     if (upcoming) drawCaption(cctx, g, upcomingCaption(upcoming, gameType));
-    else drawCaption(cctx, g, 'גרף בוזוקי · 8 מיתרים (4 זוגות) · לחצו על תא');
+    else drawCaption(cctx, g, 'גרף בוזוקי · נקודות יורדות לאזור התפיסה למטה');
 
     drawBoard(cctx, g, viewStart);
     const active = upcoming ? [...activeCoursesForTarget(upcoming, gameType)] : null;
     drawStrings(cctx, g, active);
+
+    if (upcoming) {
+      const shape = gameType === 'note'
+        ? noteMarkers(upcoming.note)
+        : chordMarkers(upcoming.chordId);
+      shape.forEach(m => drawStaticMarker(cctx, g, m, viewStart, 0.85));
+    }
+
+    drawCatchZone(cctx, g);
     drawLabels(cctx, g, active);
 
     if (clickHint) {
-      cctx.fillStyle = 'rgba(79,217,232,0.15)';
+      cctx.fillStyle = 'rgba(79,217,232,0.2)';
       cctx.strokeStyle = '#4fd9e8';
       cctx.lineWidth = 2;
       const cx = g.courseCenterX(clickHint.course);
-      const cy = g.rowY(clickHint.fret, viewStart);
+      const cy = clickHint.atCatch ? g.catchY : g.rowY(clickHint.fret, viewStart);
       cctx.beginPath();
       cctx.arc(cx, cy, 18, 0, Math.PI * 2);
       cctx.fill();
@@ -287,21 +364,23 @@ const Highway = (() => {
 
     if (countIn > 0) {
       cctx.fillStyle = 'rgba(0,0,0,0.55)';
-      cctx.fillRect(w * 0.35, h * 0.38, w * 0.3, 64);
+      cctx.fillRect(w * 0.35, h * 0.32, w * 0.3, 64);
       cctx.fillStyle = '#f0cc74';
       cctx.font = '900 44px Heebo, sans-serif';
       cctx.textAlign = 'center';
       cctx.textBaseline = 'middle';
-      cctx.fillText(String(countIn), w / 2, h * 0.44);
+      cctx.fillText(String(countIn), w / 2, h * 0.38);
     }
 
     for (const tg of targets) {
       const timeToHit = tg.t - tNow;
-      if (timeToHit < -0.4 || timeToHit * pxPerSec > g.gridH + 80) continue;
+      if (timeToHit < -0.4) continue;
+      const maxTravel = g.catchY - g.nutY + 60;
+      if (timeToHit * pxPerSec > maxTravel) continue;
       const markers = gameType === 'note'
         ? noteMarkers(tg.note)
         : chordMarkers(tg.chordId);
-      markers.forEach(m => drawMarker(cctx, g, m, viewStart, timeToHit, pxPerSec, tg.status));
+      markers.forEach(m => drawApproachMarker(cctx, g, m, timeToHit, pxPerSec, tg.status));
     }
 
     return g;
@@ -310,11 +389,23 @@ const Highway = (() => {
   function hitTest(x, y, w, h) {
     const g = lastGeom || geom(w, h);
     const viewStart = lastViewStart;
-    if (y < g.nutY - g.frH || y > g.nutY + g.gridH + g.padB) return null;
     if (x < g.padL || x > g.padL + g.courseW * PAIRS) return null;
 
     let course = Math.floor((x - g.padL) / g.courseW);
     course = Math.max(0, Math.min(PAIRS - 1, course));
+
+    if (y >= g.catchTop && y <= g.catchBot) {
+      return {
+        course,
+        fret: null,
+        atCatch: true,
+        stringNum: course + 1,
+        name: STRING_HE[course],
+        text: `אזור תפיסה · מיתר ${course + 1} (${STRING_HE[course]})`,
+      };
+    }
+
+    if (y < g.nutY - g.frH || y > g.gridBot) return null;
 
     let fret = 0;
     if (y >= g.nutY) {
@@ -326,14 +417,21 @@ const Highway = (() => {
     return {
       course,
       fret,
+      atCatch: false,
       stringNum: course + 1,
       name: STRING_HE[course],
       text: Fretboard.pressText(course, fret),
     };
   }
 
+  function catchPoint(course) {
+    const g = lastGeom;
+    if (!g) return null;
+    return { x: g.courseCenterX(course), y: g.catchY };
+  }
+
   return {
-    geom, drawFrame, hitTest, activeCoursesForTarget, upcomingCaption,
+    geom, drawFrame, hitTest, catchPoint, activeCoursesForTarget, upcomingCaption,
     calcViewStart, targetViewStart, noteMarkers, chordMarkers,
     STRING_HE, NUM_FRETS, PAIRS,
   };
