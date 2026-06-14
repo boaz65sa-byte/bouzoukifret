@@ -527,6 +527,8 @@ const UI = (() => {
       if (learnGraph) learnGraph.innerHTML = '';
       if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
     }
+    const playDetails = document.querySelector('#screen-play .play-details');
+    if (playDetails) playDetails.hidden = gt === 'note' || gt === 'chord';
     setPlayUIState(false);
     updateInputModeUI();
     showScreen('play');

@@ -680,69 +680,44 @@ button, input, select {
 .level-card.song-level { border-color: rgba(79,179,217,0.35); }
 .level-card.song-level .lc-num { background: linear-gradient(135deg, rgba(79,179,217,0.25), rgba(227,179,65,0.2)); }
 
-/* ===== גרף לימוד בתוך המשחק ===== */
+/* ===== גרף לימוד — חלון אחד ===== */
 .play-learn-wrap {
   flex-shrink: 0;
   margin-top: 8px;
-  margin-bottom: 0;
-  max-height: min(48vh, 360px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  padding: 0 4px 4px;
   border-top: 1px solid rgba(227,179,65,0.2);
-  padding-top: 8px;
 }
 .play-learn-wrap[hidden] { display: none; }
-.play-learn-inline {
-  background: linear-gradient(180deg, rgba(22,38,54,0.92), rgba(8,15,24,0.75));
-  border: 1px solid rgba(227,179,65,0.28);
-  border-radius: 12px;
-  padding: 10px 12px 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+
+.play-learn-single {
+  background: linear-gradient(180deg, rgba(22,38,54,0.96), rgba(8,15,24,0.9));
+  border: 2px solid rgba(201,169,98,0.45);
+  border-radius: 14px;
+  padding: 12px 10px 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  transition: border-color 0.2s;
 }
-.pli-head {
-  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
-  gap: 4px 10px; margin-bottom: 8px;
+.play-learn-single.live { border-color: rgba(79,179,217,0.65); }
+.pls-caption {
+  font-size: 16px; font-weight: 900; color: #e8f0f8;
+  text-align: center; line-height: 1.4; margin-bottom: 10px;
 }
-.pli-title { font-size: 14px; font-weight: 900; color: var(--gold2); }
-.pli-sub { font-size: 11px; color: var(--dim); font-weight: 600; }
-.pli-focus {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; margin-bottom: 8px; border-radius: 10px;
-  background: rgba(227,179,65,0.1); border: 1px solid rgba(227,179,65,0.25);
+.pls-caption.live { color: var(--gold2); }
+.pls-board { display: flex; justify-content: center; }
+.play-learn-single.pls-shift .pls-board {
+  animation: plsShift 0.35s ease;
 }
-.pli-fret {
-  font-size: 28px; font-weight: 900; color: var(--gold); line-height: 1; min-width: 36px;
+.play-learn-single.pls-tick .fb-marker.active .fb-dot {
+  animation: learnPulse 0.5s ease;
 }
-.pli-name { font-size: 14px; font-weight: 800; color: #e8f0f8; flex: 1; }
-.pli-hint { font-size: 11px; color: var(--dim); }
-.pli-fret-wrap {
-  overflow-x: auto; margin-bottom: 8px;
-  background: rgba(0,0,0,0.2); border-radius: 8px; padding: 4px 2px;
+@keyframes plsShift {
+  from { opacity: 0.45; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
 }
-.pli-svg { min-width: 200px; max-height: 90px; }
-.pli-seq {
-  display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 2px;
-  scroll-snap-type: x proximity;
+.fb-wrap-live {
+  max-width: min(270px, 96vw);
+  margin: 0 auto;
 }
-.pli-chip { flex-shrink: 0; scroll-snap-align: center; min-width: 44px; padding: 6px 8px; }
-.pli-chip.live, .mode-seq-chip.live, .chord-tl-step.live {
-  border-color: var(--aegean) !important;
-  box-shadow: 0 0 14px rgba(79,179,217,0.45) !important;
-  animation: pliLive 0.9s ease infinite;
-}
-@keyframes pliLive {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
-}
-.pli-chord-body {
-  display: flex; gap: 12px; align-items: center; margin-bottom: 8px;
-}
-.pli-chord-diag { width: 88px; flex-shrink: 0; }
-.pli-chord-info { flex: 1; min-width: 0; }
-.pli-chord-id { display: block; color: var(--gold); font-size: 18px; font-weight: 900; }
-.pli-chord-he { display: block; color: var(--dim); font-size: 11px; margin-top: 2px; }
-.pli-chord-hint { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 6px 0 0; }
-.pli-chord-seq { margin-top: 0; }
 
 /* ===== דיאגרמת בוזוקי אמיתית ===== */
 .fb-host { display: flex; justify-content: center; margin: 10px 0; }

@@ -32,7 +32,7 @@ const Fretboard = (() => {
 
   function calcPosition(markers) {
     const frets = markers
-      .filter(m => typeof m.fret === 'number' && m.fret > 0)
+      .filter(m => m.fret !== 'x' && typeof m.fret === 'number' && m.fret > 0)
       .map(m => m.fret);
     if (!frets.length) return 0;
     const minF = Math.min(...frets);
@@ -100,22 +100,28 @@ const Fretboard = (() => {
     }
 
     /* מיתרים אנכיים */
+    const activeStr = opts.activeStringIdx;
     for (let s = 0; s < 4; s++) {
       const x = padL + s * strW;
+      const isActive = activeStr === s;
       el('line', {
         x1: x, y1: padT, x2: x, y2: padT + frH * NUM_FRETS,
-        stroke: '#c8d4de', 'stroke-width': compact ? 1.3 : 1.6,
+        stroke: isActive ? '#e3b341' : '#c8d4de',
+        'stroke-width': isActive ? (compact ? 2.2 : 2.8) : (compact ? 1.3 : 1.6),
       }, svg);
       el('text', {
         x, y: h - (compact ? 6 : 8),
-        fill: '#e3b341', 'font-size': compact ? 10 : 11, 'font-weight': 800,
+        fill: isActive ? '#ffd86b' : '#e3b341',
+        'font-size': compact ? (isActive ? 12 : 10) : (isActive ? 13 : 11),
+        'font-weight': 800,
         'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = STRING_NAMES[s];
+      }, svg).textContent = isActive ? STRING_HE[s] : STRING_NAMES[s];
       el('text', {
         x, y: h - (compact ? 18 : 22),
-        fill: '#5a7187', 'font-size': compact ? 8 : 9,
+        fill: isActive ? '#e3b341' : '#5a7187',
+        'font-size': compact ? 9 : 10, 'font-weight': isActive ? 800 : 400,
         'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = `מ${stringNum(s)}`;
+      }, svg).textContent = `מיתר ${stringNum(s)}`;
     }
 
     const markerEls = new Map();
@@ -191,7 +197,7 @@ const Fretboard = (() => {
   }
 
   return {
-    draw, pressText, stringNum, STRING_HE, STRING_NAMES,
-    markersFromChord, uniqueModeScaleMarkers,
+    draw, pressText, stringNum, STRING_HE, STRING_NAMES, NUM_FRETS,
+    markersFromChord, uniqueModeScaleMarkers, calcPositionStart: calcPosition,
   };
 })();
