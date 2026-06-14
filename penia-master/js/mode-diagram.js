@@ -17,27 +17,38 @@ const ModeDiagram = (() => {
     return `סריג ${note.fret} · מיתר ${D_STRING} (רה)`;
   }
 
+  function positionFor(fret) {
+    if (fret <= 5) return 0;
+    return Math.max(0, Math.min(fret - 3, 12 - 5));
+  }
+
   function drawBoard(container, playNotes, opts = {}) {
     const scaleNotes = uniqueScaleNotes(playNotes);
     const scaleMarkers = Fretboard.uniqueModeScaleMarkers(scaleNotes);
-    const fbWrap = document.createElement('div');
-    fbWrap.className = opts.compact ? 'fb-wrap fb-wrap-compact' : 'fb-wrap';
-    container.appendChild(fbWrap);
+    const fbHost = document.createElement('div');
+    fbHost.className = opts.compact ? 'fb-host fb-host-bottom' : 'fb-host';
+    container.appendChild(fbHost);
 
-    Fretboard.draw(fbWrap, {
-      compact: opts.compact,
-      markers: scaleMarkers,
-      defMin: 0,
-      defMax: Math.max(5, ...scaleNotes.map(n => n.fret)),
-    });
+    let fb = null;
+
+    function renderAt(fret) {
+      fbHost.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = opts.compact ? 'fb-wrap fb-wrap-real fb-wrap-compact' : 'fb-wrap fb-wrap-real';
+      fbHost.appendChild(wrap);
+      fb = Fretboard.draw(wrap, {
+        compact: opts.compact,
+        markers: scaleMarkers,
+        positionStart: positionFor(fret),
+      });
+    }
 
     function highlightStep(idx, live) {
       const n = playNotes[idx];
       if (!n) return;
-      fbWrap.querySelectorAll('.fb-marker').forEach(g => {
-        g.classList.remove('active', 'pulse');
-      });
-      const g = fbWrap.querySelector(`.fb-marker[data-id="scale-f${n.fret}"]`);
+      renderAt(n.fret);
+      fbHost.querySelectorAll('.fb-marker').forEach(g => g.classList.remove('active', 'pulse'));
+      const g = fbHost.querySelector(`.fb-marker[data-id="scale-f${n.fret}"]`);
       if (g) {
         g.classList.add('active');
         if (live) g.classList.add('pulse');
@@ -46,6 +57,7 @@ const ModeDiagram = (() => {
       if (opts.onChip) opts.onChip(idx, live);
     }
 
+    renderAt(playNotes[0]?.fret ?? 0);
     return { highlightStep, playNotes };
   }
 
@@ -56,8 +68,8 @@ const ModeDiagram = (() => {
 
     LearnGraph.wrapLearnHeader(
       container,
-      '📍 גרף לימוד — סריגים ומיתרים',
-      'ציר שמאל = סריג · למטה = מיתר (1=דו … 4=רה) · הנקודות = איפה ללחוץ'
+      '📍 גרף לימוד — דיאגרמת בוזוקי',
+      'כמו בגיטרה אמיתית: מיתרים ↕ · סריגים ↔ · נקודות = איפה ללחוץ'
     );
 
     const panel = LearnGraph.focusPanel(container);
@@ -82,7 +94,7 @@ const ModeDiagram = (() => {
       },
     });
 
-    const fbWrap = container.querySelector('.fb-wrap');
+    const fbWrap = container.querySelector('.fb-host');
     if (fbWrap) container.insertBefore(fbWrap, panel);
 
     const seqLabel = document.createElement('p');
@@ -126,7 +138,7 @@ const ModeDiagram = (() => {
 
     const head = document.createElement('div');
     head.className = 'pli-head';
-    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">סריג · מיתר · לחצו צליל</span>';
+    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">דיאגרמת בוזוקי · לחצו צליל</span>';
     container.appendChild(head);
 
     const focus = document.createElement('div');
@@ -140,6 +152,7 @@ const ModeDiagram = (() => {
     const seqWrap = document.createElement('div');
     seqWrap.className = 'pli-seq';
     seqWrap.dir = 'ltr';
+    container.appendChild(seqWrap);
 
     const ctrl = drawBoard(container, playNotes, {
       compact: true,
@@ -157,7 +170,6 @@ const ModeDiagram = (() => {
       },
     });
 
-    container.appendChild(seqWrap);
     playNotes.forEach((n, i) => {
       const chip = document.createElement('button');
       chip.type = 'button';

@@ -18,18 +18,17 @@ const ChordMap = (() => {
   }
 
   function drawChordBoard(container, chordId, opts = {}) {
-    const fbWrap = document.createElement('div');
-    fbWrap.className = opts.compact ? 'fb-wrap fb-wrap-compact' : 'fb-wrap';
-    container.appendChild(fbWrap);
-    const markers = Fretboard.markersFromChord(chordId);
-    const frets = markers.filter(m => typeof m.fret === 'number').map(m => m.fret);
-    Fretboard.draw(fbWrap, {
+    const fbHost = document.createElement('div');
+    fbHost.className = opts.compact ? 'fb-host fb-host-bottom' : 'fb-host';
+    container.appendChild(fbHost);
+    const wrap = document.createElement('div');
+    wrap.className = opts.compact ? 'fb-wrap fb-wrap-real fb-wrap-compact' : 'fb-wrap fb-wrap-real';
+    fbHost.appendChild(wrap);
+    Fretboard.draw(wrap, {
       compact: opts.compact,
-      markers,
-      defMin: 0,
-      defMax: Math.max(5, ...(frets.length ? frets : [5])),
+      markers: Fretboard.markersFromChord(chordId),
     });
-    return fbWrap;
+    return fbHost;
   }
 
   function drawProgression(container, chordIds, opts = {}) {
@@ -40,8 +39,8 @@ const ChordMap = (() => {
 
     LearnGraph.wrapLearnHeader(
       container,
-      '📍 גרף לימוד — סריגים ומיתרים',
-      'ציר שמאל = סריג · למטה = מיתר · הנקודות הצהובות = איפה ללחוץ לכל אקורד'
+      '📍 גרף לימוד — דיאגרמת בוזוקי',
+      'כמו בגיטרה אמיתית · מיתרים ↕ · סריגים ↔ · נקודות = איפה ללחוץ'
     );
 
     const panel = LearnGraph.focusPanel(container);
@@ -135,7 +134,7 @@ const ChordMap = (() => {
 
     const head = document.createElement('div');
     head.className = 'pli-head';
-    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">סריג · מיתר · לחצו אקורד</span>';
+    head.innerHTML = '<span class="pli-title">📍 גרף לימוד</span><span class="pli-sub">דיאגרמת בוזוקי · לחצו אקורד</span>';
     container.appendChild(head);
 
     const focus = document.createElement('div');
@@ -146,14 +145,14 @@ const ChordMap = (() => {
     const posEl = focus.querySelector('.pli-chord-pos');
     const hintEl = focus.querySelector('.pli-chord-hint');
 
-    const boardHost = document.createElement('div');
-    boardHost.className = 'chord-fb-host chord-fb-play';
-    container.appendChild(boardHost);
-
     const timeline = document.createElement('div');
     timeline.className = 'pli-seq pli-chord-seq';
     timeline.dir = 'ltr';
     container.appendChild(timeline);
+
+    const boardHost = document.createElement('div');
+    boardHost.className = 'chord-fb-host chord-fb-play';
+    container.appendChild(boardHost);
 
     function showStep(idx, live) {
       const id = seq[idx];
