@@ -83,6 +83,19 @@ const SongLibrary = (() => {
     'mortissa-hasiklou': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
     'magkas-vgike-gia-sergiani': songRef('4Rxpk-9eI4c', 'Μάρκος Βαμβακάρης & Β. Τσιτσάνης'),
     'to-mystiko-zeibekiko': songRef('SNODpNOX6mo', 'Ιωάννης Χαλικιάς, 1932'),
+    'i-zoi-mou-oli': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης, 1974'),
+    'to-vrady-tha-se-paro': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'to-paidi-tis-gitonias-sou': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'den-tha-klapso-kanenas': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'mia-zoi-monahi': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'o-anthropos-pou-agapas': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'gia-sou-mana': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'ena-komvos-pou-ton-dyo': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
+    'sto-kafe-tis-gitonias': songRef('2eJB0BiHShE', 'Γιώργος Ζαμπέτας'),
+    'ixe-mia-fora-enas-mangas': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
+    'rixe-mia-zaria-kali': songRef('nsCcFV-A324', 'Γρηγόρης Μπιθικώτσης'),
+    'i-otiki': songRef('a5R9iUiVMj8', 'Μάρκος Βαμβακάρης'),
+    'synefiasmeni-kaz': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
   };
 
   function getSongReference(song) {
@@ -490,6 +503,8 @@ const SongLibrary = (() => {
       artist: 'Στέλιος Καζαντζίδης',
       artistHe: 'סטליוס קזנצידיס',
       dromos: 'Hitzaz',
+      tags: ['kazantzidis', 'famous', 'zeibekiko'],
+      style: 'zeibekiko',
       key: 'D',
       bpm: 68,
       timeSignature: '9/4',
@@ -1636,6 +1651,468 @@ const SongLibrary = (() => {
         }
       ]
     },
+    /* 40 — Η ζωή μου όλη (Καζαντζίδης) */
+    {
+      id: 'i-zoi-mou-oli',
+      title: 'I Zoi Mou Oli',
+      titleGr: 'Η ζωή μου όλη',
+      titleHe: 'כל חיי',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Η ζωή μου όλη είναι μια ευθύνη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Όλα μου τα παίρνει τίποτα δε δίνει' },
+            { chords: ['Dm', null, null, null], lyrics: 'Η ζωή μου όλη είναι ένα καμίνι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που \'χω πέσει μέσα και με σιγοψήνει' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Η ζωή μου όλη μια ανοησία' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Κι η μοναδική μου η περιουσία' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Η ζωή μου όλη είναι μια θυσία' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που σκοπό δεν έχει ούτε σημασία' },
+          ]
+        }
+      ]
+    },
+    /* 41 — Το βράδυ θα σε πάρω */
+    {
+      id: 'to-vrady-tha-se-paro',
+      title: 'To Vrady tha se Paro',
+      titleGr: 'Το βράδυ θα σε πάρω',
+      titleHe: 'בערב אקח אותך',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Hitzaz',
+      tags: ['kazantzidis', 'famous'],
+      key: 'D',
+      bpm: 76,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Το βράδυ θα σε πάρω' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Θα σε πάρω και θα φύγω' },
+            { chords: ['Gm', null, null, null], lyrics: 'Μακριά απ\' τη γειτονιά σου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μακριά απ\' τα μάτια σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Το βράδυ θα σε πάρω' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Θα σε πάρω και θα φύγω' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μακριά απ\' τη γειτονιά σου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μακριά απ\' τα μάτια σου' },
+          ]
+        }
+      ]
+    },
+    /* 42 — Το παιδί της γειτονιάς σου */
+    {
+      id: 'to-paidi-tis-gitonias-sou',
+      title: 'To Paidi tis Gitonias Sou',
+      titleGr: 'Το παιδί της γειτονιάς σου',
+      titleHe: 'ילד השכונה שלך',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Το παιδί της γειτονιάς σου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με πήρε και μ\' έκλεψε' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τώρα είμαι μακριά σου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και δεν μπορώ να γυρίσω' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Το παιδί της γειτονιάς σου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Με πήρε και μ\' έκλεψε' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τώρα είμαι μακριά σου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και δεν μπορώ να γυρίσω' },
+          ]
+        }
+      ]
+    },
+    /* 43 — Δεν θα κλάψει κανένας (ζεϊμπέκικο) */
+    {
+      id: 'den-tha-klapso-kanenas',
+      title: 'Den tha Klapso Kanenas',
+      titleGr: 'Δεν θα κλάψει κανένας',
+      titleHe: 'אף אחד לא יבכה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous', 'zeibekiko'],
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 58,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Δεν θα κλάψει κανένας' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Για το δικό μου τον πόνο' },
+            { chords: ['Dm', null, null, null], lyrics: 'Μόνος θα περάσω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Τη ζωή μου ολόκληρη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Δεν θα κλάψει κανένας' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Για το δικό μου τον πόνο' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μόνος θα περάσω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Τη ζωή μου ολόκληρη' },
+          ]
+        }
+      ]
+    },
+    /* 44 — Μια ζωή μονάχη */
+    {
+      id: 'mia-zoi-monahi',
+      title: 'Mia Zoi Monahi',
+      titleGr: 'Μια ζωή μονάχη',
+      titleHe: 'חיים בודדים',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μια ζωή μονάχη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Χωρίς αγάπη και χαρά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Μια ζωή μονάχη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μακριά απ\' ό,τι αγαπώ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μια ζωή μονάχη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Χωρίς αγάπη και χαρά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μια ζωή μονάχη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μακριά απ\' ό,τι αγαπώ' },
+          ]
+        }
+      ]
+    },
+    /* 45 — Ο άνθρωπος που αγαπάς */
+    {
+      id: 'o-anthropos-pou-agapas',
+      title: 'O Anthropos pou Agapas',
+      titleGr: 'Ο άνθρωπος που αγαπάς',
+      titleHe: 'האדם שאתה אוהב',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Hitzaz',
+      tags: ['kazantzidis'],
+      key: 'D',
+      bpm: 74,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Ο άνθρωπος που αγαπάς' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Δεν είναι πια εδώ' },
+            { chords: ['Gm', null, null, null], lyrics: 'Και εσύ μόνος θα μείνεις' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με την καρδιά σου πληγωμένη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Ο άνθρωπος που αγαπάς' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Δεν είναι πια εδώ' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και εσύ μόνος θα μείνεις' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με την καρδιά σου πληγωμένη' },
+          ]
+        }
+      ]
+    },
+    /* 46 — Γεια σου μάνα */
+    {
+      id: 'gia-sou-mana',
+      title: 'Geia sou Mana',
+      titleGr: 'Γεια σου μάνα',
+      titleHe: 'שלום אמא',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Γεια σου μάνα μου αγαπημένη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Που μ\' έδωσες τη ζωή' },
+            { chords: ['Dm', null, null, null], lyrics: 'Γεια σου μάνα μου αγαπημένη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που μ\' έδωσες τη ζωή' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Γεια σου μάνα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μου αγαπημένη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Που μ\' έδωσες' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Τη ζωή' },
+          ]
+        }
+      ]
+    },
+    /* 47 — Ένας κόμπος που τον δύο (ζεϊμπέκικο) */
+    {
+      id: 'ena-komvos-pou-ton-dyo',
+      title: 'Enas Komvos pou ton Dyo',
+      titleGr: 'Ένας κόμπος που τον δύο',
+      titleHe: 'קשר אחד לשניים',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Minore',
+      tags: ['famous', 'zeibekiko'],
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 60,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ένας κόμπος που τον δύο' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μας κρατάει μαζί' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κι όσο ζούμε ακόμα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Δεν θα σπάσει ποτέ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ένας κόμπος που τον δύο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μας κρατάει μαζί' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Κι όσο ζούμε ακόμα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Δεν θα σπάσει ποτέ' },
+          ]
+        }
+      ]
+    },
+    /* 48 — Στο καφέ της γειτονιάς */
+    {
+      id: 'sto-kafe-tis-gitonias',
+      title: 'Sto Kafe tis Gitonias',
+      titleGr: 'Στο καφέ της γειτονιάς',
+      titleHe: 'בבית הקפה של השכונה',
+      artist: 'Γιώργος Ζαμπέτας',
+      artistHe: 'ג\'ורג\'וס זαμπטאס',
+      dromos: 'Hitzaz',
+      tags: ['famous'],
+      key: 'D',
+      bpm: 82,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Στο καφέ της γειτονιάς' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Κάθε βράδυ θα σε βρω' },
+            { chords: ['Gm', null, null, null], lyrics: 'Με το μπουζούκι και το τραγούδι' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Θα σου πω πόσο σ\' αγαπώ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Στο καφέ της γειτονιάς' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Κάθε βράδυ θα σε βρω' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με το μπουζούκι και το τραγούδι' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Θα σου πω πόσο σ\' αγαπώ' },
+          ]
+        }
+      ]
+    },
+    /* 49 — Ήχε μια φορά ένας μάγκας */
+    {
+      id: 'ixe-mia-fora-enas-mangas',
+      title: 'Ixe mia Fora enas Mangas',
+      titleGr: 'Ήχε μια φορά ένας μάγκας',
+      titleHe: 'היה פעם מάγκας',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      tags: ['famous'],
+      key: 'Dm',
+      bpm: 78,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ήχε μια φορά ένας μάγκας' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Που είχε καρδιά μεγάλη' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και όλοι τον αγαπούσανε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στη γειτονιά του Πειραιά' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ήχε μια φορά ένας μάγκας' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που είχε καρδιά μεγάλη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και όλοι τον αγαπούσανε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στη γειτονιά του Πειραιά' },
+          ]
+        }
+      ]
+    },
+    /* 50 — Ρίξε μια ζαριά καλή */
+    {
+      id: 'rixe-mia-zaria-kali',
+      title: 'Rixe mia Zaria Kali',
+      titleGr: 'Ρίξε μια ζαριά καλή',
+      titleHe: 'זרוק קובייה טובה',
+      artist: 'Γρηγόρης Μπιθικώτσης',
+      artistHe: 'גריגוריס ביתיקוטיס',
+      dromos: 'Minore',
+      tags: ['famous'],
+      key: 'Dm',
+      bpm: 80,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ρίξε μια ζαριά καλή' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Να \'ρθει η τύχη μαζί σου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Ρίξε μια ζαριά καλή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να \'ρθει η τύχη μαζί σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ρίξε μια ζαριά καλή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να \'ρθει η τύχη μαζί σου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ρίξε μια ζαριά καλή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να \'ρθει η τύχη μαζί σου' },
+          ]
+        }
+      ]
+    },
+    /* 51 — Η Ωτική (ζεϊμπέκικο) */
+    {
+      id: 'i-otiki',
+      title: 'I Otiki',
+      titleGr: 'Η Ωτική',
+      titleHe: 'האוטיקה',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      tags: ['famous', 'zeibekiko'],
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 56,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Η Ωτική μ\' έκλεψε' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και μ\' έφερε στον Πειραιά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Με το μπουζούκι στο χέρι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και την καρδιά μου πληγωμένη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Η Ωτική μ\' έκλεψε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και μ\' έφερε στον Πειραιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με το μπουζούκι στο χέρι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και την καρδιά μου πληγωμένη' },
+          ]
+        }
+      ]
+    },
+    /* 52 — Συννεφιασμένη Κυριακή (Καζαντζίδης) */
+    {
+      id: 'synefiasmeni-kaz',
+      title: 'Synefiasmeni Kyriaki',
+      titleGr: 'Συννεφιασμένη Κυριακή',
+      titleHe: 'יום ראשון מעונן (קזנצידיס)',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Matzore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'D',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Συννεφιασμένη Κυριακή' },
+            { chords: ['G', null, 'A7', null], lyrics: 'Βροχή και κρύο' },
+            { chords: ['D', null, null, null], lyrics: 'Και εγώ μονάχος μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με την καρδιά μου πληγωμένη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'G', null], lyrics: 'Συννεφιασμένη Κυριακή' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Βροχή και κρύο' },
+            { chords: ['G', null, 'A7', null], lyrics: 'Και εγώ μονάχος μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με την καρδιά μου πληγωμένη' },
+          ]
+        }
+      ]
+    },
   ];
 
   /* ===================== טרנספוזיציה ===================== */
@@ -1980,6 +2457,8 @@ const SongLibrary = (() => {
             <button class="btn btn-sm songs-filter-btn" data-filter="Rast">ראסט</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="Niavent">ניאוונט</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="zeibekiko">זεϊμπέκικο</button>
+            <button class="btn btn-sm songs-filter-btn" data-filter="famous">מפורסמים</button>
+            <button class="btn btn-sm songs-filter-btn" data-filter="kazantzidis">קזנצידיס</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="custom">שלי</button>
           </div>
           <div class="songs-entries" id="songs-entries"></div>
@@ -2004,6 +2483,15 @@ const SongLibrary = (() => {
     return s.style === 'zeibekiko' || s.timeSignature === '9/4';
   }
 
+  function _isKazantzidisSong(s) {
+    return (s.tags || []).includes('kazantzidis') ||
+      (s.artist || '').includes('Καζαντζίδης');
+  }
+
+  function _isFamousSong(s) {
+    return (s.tags || []).includes('famous');
+  }
+
   function _renderList(filter, search) {
     const container = document.getElementById('songs-entries');
     if (!container) return;
@@ -2014,6 +2502,10 @@ const SongLibrary = (() => {
         songs = songs.filter(s => s.custom);
       } else if (filter === 'zeibekiko') {
         songs = songs.filter(s => _isZeibekikoSong(s));
+      } else if (filter === 'kazantzidis') {
+        songs = songs.filter(s => _isKazantzidisSong(s));
+      } else if (filter === 'famous') {
+        songs = songs.filter(s => _isFamousSong(s));
       } else {
         songs = songs.filter(s => s.dromos === filter);
       }
@@ -2037,6 +2529,8 @@ const SongLibrary = (() => {
         <div class="songs-entry-sub">${s.artistHe || s.artist} &middot; ${s.dromos || ''} &middot; ${s.key}${_isZeibekikoSong(s) ? ' &middot; 9/4' : ''}</div>
         ${s.custom ? '<span class="songs-entry-badge">מותאם</span>' : ''}
         ${_isZeibekikoSong(s) ? '<span class="songs-entry-badge zeibekiko-badge">ζεϊμπέκικο</span>' : ''}
+        ${_isKazantzidisSong(s) ? '<span class="songs-entry-badge kaz-badge">קזנצידיס</span>' : ''}
+        ${_isFamousSong(s) ? '<span class="songs-entry-badge famous-badge">מפורסם</span>' : ''}
       </div>`;
     }).join('');
   }
@@ -2382,6 +2876,12 @@ More lyrics here</pre>
       }
       .songs-entry-badge.zeibekiko-badge {
         background: rgba(180,100,140,0.18); color: #d4a0b8; margin-right: 4px;
+      }
+      .songs-entry-badge.kaz-badge {
+        background: rgba(79,140,200,0.18); color: #9fd0f0; margin-right: 4px;
+      }
+      .songs-entry-badge.famous-badge {
+        background: rgba(227,179,65,0.22); color: var(--gold-soft); margin-right: 4px;
       }
       .songs-add-btn {
         margin: 8px 12px; flex-shrink: 0;

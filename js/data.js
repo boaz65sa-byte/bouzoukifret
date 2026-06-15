@@ -660,6 +660,42 @@ function _seqGroups(frets, size) {
   return groups;
 }
 
+/** סולם דרומוס על כל המיתרים (מ-D) — לתרגילים */
+function _pos1FromDromos(dromosId, rootPc = 2) {
+  if (POS1[dromosId]) return POS1[dromosId];
+  const d = DROMOI.find(x => x.id === dromosId);
+  if (!d) return POS1.minore;
+  const seen = new Set();
+  const pairs = [];
+  d.intervals.forEach(iv => {
+    TUNING.forEach((t, c) => {
+      const openPc = t.midi % 12;
+      const fret = ((rootPc + iv - openPc) % 12 + 12) % 12;
+      if (fret <= NUM_FRETS) {
+        const key = c + ':' + fret;
+        if (!seen.has(key)) { seen.add(key); pairs.push([c, fret]); }
+      }
+    });
+  });
+  pairs.sort((a, b) => (TUNING[a[0]].midi + a[1]) - (TUNING[b[0]].midi + b[1]));
+  const ext = [...pairs];
+  pairs.forEach(([c, f]) => {
+    if (f <= 5 && f + 7 <= NUM_FRETS) ext.push([c, f + 7]);
+  });
+  return ext.sort((a, b) => (TUNING[a[0]].midi + a[1]) - (TUNING[b[0]].midi + b[1]));
+}
+
+function _dromosDStringFrets(dromosId, rootPc = 2) {
+  const d = DROMOI.find(x => x.id === dromosId);
+  if (!d) return [0, 2, 3, 5, 7];
+  const openPc = TUNING[0].midi % 12;
+  return d.intervals.map(iv => ((rootPc + iv - openPc) % 12 + 12) % 12);
+}
+
+function _dromosScaleTab(dromosId, bpm = 60) {
+  return _alt(_upDown(_pos1FromDromos(dromosId).map(p => [p[0], p[1]])));
+}
+
 const EXERCISES = [
   {
     id: 'basics',
@@ -802,6 +838,36 @@ const EXERCISES = [
         id: 's4', name: 'ראסט — שתי אוקטבות', bpm: 60, sub: 2, type: 'tab',
         desc: 'הסולם המאיר. נסו אחרי השליטה: בעלייה החליפו את הדו (סריג 3 בלה / סריג 10 ברה) בדו# — כמו במסורת.',
         notes: _alt(_upDown(POS1.rast))
+      },
+      {
+        id: 's5', name: 'חיג׳אזκיאר — שתי אוקטבות', bpm: 58, sub: 2, type: 'tab',
+        desc: 'חיג׳אז עם מוליך (7) — דרומוס כבד לזεϊμπέκικα. שימו לב לדו# בסיום הסולם.',
+        notes: _dromosScaleTab('hitzazkiar')
+      },
+      {
+        id: 's6', name: 'ניאוונט — שתי אוקטבות', bpm: 58, sub: 2, type: 'tab',
+        desc: 'מינור עם קוורטה מוגברת — הדרומוס של טקסימיה וירטואוזיים. הדגישו את המעבר ♯4→5.',
+        notes: _dromosScaleTab('niavent')
+      },
+      {
+        id: 's7', name: 'סבאח — שתי אוקטבות', bpm: 52, sub: 2, type: 'tab',
+        desc: 'הדרומוס השבור ביותר — קוורטה מונמכת (♭4) יוצרת צליל כואב. נגנו לאט, עם נשימה בין פראזות.',
+        notes: _dromosScaleTab('sabah')
+      },
+      {
+        id: 's8', name: 'קרציגאר — שתי אוקטבות', bpm: 60, sub: 2, type: 'tab',
+        desc: 'מינור למטה, חיג׳אז למעלה — שני עולמות באותו סולם. מנוחה אופיינית על דרגה 4 (סול).',
+        notes: _dromosScaleTab('kartzigar')
+      },
+      {
+        id: 's9', name: 'סוזינאκ — שתי אוקטבות', bpm: 62, sub: 2, type: 'tab',
+        desc: 'ראסט למטה, חיג׳אז למעלה — מז׳ור עם סוד מזרחי. המרווח ♭6→7 בחלק העליון הוא הלב.',
+        notes: _dromosScaleTab('souzinak')
+      },
+      {
+        id: 's10', name: 'קיורדי — שתי אוקטבות', bpm: 72, sub: 2, type: 'tab',
+        desc: 'מוד דורי — מינור עם סקסטה גבוהה. זורם וריקודי, מצוין לציפטטליה.',
+        notes: _dromosScaleTab('kiourdi')
       },
     ]
   },
@@ -1196,6 +1262,135 @@ const EXERCISES = [
       },
     ]
   },
+  {
+    id: 'dromoi',
+    title: 'דרומוסים — מלודיות וטקסימי',
+    icon: '13',
+    desc: 'כל דרומוס הוא עולם הרמוני שלם. כאן לומדים את "השפה" של כל אחד — לא רק הסולם, אלא גם איך מסיימים פראזה, איפה נחים, ואיך זה נשמע בבוזוקי.',
+    items: [
+      {
+        id: 'dr1', name: 'חיג׳אז — קדנצה קלאסית', bpm: 65, sub: 2, type: 'tab',
+        desc: 'הסיום האופייני: 4→3→♭2→1 (סול→פה#→מי♭→רה). זה הצליל שמזהים מיד כחיג׳אז.',
+        notes: _alt([[0, 7], [0, 5], [0, 1], [0, 0], [0, 1], [0, 4], [0, 5], [0, 7], [0, 8], [0, 10], [0, 12]])
+      },
+      {
+        id: 'dr2', name: 'מינורה — פתיחת "Μινόρε του Τεκέ"', bpm: 58, sub: 2, type: 'tab',
+        desc: 'הפתיחה המפורסמת: רה→מי→פה→סול→לה→סי♭→דו#→רה. כל צליל נושא משקל — אל תמהרו.',
+        notes: _alt(_dromosDStringFrets('minore').slice(0, 8).map(f => [0, f]))
+      },
+      {
+        id: 'dr3', name: 'אוסאκ — ♭2→1 (האנחה)', bpm: 50, sub: 2, type: 'tab',
+        desc: 'הצליל הכי אופייני לאוסאκ: ירידה איטית ממי♭ לרה. משוך קלות את המיתר לפני הפתרון.',
+        notes: [_n(0, 1, 'D', 4), _n(0, 0, 'u', 4), _n(0, 1, 'd', 2), _n(0, 0, 'U', 6)]
+      },
+      {
+        id: 'dr4', name: 'סבאח — ארבעה צלילים ראשונים', bpm: 48, sub: 2, type: 'tab',
+        desc: '1-2-♭3-♭4 — ליבת סבאח. נגנו עם הרבה שקט בין הצלילים; אל תמלאו את כל החלל.',
+        notes: _dromosDStringFrets('sabah').slice(0, 4).flatMap((f, i) => [_n(0, f, i === 0 ? 'D' : 'd', 3), _rest(1)])
+      },
+      {
+        id: 'dr5', name: 'ניאוונט — קפיצה ♯4→5', bpm: 62, sub: 2, type: 'tab',
+        desc: 'המתח הדרמטי: ♭3→♯4→5. שני מרווחים מוגדלים ברצף — כך נשמעת ניאוונט.',
+        notes: _alt([[0, 3], [0, 6], [0, 7], [0, 6], [0, 3], [0, 2], [0, 0]])
+      },
+      {
+        id: 'dr6', name: 'ראסט — עלייה עם מוליך', bpm: 60, sub: 2, type: 'tab',
+        desc: 'במסורת: בעלייה 7 (דו#), בירידה ♭7 (דו). תרגיל זה מדגים את שני הצבעים.',
+        notes: _alt([[0, 0], [0, 2], [0, 4], [0, 5], [0, 7], [0, 9], [0, 11], [0, 10], [0, 9], [0, 7], [0, 5], [0, 4], [0, 2], [0, 0]])
+      },
+      {
+        id: 'dr7', name: 'חיג׳אזκיאר — עלייה דרמטית', bpm: 55, sub: 2, type: 'tab',
+        desc: 'עלייה מלאה עם שני מוליכים (♭6→7 ו-♭2→1). דרומוס כבד לזεϊμπέκικα עמוקים.',
+        notes: _dromosScaleTab('hitzazkiar')
+      },
+      {
+        id: 'dr8', name: 'קרציגאר — מעבר מינור→חיג׳אז', bpm: 58, sub: 2, type: 'tab',
+        desc: 'מינור עד דרגה 4, ואז קפיצה לעולם החיג׳אז מעליה. שני צבעים — פראזה אחת.',
+        notes: _alt([[0, 0], [0, 2], [0, 3], [0, 5], [0, 6], [0, 9], [0, 10], [0, 9], [0, 6], [0, 5], [0, 3], [0, 2], [0, 0]])
+      },
+    ]
+  },
+  {
+    id: 'zeibekiko-ex',
+    title: 'זεϊμπέκικο — מקצב וטקסימי',
+    icon: '14',
+    desc: '9/4 — המקצב הכי אישי במוזיקה היוונית. לא ריקוד קבוצתי אלא "שיח" בין נגן לנשמה. כאן לומדים את הספירה, הליווי והטקסימי האיטי.',
+    items: [
+      {
+        id: 'zb1', name: 'ספירת 9/4 — בס ושקט', bpm: 60, sub: 4, type: 'tab',
+        desc: '9 רבעים: בס על 1, שקט, צליל על 3, שקט, בס על 5, צליל, בס על 7, שני צלילים על 8-9. ספרו בקול: 1-2-3-4-5-6-7-8-9.',
+        notes: [
+          _n(3, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 1), _rest(1),
+          _n(3, 2, 'D', 1), _n(0, 2, 'd', 1), _n(3, 2, 'd', 1),
+          _n(0, 3, 'd', 1), _n(0, 5, 'U', 1),
+          _n(3, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 1), _rest(1),
+          _n(3, 2, 'D', 1), _n(0, 2, 'd', 1), _n(3, 2, 'd', 1),
+          _n(0, 3, 'd', 1), _n(0, 5, 'U', 1),
+        ]
+      },
+      {
+        id: 'zb2', name: 'טקסימי מינורה איטי (9/4)', bpm: 56, sub: 4, type: 'tab',
+        desc: 'מלודיה סparsה על מינורה — 3-4 צלילים לכל מחזור 9/4. השארירו הרבה שקט; הזεϊμπέκικο נושם.',
+        notes: [
+          _n(0, 0, 'D', 2), _rest(2), _n(0, 3, 'd', 2), _rest(1), _n(0, 5, 'd', 2),
+          _n(0, 7, 'U', 2), _rest(3),
+          _n(0, 5, 'D', 2), _rest(2), _n(0, 3, 'd', 2), _n(0, 2, 'd', 1), _n(0, 0, 'U', 4),
+        ]
+      },
+      {
+        id: 'zb3', name: 'זεϊμπέκικο — בס–מלודיה (אום-פה)', bpm: 62, sub: 4, type: 'tab',
+        desc: 'בס בדו (סריג 2) על הפעמות 1 ו-5, מלודיה במינורה ביניהן. הדגם של כל ליווי זεϊμπέκικו.',
+        notes: [
+          _n(3, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 1), _n(0, 3, 'u', 1),
+          _n(3, 2, 'D', 1), _n(0, 5, 'd', 1), _rest(1), _n(0, 7, 'd', 1), _n(0, 5, 'U', 1),
+          _n(3, 2, 'D', 1), _rest(1), _n(0, 3, 'd', 1), _n(0, 2, 'u', 1),
+          _n(3, 2, 'D', 1), _n(0, 0, 'd', 1), _rest(1), _n(0, 3, 'd', 1), _n(0, 0, 'U', 1),
+        ]
+      },
+      {
+        id: 'zb4', name: 'חיג׳אזκיאρ — אלתור כבד 9/4', bpm: 54, sub: 4, type: 'tab',
+        desc: 'צלילי חיג׳אזκיאר עם מרווחים — ♭2, 3, ♭6, 7. כל פראזה נגמרת בירידה ♭2→1.',
+        notes: [
+          _n(0, 0, 'D', 2), _n(0, 1, 'd', 1), _n(0, 4, 'd', 2), _rest(1),
+          _n(0, 5, 'd', 1), _n(0, 8, 'd', 2), _n(0, 11, 'U', 2), _rest(1),
+          _n(0, 8, 'd', 2), _n(0, 5, 'd', 1), _n(0, 1, 'd', 1), _n(0, 0, 'U', 3),
+        ]
+      },
+      {
+        id: 'zb5', name: 'ליווי זεϊμπέκικο — Dm מלא', bpm: 65, sub: 2, type: 'strum',
+        chords: ['Dm'],
+        desc: 'אותה תבנית ליווי 9/4 כמו בפריטה+אקורדים — עכשיו בתרגיל ייעודי. תרגלו עד שהיד "מרגישה" את 9.',
+        events: [
+          { kind: 'bass', chord: 'Dm', dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'strum', chord: 'Dm', dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'bass', chord: 'Dm', dir: 'd', len: 2 },
+          { kind: 'strum', chord: 'Dm', dir: 'd', len: 2 },
+          { kind: 'bass', chord: 'Dm', dir: 'd', len: 2 },
+          { kind: 'strum', chord: 'Dm', dir: 'd', len: 1 },
+          { kind: 'strum', chord: 'Dm', dir: 'u', len: 1 },
+          { kind: 'rest', len: 2 },
+        ]
+      },
+      {
+        id: 'zb6', name: 'טרמולו זεϊμπέκικο — Am', bpm: 58, sub: 4, type: 'strum',
+        chords: ['Am'],
+        desc: 'טרמולו רצוף על Am ב-9/4 — כמו בזεϊμπέκικα אינסטרומנטליים. יד רפויה, צליל אחיד.',
+        events: _rep([
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'u', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 1 },
+          { kind: 'rest', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'u', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'u', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'D', len: 1 },
+        ], 2)
+      },
+    ]
+  },
 ];
 
 /* ============================================================
@@ -1204,8 +1399,9 @@ const EXERCISES = [
 const DAILY_TECHNIQUE_CATS = ['triplets', 'tremolo', 'crossing', 'basics', 'patterns'];
 
 function _dailyDromosFrets(course, dromos, rootPc = 2) {
-  const pos = POS1[dromos.id];
-  if (pos) return pos.filter(p => p[0] === course).map(p => p[1]);
+  const pos = _pos1FromDromos(dromos.id, rootPc);
+  const onCourse = pos.filter(p => p[0] === course).map(p => p[1]);
+  if (onCourse.length) return onCourse;
   const openPc = TUNING[course].midi % 12;
   return dromos.intervals
     .map(iv => ((rootPc + iv - openPc) % 12 + 12) % 12)
