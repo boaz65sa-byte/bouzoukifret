@@ -19,9 +19,17 @@ const AudioEngine = (() => {
 
   /* ---------- סינתזת מיתר פרוט (Karplus-Strong) ---------- */
   const bufferCache = new Map();
+  let _chordBus = null;
 
-  function ksBuffer(freq, durationSec = 2.2, brightness = 0.55) {
-    const key = freq.toFixed(2) + ':' + brightness;
+  function ksParams(freq, brightness) {
+    const bri = brightness ?? Math.min(0.76, Math.max(0.44, 0.5 + Math.log2(freq / 160) * 0.055));
+    const damping = freq < 180 ? 0.9976 : freq < 280 ? 0.9969 : freq < 420 ? 0.9962 : 0.9954;
+    return { bri, damping };
+  }
+
+  function ksBuffer(freq, durationSec = 2.2, brightness = null) {
+    const { bri, damping } = ksParams(freq, brightness);
+    const key = freq.toFixed(2) + ':' + bri.toFixed(3) + ':' + durationSec + ':' + damping;
     if (bufferCache.has(key)) return bufferCache.get(key);
 
     const sr = ctx.sampleRate;
@@ -29,18 +37,16 @@ const AudioEngine = (() => {
     const buf = ctx.createBuffer(1, len, sr);
     const out = buf.getChannelData(0);
 
-    const period = Math.floor(sr / freq);
+    const period = Math.max(2, Math.floor(sr / freq));
     const delay = new Float32Array(period);
-    // עירור: רעש מסונן קלות — מדמה פריטת מפרט
     let prev = 0;
     for (let i = 0; i < period; i++) {
       const noise = Math.random() * 2 - 1;
-      prev = brightness * noise + (1 - brightness) * prev;
+      prev = bri * noise + (1 - bri) * prev;
       delay[i] = prev;
     }
 
     let idx = 0;
-    const damping = 0.996;
     for (let i = 0; i < len; i++) {
       const cur = delay[idx];
       const next = delay[(idx + 1) % period];
@@ -49,7 +55,6 @@ const AudioEngine = (() => {
       out[i] = avg;
       idx = (idx + 1) % period;
     }
-    // נירמול
     let max = 0;
     for (let i = 0; i < len; i++) max = Math.max(max, Math.abs(out[i]));
     if (max > 0) for (let i = 0; i < len; i++) out[i] /= max;
@@ -58,15 +63,86 @@ const AudioEngine = (() => {
     return buf;
   }
 
-  function playBuffer(buf, when, gain, detuneCents = 0) {
+  /** אגרגציה רכה לפריטות אקורד — מדמה גוף כלי ומחבר מיתרים */
+  function ensureChordBus() {
+    ensureCtx();
+    if (_chordBus) return _chordBus;
+    const bus = ctx.createGain();
+    bus.gain.value = 1;
+    const body = ctx.createBiquadFilter();
+    body.type = 'peaking';
+    body.frequency.value = 420;
+    body.Q.value = 0.85;
+    body.gain.value = 2.5;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 5200;
+    lp.Q.value = 0.45;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.knee.value = 9;
+    comp.ratio.value = 2.2;
+    comp.attack.value = 0.004;
+    comp.release.value = 0.14;
+    bus.connect(body).connect(lp).connect(comp).connect(masterGain);
+    _chordBus = bus;
+    return _chordBus;
+  }
+
+  /** מעטפת פריטה — attack חד, sustain טבעי, release ארוך */
+  function strikeBuffer(buf, dest, when, gain, opts = {}) {
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    if (detuneCents) src.detune.value = detuneCents;
+    if (opts.detuneCents) src.detune.value = opts.detuneCents;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = opts.filterFreq ?? 4200;
+    lp.Q.value = opts.filterQ ?? 0.6;
+
     const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, when);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + buf.duration);
-    src.connect(g).connect(masterGain);
+    const atk = 0.002;
+    const rel = opts.release ?? Math.min(buf.duration, 1.85);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(gain, when + atk);
+    g.gain.exponentialRampToValueAtTime(Math.max(gain * 0.52, 0.0002), when + 0.09);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + rel);
+
+    src.connect(lp).connect(g).connect(dest);
     src.start(when);
+  }
+
+  function playBuffer(buf, when, gain, detuneCents = 0) {
+    strikeBuffer(buf, masterGain, when, gain, { detuneCents, release: Math.min(buf.duration, 1.7) });
+  }
+
+  /** פריטת קורס בודד — לשימוש באקורדים (זוג מיתרים צמוד, גוף כלי) */
+  function pluckCourseForStrum(courseIdx, fret, when, gain) {
+    const c = TUNING[courseIdx];
+    const midi = c.midi + Number(fret);
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const bus = ensureChordBus();
+    const filterByCourse = [5000, 3900, 3000, 2300];
+    const brightByCourse = [0.64, 0.58, 0.5, 0.44];
+    const releaseByCourse = [1.55, 1.75, 2.1, 2.45];
+    const fFreq = filterByCourse[courseIdx] ?? 3500;
+    const bri = brightByCourse[courseIdx] ?? 0.55;
+    const rel = releaseByCourse[courseIdx] ?? 1.8;
+
+    const buf = ksBuffer(freq, 2.4, bri);
+    strikeBuffer(buf, bus, when, gain, { filterFreq: fFreq, release: rel });
+
+    if (c.pair === 'octave') {
+      const ob = ksBuffer(freq * 2, 2.0, Math.min(bri + 0.12, 0.72));
+      strikeBuffer(ob, bus, when + 0.003, gain * 0.5, {
+        detuneCents: 2, filterFreq: fFreq * 1.35, release: rel * 0.88,
+      });
+    } else {
+      const pb = ksBuffer(freq, 2.2, bri);
+      strikeBuffer(pb, bus, when + 0.002, gain * 0.56, {
+        detuneCents: 5, filterFreq: fFreq, release: rel * 0.92,
+      });
+    }
   }
 
   /* צליל בודד לפי MIDI */
@@ -160,27 +236,32 @@ const AudioEngine = (() => {
   }
 
   /* פריטת אקורד לפי צורה: shape = [C,F,A,D] סריגים או 'x'
-     למטה: כל המיתרים מהבס לגבוה, בס מודגש, גלגול איטי ומלא.
-     למעלה: רק 2-3 המיתרים הגבוהים, מהגבוה לנמוך, מהיר וקליל. */
+     גלגול מהבס לגבוה — פריטה רציפה ומחוברת כמו בוזוקי יווני */
   function strumChord(shape, dir = 'd', when = 0, gain = 0.5) {
     ensureCtx();
+    ensureChordBus();
     const t = when || ctx.currentTime + 0.02;
-    // shape נתון מהנמוך לגבוה [C,F,A,D] — קורסים 3,2,1,0
     const courses = [];
     shape.forEach((f, i) => {
       if (f === 'x') return;
       courses.push({ ci: 3 - i, fret: f });
     });
-    if (dir === 'd') {
-      courses.forEach((c, i) => {
-        const isBass = i === 0;
-        pluckCourse(c.ci, c.fret, t + i * 0.017, gain * (isBass ? 1.2 : 1));
-      });
-    } else {
-      // ביד אמיתית הפריטה למעלה תופסת בעיקר את המיתרים הגבוהים
+    if (!courses.length) return t;
+
+    if (dir === 'u') {
       const top = courses.slice(-Math.min(3, courses.length)).reverse();
       top.forEach((c, i) => {
-        pluckCourse(c.ci, c.fret, t + i * 0.009, gain * 0.55);
+        const jitter = (Math.random() - 0.5) * 0.002;
+        pluckCourseForStrum(c.ci, c.fret, t + i * 0.008 + jitter, gain * 0.62);
+      });
+    } else {
+      const roll = [0, 0.011, 0.021, 0.031];
+      courses.forEach((c, i) => {
+        const jitter = (Math.random() - 0.5) * 0.003;
+        const delay = (roll[i] ?? i * 0.012) + jitter;
+        const isBass = i === 0;
+        const vel = gain * (isBass ? 1.2 : Math.max(0.84, 1 - i * 0.045));
+        pluckCourseForStrum(c.ci, c.fret, t + delay, vel);
       });
     }
     return t;

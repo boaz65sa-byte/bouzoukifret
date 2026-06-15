@@ -1468,7 +1468,7 @@ const SongLibrary = (() => {
       (step, time) => {
         const ch = allChords[step % allChords.length];
         if (ch && CHORDS[ch]) {
-          AudioEngine.strumChord(CHORDS[ch].shape, step % 2 === 0 ? 'd' : 'u', time, 0.45);
+          AudioEngine.strumChord(CHORDS[ch].shape, 'd', time, 0.52);
         }
       },
       (step) => {
