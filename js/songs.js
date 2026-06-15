@@ -19,6 +19,85 @@ const SongLibrary = (() => {
   /* regex for chord detection */
   const CHORD_RE = /^([A-G][#b]?)(m|min|dim|aug|sus[24]|maj|add)?(2|4|5|6|7|9|11|13)?(b5|#5|b9|#9|#11|b13)?(\/[A-G][#b]?)?$/;
 
+  /** קישור לביצוע מקורי ב-YouTube */
+  function songRef(youtubeId, label) {
+    if (!youtubeId) return null;
+    const m = String(youtubeId).match(/(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const id = m ? m[1] : String(youtubeId).slice(0, 11);
+    return {
+      youtubeId: id,
+      url: 'https://www.youtube.com/watch?v=' + id,
+      label: label || 'הקלטה מקורית',
+    };
+  }
+
+  function normalizeReference(ref) {
+    if (!ref) return null;
+    if (typeof ref === 'string') return songRef(ref);
+    if (ref.youtubeId) return songRef(ref.youtubeId, ref.label);
+    if (ref.url) {
+      const m = ref.url.match(/(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return m ? songRef(m[1], ref.label) : null;
+    }
+    return null;
+  }
+
+  /** הפניות לביצועים מקוריים (YouTube) */
+  const SONG_REFERENCES = {
+    misirlou: songRef('oJN6QYVmcH0', 'Τέτος Δημητριάδης, 1927'),
+    frangosyriani: songRef('P2dQdqurqQ0', 'Τρίο Τεκέ — πρώτη εκτέλεση'),
+    'varka-sto-gialo': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
+    'ta-matomena-chomata': songRef('yuTWdVn0kn8', 'Βασίλης Τσιτσάνης'),
+    'minore-tou-teke': songRef('SNODpNOX6mo', 'Σπύρος Περιστέρης'),
+    'o-xenos': songRef('5d8aCbgibm8', 'Απόστολος Χατζηχρήστος'),
+    'trelos-tsiganos': songRef('yuTWdVn0kn8', 'Βασίλης Τσιτσάνης'),
+    'hasapiko-andreiomeno': songRef('Xsen9Jh-TPo', 'Μίκης Θεοδωράκης'),
+    'ti-se-melei-esenane': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης'),
+    'apopse-tha-pio': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'i-geitonia-mas': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
+    'san-sfyrixeis-treis-fores': songRef('yuTWdVn0kn8', 'Βασίλης Τσιτσάνης'),
+    'palios-stratiotis': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης'),
+    'vre-melahrinaki': songRef('5yC7Th21kw4', 'Μανώλης Χιώτης'),
+    'zeibekiko-tis-evdokias': songRef('FFC5pMixoi8', 'Μάνος Λοΐζος — Ευδοκία'),
+    'synefiasmeni-kyriaki': songRef('yuTWdVn0kn8', 'Βασίλης Τσιτσάνης'),
+    'ta-paidia-tou-peiraia': songRef('VcTdvBr30xY', 'Μελίνα Μερκούρη'),
+    'zorbas-syrtaki': songRef('Xsen9Jh-TPo', 'Μίκης Θεοδωράκης — Ζορμπάς'),
+    iliovasilemata: songRef('5yC7Th21kw4', 'Μανώλης Χιώτης & Μαίρη Λίντα'),
+    'o-charmanis': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
+    'to-vaporaki': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
+    karadouzeni: songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
+    'omorfi-thessaloniki': songRef('2eJB0BiHShE', 'Πρόδρομος Τσαουσάκης, 1950'),
+    'den-thelo-na-xeniteveis': songRef('yuTWdVn0kn8', 'Γρηγόρης Μπιθικώτσης'),
+    'stou-oneirou-tis-agapis': songRef('Xsen9Jh-TPo', 'Μίκης Θεοδωράκης'),
+    'haroumena-xenia': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
+    'mana-mou-psilellada': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης'),
+    'stin-akrogialia-delpen': songRef('VcTdvBr30xY', 'Βασίλης Τσιτσάνης'),
+  };
+
+  function getSongReference(song) {
+    return normalizeReference(song.reference) || SONG_REFERENCES[song.id] || null;
+  }
+
+  function _renderReference(song) {
+    const ref = getSongReference(song);
+    if (!ref) return '';
+    const safeLabel = ref.label.replace(/"/g, '&quot;');
+    return `
+      <div class="song-reference">
+        <div class="song-ref-header">
+          <span class="song-ref-title">🎧 ${ref.label}</span>
+          <a class="song-ref-link" href="${ref.url}" target="_blank" rel="noopener noreferrer">פתח ביוטיוב ↗</a>
+        </div>
+        <div class="song-yt-wrap">
+          <iframe class="song-yt-iframe" loading="lazy"
+            src="https://www.youtube-nocookie.com/embed/${ref.youtubeId}?rel=0&modestbranding=1"
+            title="${safeLabel}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+        </div>
+      </div>`;
+  }
+
   /* ===================== מצב מודול ===================== */
   let _scheduler = null;
   let _playing = false;
@@ -671,6 +750,486 @@ const SongLibrary = (() => {
         }
       ]
     },
+    /* 17 — Τα παιδιά του Πειραιά */
+    {
+      id: 'ta-paidia-tou-peiraia',
+      title: 'Ta Paidia tou Peiraia',
+      titleGr: 'Τα Παιδιά του Πειραιά',
+      titleHe: 'ילדי הפיראוס',
+      artist: 'Μάνος Λοΐζος',
+      artistHe: 'מאנוס לויזוס',
+      dromos: 'Hasapiko',
+      key: 'Dm',
+      bpm: 110,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Τα παιδιά του Πειραιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με τα μπουκάλια στο χέρι' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τα μάτια γεμάτα φως' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και την καρδιά γεμάτη πόνο' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Bb', null], lyrics: 'Τα παιδιά του Πειραιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με τα μπουκάλια στο χέρι' },
+            { chords: ['Bb', null, 'A7', null], lyrics: 'Και τα μάτια γεμάτα φως' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και την καρδιά γεμάτη πόνο' },
+          ]
+        }
+      ]
+    },
+    /* 18 — Ζορμπάς / Συρτάκι */
+    {
+      id: 'zorbas-syrtaki',
+      title: 'Zorbas (Sirtaki)',
+      titleGr: 'Ζορμπάς (Συρτάκι)',
+      titleHe: 'זורבס (סירטאקי)',
+      artist: 'Μίκης Θεοδωράκης',
+      artistHe: 'מיקיס תיאודורakis',
+      dromos: 'Hasapiko',
+      key: 'D',
+      bpm: 120,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['D', null, 'G', 'D'], lyrics: '' },
+            { chords: ['A7', null, 'D', null], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Theme',
+          lines: [
+            { chords: ['D', null, 'G', null], lyrics: '' },
+            { chords: ['A7', null, 'D', null], lyrics: '' },
+            { chords: ['Bm', null, 'G', null], lyrics: '' },
+            { chords: ['A7', null, 'D', null], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Bridge',
+          lines: [
+            { chords: ['D', null, 'A7', null], lyrics: '' },
+            { chords: ['Bm', null, 'G', null], lyrics: '' },
+            { chords: ['A7', null, 'D', null], lyrics: '' },
+          ]
+        }
+      ]
+    },
+    /* 19 — Ηλιοβασιλέματα */
+    {
+      id: 'iliovasilemata',
+      title: 'Iliovasilemata',
+      titleGr: 'Ηλιοβασιλέματα',
+      titleHe: 'שקיעות',
+      artist: 'Μανώλης Χιώτης',
+      artistHe: 'מאנוליס חיוטיס',
+      dromos: 'Hitzaz',
+      key: 'D',
+      bpm: 100,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['D', null, 'Eb', 'D'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Ηλιοβασιλέματα' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Γεμάτα αναμνήσεις' },
+            { chords: ['Gm', null, null, null], lyrics: 'Θυμάμαι ακόμα και πονώ' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Το τελευταίο δειλινό' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Δειλινά αξέχαστα' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Μες στα στενά δρομάκια' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ηλιοβασιλέματα' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Και τι δεν μου θυμίζουν' },
+          ]
+        }
+      ]
+    },
+    /* 20 — Ο Χαρμάνης */
+    {
+      id: 'o-charmanis',
+      title: 'O Charmanis',
+      titleGr: 'Ο Χαρμάνης',
+      titleHe: 'הצ\'רמאניס',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Hasapiko',
+      key: 'D',
+      bpm: 110,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['D', null, 'A7', 'D'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Ο χαρμάνης ο δικός μου' },
+            { chords: ['G', null, 'A7', null], lyrics: 'Μ\' έκανε και τρελάθηκα' },
+            { chords: ['D', null, null, null], lyrics: 'Και τώρα πίνω φαρμάκια' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Να ξεχάσω τα μαύρα μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'G', null], lyrics: 'Ο χαρμάνης μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μ\' έσκασε την καρδιά' },
+            { chords: ['G', null, 'A7', null], lyrics: 'Και τώρα πίνω' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μέχρι να ξημερώσω' },
+          ]
+        }
+      ]
+    },
+    /* 21 — Το βαπόρι απ\' την Περσία */
+    {
+      id: 'to-vaporaki',
+      title: 'To Vaporaki ap\' tin Persia',
+      titleGr: 'Το Βαπόρι απ\' την Περσία',
+      titleHe: 'הספינה מפרס',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Ousak',
+      key: 'F#m',
+      bpm: 120,
+      timeSignature: '9/8',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['F#m', null, 'G', 'F#m'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['F#m', null, null, null], lyrics: 'Το βαπόρι απ\' την Περσία' },
+            { chords: ['G', null, 'F#m', null], lyrics: 'Πιάστηκε στην Κορινθία' },
+            { chords: ['Bm', null, null, null], lyrics: 'Τόνοι έντεκα γεμάτο' },
+            { chords: ['C#7', null, 'F#m', null], lyrics: 'Με χασίσι μυρωδάτο' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['F#m', null, 'Bm', null], lyrics: 'Τώρα κλαίν\' όλα τ\' αλάνια' },
+            { chords: ['G', null, 'F#m', null], lyrics: 'Που θα μείνουνε χαρμάνια' },
+            { chords: ['Bm', null, 'C#7', null], lyrics: 'Βρε κουρνάζε μου τελώνη' },
+            { chords: ['C#7', null, 'F#m', null], lyrics: 'Τη ζημιά ποιός τη πληρώνει' },
+          ]
+        }
+      ]
+    },
+    /* 22 — Καραντουζένι */
+    {
+      id: 'karadouzeni',
+      title: 'Karadouzeni',
+      titleGr: 'Καραντουζένι',
+      titleHe: 'קראנטוז\'ני',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Έπρεπε να \'ρχόσουνα' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μα εσύ δεν ήρθες ποτέ' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τώρα πίνω φαρμάκια' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και κλαίω μοναχός μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Καραντουζένι μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τώρα πίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να ξημερώσω' },
+          ]
+        }
+      ]
+    },
+    /* 23 — Όμορφη Θεσσαλονίκη */
+    {
+      id: 'omorfi-thessaloniki',
+      title: 'Omorfi Thessaloniki',
+      titleGr: 'Όμορφη Θεσσαλονίκη',
+      titleHe: 'סלוניקי היפה',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Rast',
+      key: 'D',
+      bpm: 104,
+      timeSignature: '4/4',
+      difficulty: 1,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['D', null, 'A7', 'D'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Όμορφη Θεσσαλονίκη' },
+            { chords: ['G', null, 'D', null], lyrics: 'Γλυκιά κι αν ζω στην Αθήνα' },
+            { chords: ['A7', null, null, null], lyrics: 'Για σένα τραγουδώ' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Κάθε βραδιά' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'G', null], lyrics: 'Ώ! όμορφη Θεσσαλονίκη' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Τα μαγικά σου βράδια' },
+            { chords: ['Bm', null, 'G', null], lyrics: 'Νοσταλγώ' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Κάθε βραδιά' },
+          ]
+        }
+      ]
+    },
+    /* 24 — Δεν θέλω να ξενητεύεις */
+    {
+      id: 'den-thelo-na-xeniteveis',
+      title: 'Den Thelo na Xeniteveis',
+      titleGr: 'Δεν Θέλω να Ξενητεύεις',
+      titleHe: 'אני לא רוצה שתצא לגלות',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Minore',
+      key: 'Em',
+      bpm: 88,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['Em', null, 'Am', 'Em'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Em', null, null, null], lyrics: 'Δεν θέλω να ξενητεύεις' },
+            { chords: ['Am', null, 'Em', null], lyrics: 'Λεβέντικο κορμί' },
+            { chords: ['B7', null, null, null], lyrics: 'Είναι πικρό της θάλασσας' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Παιδί μου το ψωμί' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Em', null, 'Am', null], lyrics: 'Δεν θέλω να ξενητεύεις' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Λεβέντικο κορμί' },
+            { chords: ['Am', null, 'B7', null], lyrics: 'Είναι τα ξένα μαύρα' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Και βαριά σαν φυλακή' },
+          ]
+        }
+      ]
+    },
+    /* 25 — Στου ονείρου της αγάπης */
+    {
+      id: 'stou-oneirou-tis-agapis',
+      title: 'Stou Oneirou tis Agapis',
+      titleGr: 'Στου Ονείρου της Αγάπης',
+      titleHe: 'בחלום האהבה',
+      artist: 'Μίκης Θεοδωράκης',
+      artistHe: 'מיקיס תיאודורakis',
+      dromos: 'Minore',
+      key: 'Am',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['Am', null, 'E7', 'Am'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Στου ονείρου της αγάπης' },
+            { chords: ['Dm', null, 'Am', null], lyrics: 'Την άκρη του δρόμου' },
+            { chords: ['E7', null, null, null], lyrics: 'Μ\' άφησες μόνο' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και πήρες το δρόμο σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Στου ονείρου της αγάπης' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Την άκρη του δρόμου' },
+            { chords: ['F', null, 'E7', null], lyrics: 'Μ\' άφησες μόνο' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και πήρες το δρόμο σου' },
+          ]
+        }
+      ]
+    },
+    /* 26 — Χαρούμενα ξένα */
+    {
+      id: 'haroumena-xenia',
+      title: 'Haroumena Xenia',
+      titleGr: 'Χαρούμενα Ξένα',
+      titleHe: 'אורחים שמחים',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Rast',
+      key: 'C',
+      bpm: 108,
+      timeSignature: '4/4',
+      difficulty: 1,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['C', null, 'G7', 'C'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['C', null, null, null], lyrics: 'Χαρούμενα ξένα' },
+            { chords: ['F', null, 'C', null], lyrics: 'Και γλυκά ματάκια' },
+            { chords: ['G7', null, null, null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+            { chords: ['G7', null, 'C', null], lyrics: 'Με τα γλυκά σου ματάκια' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['C', null, 'F', null], lyrics: 'Χαρούμενα ξένα' },
+            { chords: ['G7', null, 'C', null], lyrics: 'Και γλυκά ματάκια' },
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+            { chords: ['G7', null, 'C', null], lyrics: 'Με τα γλυκά σου ματάκια' },
+          ]
+        }
+      ]
+    },
+    /* 27 — Μάνα μου ψιλέλλαδα */
+    {
+      id: 'mana-mou-psilellada',
+      title: 'Mana Mou Psilellada',
+      titleGr: 'Μάνα μου Ψιλέλλαδα',
+      titleHe: 'אמא שלי ירוקה',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      key: 'Dm',
+      bpm: 96,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μάνα μου ψιλέλλαδα' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μη μ\' αφήνεις μοναχό' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τώρα πίνω φαρμάκια' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να ξεχάσω τα μαύρα μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μάνα μου ψιλέλλαδα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μη μ\' αφήνεις μοναχό' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τώρα πίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να ξημερώσω' },
+          ]
+        }
+      ]
+    },
+    /* 28 — Στην ακρογιαλιά Δελφών */
+    {
+      id: 'stin-akrogialia-delpen',
+      title: 'Stin Akrogialia Delpen',
+      titleGr: 'Στην Ακρογιαλιά Δελφών',
+      titleHe: 'בחוף דלפי',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Hitzaz',
+      key: 'D',
+      bpm: 100,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Intro',
+          lines: [
+            { chords: ['D', null, 'Eb', 'D'], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Στην ακρογιαλιά Δελφών' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Κάτω απ\' το φεγγάρι' },
+            { chords: ['Gm', null, null, null], lyrics: 'Μ\' άφησες μόνο' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Και πήρες το δρόμο σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Στην ακρογιαλιά Δελφών' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Κάτω απ\' το φεγγάρι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μ\' άφησες μόνο' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Και πήρες το δρόμο σου' },
+          ]
+        }
+      ]
+    },
   ];
 
   /* ===================== טרנספוזיציה ===================== */
@@ -744,7 +1303,7 @@ const SongLibrary = (() => {
     while (i < lines.length) {
       const line = lines[i].trim();
       if (!line) { i++; continue; }
-      const metaMatch = line.match(/^(Title|Artist|Dromos|Key|BPM|Time)\s*:\s*(.+)/i);
+      const metaMatch = line.match(/^(Title|Artist|Dromos|Key|BPM|Time|Reference|YouTube)\s*:\s*(.+)/i);
       if (metaMatch) {
         const k = metaMatch[1].toLowerCase();
         const v = metaMatch[2].trim();
@@ -754,6 +1313,7 @@ const SongLibrary = (() => {
         else if (k === 'key') meta.key = v;
         else if (k === 'bpm') meta.bpm = parseInt(v, 10) || 120;
         else if (k === 'time') meta.timeSignature = v;
+        else if (k === 'reference' || k === 'youtube') meta.reference = v;
         i++;
       } else {
         break;
@@ -825,6 +1385,7 @@ const SongLibrary = (() => {
       bpm: meta.bpm || 120,
       timeSignature: meta.timeSignature || '4/4',
       difficulty: 0,
+      reference: meta.reference ? normalizeReference(meta.reference) : null,
       sections,
       custom: true,
     };
@@ -1055,13 +1616,15 @@ const SongLibrary = (() => {
       );
     }
 
-    container.innerHTML = songs.map(s => `
+    container.innerHTML = songs.map(s => {
+      const hasRef = !!getSongReference(s);
+      return `
       <div class="songs-entry" data-id="${s.id}">
-        <div class="songs-entry-title">${s.titleGr || s.title}</div>
+        <div class="songs-entry-title">${hasRef ? '🎧 ' : ''}${s.titleGr || s.title}</div>
         <div class="songs-entry-sub">${s.artistHe || s.artist} &middot; ${s.dromos || ''} &middot; ${s.key}</div>
         ${s.custom ? '<span class="songs-entry-badge">מותאם</span>' : ''}
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   function _showSong(song) {
@@ -1095,6 +1658,8 @@ const SongLibrary = (() => {
         </div>
         ${dromosInfo ? `<div class="song-dromos-info">${dromosInfo.nameHe} — ${dromosInfo.mood || ''}</div>` : ''}
       </div>
+
+      ${_renderReference(song)}
 
       <div class="song-controls">
         <button class="btn btn-gold" id="song-play">&#9654; נגינה</button>
@@ -1306,6 +1871,7 @@ Artist: Artist Name
 Dromos: Hitzaz
 Key: D
 BPM: 120
+Reference: https://www.youtube.com/watch?v=VIDEO_ID
 
 [Intro]
 |D    |D    |Eb   |D    |
@@ -1421,6 +1987,34 @@ More lyrics here</pre>
       }
       .song-dromos-info {
         font-size: 13px; color: var(--aegean); margin-top: 8px; font-style: italic;
+      }
+
+      /* Reference / YouTube player */
+      .song-reference {
+        margin: 12px 0 16px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(11,22,35,0.55);
+        border: 1px solid rgba(79,179,217,0.15);
+      }
+      .song-ref-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+      }
+      .song-ref-title {
+        font-size: 14px; color: var(--gold-soft); font-weight: 600;
+      }
+      .song-ref-link {
+        font-size: 13px; color: var(--aegean); text-decoration: none;
+      }
+      .song-ref-link:hover { text-decoration: underline; }
+      .song-yt-wrap {
+        position: relative; width: 100%; padding-bottom: 56.25%;
+        border-radius: 8px; overflow: hidden; background: #000;
+      }
+      .song-yt-iframe {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        border: 0;
       }
 
       /* Controls */
