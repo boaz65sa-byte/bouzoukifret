@@ -96,6 +96,20 @@ const SongLibrary = (() => {
     'rixe-mia-zaria-kali': songRef('nsCcFV-A324', 'Γρηγόρης Μπιθικώτσης'),
     'i-otiki': songRef('a5R9iUiVMj8', 'Μάρκος Βαμβακάρης'),
     'synefiasmeni-kaz': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'yparho': songRef('pF7ldspZ6-g', 'Στέλιος Καζαντζίδης'),
+    'to-teleutaio-vrady-mou': songRef('2qK9JkW6Ikw', 'Στέλιος Καζαντζίδης'),
+    'sto-trapezi-pou-ta-pino': songRef('tp-OXnfaFGI', 'Στέλιος Καζαντζίδης'),
+    'to-psomi-tis-xenitias': songRef('L3lKycDfBd4', 'Στέλιος Καζαντζίδης'),
+    'afti-i-nyhta-menei': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης, 1959'),
+    'monos-kaz': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'se-xeni-hora-monos': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα, 1966'),
+    'otan-vradiazei-stin-xenitia': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'stis-famprikes-tis-xenitias': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης, 1965'),
+    'nyhterides-ki-arachnes': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'dyo-portes-echei-i-zoi': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'apones-exousies': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μίκης Θεοδωράκης, 1974'),
+    'min-taxideveis-more': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'ach-koritsi-mou': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
   };
 
   function getSongReference(song) {
@@ -2109,6 +2123,496 @@ const SongLibrary = (() => {
             { chords: ['A7', null, 'D', null], lyrics: 'Βροχή και κρύο' },
             { chords: ['G', null, 'A7', null], lyrics: 'Και εγώ μονάχος μου' },
             { chords: ['A7', null, 'D', null], lyrics: 'Με την καρδιά μου πληγωμένη' },
+          ]
+        }
+      ]
+    },
+    /* 53 — Υπάρχω */
+    {
+      id: 'yparho',
+      title: 'Yparho',
+      titleGr: 'Υπάρχω',
+      titleHe: 'אני קיים',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Υπάρχω κι όσο υπάρχεις θα υπάρχω' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Σκλάβα τη ζωή σου θά\' χω' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κι ας βαδίζουμε σε δρόμους χωριστούς' },
+            { chords: ['A7', null, 'Dm', null], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Υπάρχω μέσ\' στα μάτια σου που κλαίνε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέσ\' στα χείλη σου που καίνε' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και θα υπάρχω στα τραγούδια που θ\' ακούς' },
+            { chords: ['A7', null, 'Dm', null], lyrics: '' },
+          ]
+        }
+      ]
+    },
+    /* 54 — Το τελευταίο βράδυ μου */
+    {
+      id: 'to-teleutaio-vrady-mou',
+      title: 'To Teleutaio Vrady Mou',
+      titleGr: 'Το τελευταίο βράδυ μου',
+      titleHe: 'הערב האחרון שלי',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Το τελευταίο βράδυ μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Θα πιω και θα μεθύσω' },
+            { chords: ['Dm', null, null, null], lyrics: 'Θα σπάσω τον κόσμο ολόκληρο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και θα χαθώ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Το τελευταίο βράδυ μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Θα πιω και θα μεθύσω' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Θα σπάσω τον κόσμο ολόκληρο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και θα χαθώ' },
+          ]
+        }
+      ]
+    },
+    /* 55 — Στο τραπέζι που τα πίνω */
+    {
+      id: 'sto-trapezi-pou-ta-pino',
+      title: 'Sto Trapezi pou ta Pino',
+      titleGr: 'Στο τραπέζι που τα πίνω',
+      titleHe: 'בשולחן שבו אני שותה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Στο τραπέζι που τα πίνω' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Λείπει το ποτήρι σου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Λείπουν τα γλυκά σου λόγια' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που άκουγα απ\' τα χείλη σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Η θύμησή σου τη νύχτα αυτή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μες στην καρδιά μου είναι καρφί' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Όπου ρίξω την ματιά μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Βλέπω την σφραγίδα σου' },
+          ]
+        }
+      ]
+    },
+    /* 56 — Το ψωμί της ξενιτιάς */
+    {
+      id: 'to-psomi-tis-xenitias',
+      title: 'To Psomi tis Xenitias',
+      titleGr: 'Το ψωμί της ξενιτιάς',
+      titleHe: 'לחם הגולה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Το ψωμί της ξενιτιάς είναι πικρό' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Το νερό της θλίψης και των δακρύων' },
+            { chords: ['Dm', null, null, null], lyrics: 'Τα λεφτά που αποκτάς τα βλασφημάς' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Υποφέρεις πονάς την πατρίδα ζητάς' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Κλέφτρα ξενιτιά τα παλικάρια κλέβεις' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μαγιά κακιά με τα λεφτά μαγεύεις' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Πάντα μανιά χωρίζεις μάνες και παιδιά' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Κάνε παναγιά η ξενιά να παύει' },
+          ]
+        }
+      ]
+    },
+    /* 57 — Αυτή η νύχτα μένει */
+    {
+      id: 'afti-i-nyhta-menei',
+      title: 'Afti i Nyhta Menei',
+      titleGr: 'Αυτή η νύχτα μένει',
+      titleHe: 'הלילה הזה נשאר',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Αυτή η νύχτα μένει που θα \'μαστε μαζί' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Θα φύγεις μακριά μου πριν έρθει το πρωί' },
+            { chords: ['Dm', null, null, null], lyrics: 'Αγάπη μου σε χάνω έτσι ήτανε γραμμένο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μα όσο ζω στον κόσμο εσένα θα προσμένω' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Αυτή η νύχτα μένει' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Που θα \'μαστε μαζί' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Θα φύγεις μακριά μου πριν έρθει το πρωί' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Αυτή η νύχτα μένει' },
+          ]
+        }
+      ]
+    },
+    /* 58 — Μόνος */
+    {
+      id: 'monos-kaz',
+      title: 'Monos',
+      titleGr: 'Μόνος',
+      titleHe: 'לבד',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 64,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μόνος περνάω κάθε βράδυ' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μόνος πίνω κάθε πρωί' },
+            { chords: ['Dm', null, null, null], lyrics: 'Μόνος ζω και μόνος πεθαίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μόνος πάντα θα μείνω' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μόνος περνάω κάθε βράδυ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μόνος πίνω κάθε πρωί' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μόνος ζω και μόνος πεθαίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μόνος πάντα θα μείνω' },
+          ]
+        }
+      ]
+    },
+    /* 59 — Σε ξένη χώρα μόνος */
+    {
+      id: 'se-xeni-hora-monos',
+      title: 'Se Xeni Chora Monos',
+      titleGr: 'Σε ξένη χώρα μόνος',
+      titleHe: 'בארץ זרה לבד',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μακριά απ\' τη μανούλα μου κι από τη γλυκιά πατρίδα' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Πήγα να βρω την τύχη μου μ\' ένα σκοπό κι ελπίδα' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και να γυρίσω με λεφτά μα γέμισα ρυτίδα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Σε ξένη χώρα μόνος' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Σε ξένα χέρια, ξένη γη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Σκληρή δουλειά και πόνος' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Είναι μαρτύριο να ζεις' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Σε ξένη χώρα μόνος' },
+          ]
+        }
+      ]
+    },
+    /* 60 — Όταν βραδιάζει στην ξενητιά */
+    {
+      id: 'otan-vradiazei-stin-xenitia',
+      title: 'Otan Vradiazei stin Xenitia',
+      titleGr: 'Όταν βραδιάζει στην ξενητιά',
+      titleHe: 'כשחושך בגולה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 62,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Όταν βραδιάζει στην ξενητιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τελειώνω απ\' την δουλειά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Τότε θυμάμαι εσένα μάνα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Κι όσους πονάω εκεί μακριά' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μονάχος μου και έρημος' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στα ξένα σαν βραδιάζει' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με παίρνει το παράπονο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και την καρδιά μου σφάζει' },
+          ]
+        }
+      ]
+    },
+    /* 61 — Στις φάμπρικες της ξενιτιάς */
+    {
+      id: 'stis-famprikes-tis-xenitias',
+      title: 'Stis Fabrikes tis Xenitias',
+      titleGr: 'Στις φάμπρικες της ξενιτιάς',
+      titleHe: 'במפעלי הגולה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Στις φάμπρικες της ξενιτιάς' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μες τον ιδρώτα λιώνω' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κι έχω παρέα τον καημό' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Αχ! το δάκρυ και τον πόνο' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Στα ξένα εργοστάσια δουλεύω σαν το σκύλο' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μανούλα μου κι αγάπη μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Λεφτά για να σας στείλω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: '' },
+          ]
+        }
+      ]
+    },
+    /* 62 — Νυχτερίδες κι αράχνες */
+    {
+      id: 'nyhterides-ki-arachnes',
+      title: 'Nyhterides ki Arachnes',
+      titleGr: 'Νυχτερίδες κι αράχνες',
+      titleHe: 'עטלפים ועכבישים',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Νυχτερίδες κι αράχνες, γλυκιά μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Έχουν χτίσει φωλιά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Μέσα στο έρημο κι άδειο μας σπίτι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Όσο λείπεις μακριά' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Γύρισε, γλυκιά μου, στην αγκαλιά μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στα βασανά μου, μη μ\' απαρνηθείς' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Εσένα, στερνή μου αγάπη' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Με πόνο ζητώ για να \'ρθεις' },
+          ]
+        }
+      ]
+    },
+    /* 63 — Δύο πόρτες έχει η ζωή */
+    {
+      id: 'dyo-portes-echei-i-zoi',
+      title: 'Dyo Portes echei i Zoi',
+      titleGr: 'Δύο πόρτες έχει η ζωή',
+      titleHe: 'לחיים שתי דלתות',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Δύο πόρτες έχει η ζωή' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μια για να μπεις και μια για να βγεις' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κι όποια πόρτα κι αν ανοίξεις' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Δε γυρίζεις πίσω ποτέ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Δύο πόρτες έχει η ζωή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μια για να μπεις και μια για να βγεις' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Κι όποια πόρτα κι αν ανοίξεις' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Δε γυρίζεις πίσω ποτέ' },
+          ]
+        }
+      ]
+    },
+    /* 64 — Άπονες εξουσίες */
+    {
+      id: 'apones-exousies',
+      title: 'Apones Exousies',
+      titleGr: 'Άπονες εξουσίες',
+      titleHe: 'שלטונות חסרי רחמים',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 64,
+      timeSignature: '4/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μια νύχτα που βουλιάζανε τα σπίτια' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μες στο χιόνι καρδούλα μου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Στον κάτω δρόμο του χωριού' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Σκοτώσαν τον Αντώνη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μάνα σε ξεκληρίσανε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Άπονες εξουσίες' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ψυχή δε σου αφήσανε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μόνο φωτογραφίες' },
+          ]
+        }
+      ]
+    },
+    /* 65 — Μην ταξιδεύεις μωρέ */
+    {
+      id: 'min-taxideveis-more',
+      title: 'Min Taxideveis More',
+      titleGr: 'Μην ταξιδεύεις μωρέ',
+      titleHe: 'אל תיסע, חבר',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μην ταξιδεύεις μωρέ' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μην φεύγεις μακριά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Η ξενιτιά είναι πικρή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και δεν αξίζει τίποτα' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μην ταξιδεύεις μωρέ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μην φεύγεις μακριά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Η ξενιτιά είναι πικρή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και δεν αξίζει τίποτα' },
+          ]
+        }
+      ]
+    },
+    /* 66 — Αχ κορίτσι μου */
+    {
+      id: 'ach-koritsi-mou',
+      title: 'Ach Koritsi Mou',
+      titleGr: 'Αχ κορίτσι μου',
+      titleHe: 'אה, ילדתי',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Hitzaz',
+      tags: ['kazantzidis', 'famous'],
+      key: 'D',
+      bpm: 74,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Αχ κορίτσι μου γλυκό' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Που μ\' έκλεψες την καρδιά' },
+            { chords: ['Gm', null, null, null], lyrics: 'Και μ\' άφησες μόνο' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με τον πόνο και τη λύπη' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Αχ κορίτσι μου γλυκό' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Που μ\' έκλεψες την καρδιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και μ\' άφησες μόνο' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Με τον πόνο και τη λύπη' },
           ]
         }
       ]
