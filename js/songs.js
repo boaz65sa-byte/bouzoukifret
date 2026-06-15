@@ -72,6 +72,17 @@ const SongLibrary = (() => {
     'haroumena-xenia': songRef('4Rxpk-9eI4c', 'Βασίλης Τσιτσάνης'),
     'mana-mou-psilellada': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης'),
     'stin-akrogialia-delpen': songRef('VcTdvBr30xY', 'Βασίλης Τσιτσάνης'),
+    'i-atakti': songRef('a5R9iUiVMj8', 'Μάρκος Βαμβακάρης, 1963'),
+    'san-apokliros-gyrizo': songRef('xCL8wBw4mzU', 'Σωτηρία Μπέλλου, 1951'),
+    'kane-ligaki-ipomoni': songRef('wDoAUD4gyro', 'Σωτηρία Μπέλλου, 1949'),
+    'o-dervisis': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
+    'ta-matoklada-sou-lampoun': songRef('nsCcFV-A324', 'Γρηγόρης Μπιθικώτσης'),
+    'minore-tis-avgis': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1946'),
+    'oli-i-rebetes-tou-ntounia': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1937'),
+    'trexe-magka-na-rotisis': songRef('yuTWdVn0kn8', 'Στέλλα Χασκίλ & Μ. Βαμβακάρης'),
+    'mortissa-hasiklou': songRef('0vLN50BR7xs', 'Μάρκος Βαμβακάρης, 1933'),
+    'magkas-vgike-gia-sergiani': songRef('4Rxpk-9eI4c', 'Μάρκος Βαμβακάρης & Β. Τσιτσάνης'),
+    'to-mystiko-zeibekiko': songRef('SNODpNOX6mo', 'Ιωάννης Χαλικιάς, 1932'),
   };
 
   function getSongReference(song) {
@@ -1230,6 +1241,401 @@ const SongLibrary = (() => {
         }
       ]
     },
+    /* 29 — Η Άτακτη (ζεϊμπέκικο) */
+    {
+      id: 'i-atakti',
+      title: 'I Atakti',
+      titleGr: 'Η Άτακτη',
+      titleHe: 'השובבה',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Am',
+      bpm: 68,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Am', null, 'E7', 'Am'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Δε σε θέλω, δε σε θέλω' },
+            { chords: ['Dm', null, 'Am', null], lyrics: 'Πια δε σ\' αγαπώ' },
+            { chords: ['E7', null, null, null], lyrics: 'Και πάρε και δρόμο' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και τράβα στο καλό' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Ήθελα να σ\' αντάμωνα' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Να σου \'λεγα καμπόσα' },
+            { chords: ['F', null, 'E7', null], lyrics: 'Κι εσύ \'σαι τόσο άταχτη' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Στρίψε για να γλιτώσω' },
+          ]
+        }
+      ]
+    },
+    /* 30 — Σαν απόκληρος γυρίζω */
+    {
+      id: 'san-apokliros-gyrizo',
+      title: 'San Apokliros Gyrizo',
+      titleGr: 'Σαν Απόκληρος Γυρίζω',
+      titleHe: 'כמו נידה אני שב',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Am',
+      bpm: 64,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Am', null, 'E7', 'Am'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Σαν απόκληρος γυρίζω' },
+            { chords: ['Dm', null, 'Am', null], lyrics: 'Στην κακούργα ξενιτιά' },
+            { chords: ['E7', null, null, null], lyrics: 'Μακριά απ\' της μάνας μου' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Την αγκαλιά' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Κλαίνε τα πουλιά για αέρα' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και τα δέντρα για νερό' },
+            { chords: ['F', null, 'E7', null], lyrics: 'Κλαίω μανούλα μου κι εγώ' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Για σένα που έχω χρόνια' },
+          ]
+        }
+      ]
+    },
+    /* 31 — Κάνε λιγάκι υπομονή */
+    {
+      id: 'kane-ligaki-ipomoni',
+      title: 'Kane Ligaki Ipomoni',
+      titleGr: 'Κάνε Λιγάκι Υπομονή',
+      titleHe: 'תן קצת סבלנות',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '9/4',
+      difficulty: 2,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μην απελπίζεσαι' },
+            { chords: ['Gm', null, 'Dm', null], lyrics: 'Και δε θ\' αργήσει' },
+            { chords: ['A7', null, null, null], lyrics: 'Κοντά σου θα \'ρθει μια χαραυγή' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Κάνε λιγάκι υπομονή' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Διώξε τα σύννεφα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Απ\' την καρδιά σου' },
+            { chords: ['Bb', null, 'A7', null], lyrics: 'Θα \'ρθει μια μέρα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μην το ξεχνάς' },
+          ]
+        }
+      ]
+    },
+    /* 32 — Ο Δερβίσης */
+    {
+      id: 'o-dervisis',
+      title: 'O Dervisis',
+      titleGr: 'Ο Δερβίσης',
+      titleHe: 'הדרוויש',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Ousak',
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ο δερβίσης ο δικός μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μ\' έκανε και τρελάθηκα' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τώρα πίνω φαρμάκια' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να ξεχάσω τα μαύρα μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ο δερβίσης μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μ\' έσκασε την καρδιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τώρα πίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να ξημερώσω' },
+          ]
+        }
+      ]
+    },
+    /* 33 — Τα ματοκλάδα σου λάμπουν */
+    {
+      id: 'ta-matoklada-sou-lampoun',
+      title: 'Ta Matoklada Sou Lampoun',
+      titleGr: 'Τα Ματοκλάδα σου Λάμπουν',
+      titleHe: 'ריסיך זורחים',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'D',
+      bpm: 70,
+      timeSignature: '9/4',
+      difficulty: 2,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['D', null, 'A7', 'D'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Τα ματοκλάδα σου λάμπουν' },
+            { chords: ['G', null, 'D', null], lyrics: 'Σαν τα λουλούδια του κάμπου' },
+            { chords: ['A7', null, null, null], lyrics: 'Και η ζωή μου όλη μια ζάρι' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'G', null], lyrics: 'Τα ματοκλάδα σου λάμπουν' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Σαν τα λουλούδια του κάμπου' },
+            { chords: ['Bm', null, 'G', null], lyrics: 'Και η ζωή μου όλη μια ζάρι' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+          ]
+        }
+      ]
+    },
+    /* 34 — Μινόρε της Αυγής */
+    {
+      id: 'minore-tis-avgis',
+      title: 'Minore tis Avgis',
+      titleGr: 'Το Μινόρε της Αυγής',
+      titleHe: 'מינור השחר',
+      artist: 'Σπύρος Περιστέρης',
+      artistHe: 'ספירוס פריסטריס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Am',
+      bpm: 60,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Am', null, 'E7', 'Am'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Ξύπνα, μικρό μου, κι άκουσε' },
+            { chords: ['Dm', null, 'Am', null], lyrics: 'Κάποιο μινόρε της αυγής' },
+            { chords: ['E7', null, null, null], lyrics: 'Για σένανε είναι γραμμένο' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Από το κλάμα κάποιας ψυχής' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Το παραθύρι σου άνοιξε' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Ρίξε μου μια γλυκιά ματιά' },
+            { chords: ['F', null, 'E7', null], lyrics: 'Κι ας σβήσω πια τότε, μικρό μου' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μπροστά στο σπίτι σου σε μια γωνιά' },
+          ]
+        }
+      ]
+    },
+    /* 35 — Όλοι οι ρεμπέτες του ντουνιά */
+    {
+      id: 'oli-i-rebetes-tou-ntounia',
+      title: 'Oli i Rebetes tou Ntounia',
+      titleGr: 'Όλοι οι Ρεμπέτες του Ντουνιά',
+      titleHe: 'כל הרבטים בעולם',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Όλοι οι ρεμπέτες του ντουνιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μαζί μ\' έχουνε φιλήσει' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κι εγώ στα χέρια τους' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Έχω περάσει' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Όλοι οι ρεμπέτες' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Του ντουνιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μαζί μ\' έχουνε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Φιλήσει' },
+          ]
+        }
+      ]
+    },
+    /* 36 — Τρέξε μάγκα να ρωτήσεις (Ντερμπεντέρισσα) */
+    {
+      id: 'trexe-magka-na-rotisis',
+      title: 'Trexe Magka na Rotisis',
+      titleGr: 'Τρέξε Μάγκα να Ρωτήσεις',
+      titleHe: 'רוץ מάγκα לשאול (דербεντέρισα)',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Niavent',
+      style: 'zeibekiko',
+      key: 'Em',
+      bpm: 74,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Em', null, 'B7', 'Em'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Em', null, null, null], lyrics: 'Τρέξε, μάγκα, να ρωτήσεις' },
+            { chords: ['Am', null, 'Em', null], lyrics: 'Να σου πουν ποια είμαι εγώ' },
+            { chords: ['B7', null, null, null], lyrics: 'Είμαι γυναίκα φίνα' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Ντερμπεντέρισσα' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Em', null, 'Am', null], lyrics: 'Που τους άντρες σαν τα ζάρια' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Τους μπεγλέρισα' },
+            { chords: ['Am', null, 'B7', null], lyrics: 'Δε γουστάρω τις παρόλες' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Σου \'ξηγήθηκα' },
+          ]
+        }
+      ]
+    },
+    /* 37 — Μοίρισσα χασικλού */
+    {
+      id: 'mortissa-hasiklou',
+      title: 'Mortissa Hasiklou',
+      titleGr: 'Μοίρισσα Χασικλού',
+      titleHe: 'גורל חשיש',
+      artist: 'Μάρκος Βαμβακάρης',
+      artistHe: 'מרקוס ואמוואקריס',
+      dromos: 'Ousak',
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μοίρισσα χασικλού' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μ\' έκανες και τρελάθηκα' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και τώρα πίνω φαρμάκια' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να ξεχάσω τα μαύρα μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μοίρισσα χασικλού' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μ\' έσκασε την καρδιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και τώρα πίνω' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να ξημερώσω' },
+          ]
+        }
+      ]
+    },
+    /* 38 — Μάγκας βγήκε για σεργιάνι */
+    {
+      id: 'magkas-vgike-gia-sergiani',
+      title: 'Magkas Vgike gia Sergiani',
+      titleGr: 'Μάγκας Βγήκε για Σεργιάνι',
+      titleHe: 'מאג\'ה יצא לסיבוב',
+      artist: 'Βασίλης Τσιτσάνης',
+      artistHe: 'וסיליס ציצאניס',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '9/4',
+      difficulty: 2,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Dm', null, 'A7', 'Dm'], lyrics: '' }] },
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Μάγκας βγήκε για σεργιάνι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με το μπουζούκι στο χέρι' },
+            { chords: ['Dm', null, null, null], lyrics: 'Και στα μαύρα ματάκια του' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Κρύβεται η καρδιά του' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Μάγκας βγήκε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Για σεργιάνι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Με το μπουζούκι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στο χέρι' },
+          ]
+        }
+      ]
+    },
+    /* 39 — Το μυστικό ζεϊμπέκικο (οργανικό) */
+    {
+      id: 'to-mystiko-zeibekiko',
+      title: 'To Mystiko Zeibekiko',
+      titleGr: 'Το Μυστικό Ζεϊμπέκικο',
+      titleHe: 'הזεϊμπέκיקו הסודי',
+      artist: 'Ιωάννης Χαλικιάς',
+      artistHe: 'יואניס חליקias',
+      dromos: 'Minore',
+      style: 'zeibekiko',
+      key: 'Am',
+      bpm: 58,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        { name: 'Intro', lines: [{ chords: ['Am', null, 'E7', 'Am'], lyrics: '' }] },
+        {
+          name: 'Theme',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: '' },
+            { chords: ['E7', null, 'Am', null], lyrics: '' },
+            { chords: ['F', null, 'E7', null], lyrics: '' },
+            { chords: ['E7', null, 'Am', null], lyrics: '' },
+          ]
+        },
+        {
+          name: 'Bridge',
+          lines: [
+            { chords: ['Dm', null, 'Am', null], lyrics: '' },
+            { chords: ['E7', null, 'Am', null], lyrics: '' },
+            { chords: ['Am', null, 'E7', 'Am'], lyrics: '' },
+          ]
+        }
+      ]
+    },
   ];
 
   /* ===================== טרנספוזיציה ===================== */
@@ -1573,6 +1979,7 @@ const SongLibrary = (() => {
             <button class="btn btn-sm songs-filter-btn" data-filter="Ousak">אוסאק</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="Rast">ראסט</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="Niavent">ניאוונט</button>
+            <button class="btn btn-sm songs-filter-btn" data-filter="zeibekiko">זεϊμπέκικο</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="custom">שלי</button>
           </div>
           <div class="songs-entries" id="songs-entries"></div>
@@ -1593,6 +2000,10 @@ const SongLibrary = (() => {
     _bindEvents();
   }
 
+  function _isZeibekikoSong(s) {
+    return s.style === 'zeibekiko' || s.timeSignature === '9/4';
+  }
+
   function _renderList(filter, search) {
     const container = document.getElementById('songs-entries');
     if (!container) return;
@@ -1601,6 +2012,8 @@ const SongLibrary = (() => {
     if (filter && filter !== 'all') {
       if (filter === 'custom') {
         songs = songs.filter(s => s.custom);
+      } else if (filter === 'zeibekiko') {
+        songs = songs.filter(s => _isZeibekikoSong(s));
       } else {
         songs = songs.filter(s => s.dromos === filter);
       }
@@ -1621,8 +2034,9 @@ const SongLibrary = (() => {
       return `
       <div class="songs-entry" data-id="${s.id}">
         <div class="songs-entry-title">${hasRef ? '🎧 ' : ''}${s.titleGr || s.title}</div>
-        <div class="songs-entry-sub">${s.artistHe || s.artist} &middot; ${s.dromos || ''} &middot; ${s.key}</div>
+        <div class="songs-entry-sub">${s.artistHe || s.artist} &middot; ${s.dromos || ''} &middot; ${s.key}${_isZeibekikoSong(s) ? ' &middot; 9/4' : ''}</div>
         ${s.custom ? '<span class="songs-entry-badge">מותאם</span>' : ''}
+        ${_isZeibekikoSong(s) ? '<span class="songs-entry-badge zeibekiko-badge">ζεϊμπέκικο</span>' : ''}
       </div>`;
     }).join('');
   }
@@ -1965,6 +2379,9 @@ More lyrics here</pre>
       .songs-entry-badge {
         display: inline-block; font-size: 10px; background: rgba(227,179,65,0.15);
         color: var(--gold); padding: 1px 6px; border-radius: 4px; margin-top: 4px;
+      }
+      .songs-entry-badge.zeibekiko-badge {
+        background: rgba(180,100,140,0.18); color: #d4a0b8; margin-right: 4px;
       }
       .songs-add-btn {
         margin: 8px 12px; flex-shrink: 0;
