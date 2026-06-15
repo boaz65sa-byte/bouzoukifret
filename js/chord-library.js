@@ -1,28 +1,40 @@
 /* ספריית אקורדים — ברירת מחדל + עריכה / הוספה (localStorage) */
 const ChordLibrary = (() => {
-  const STORAGE = 'bouzouki-chord-library-v1';
+  const STORAGE = 'bouzouki-chord-library-v2';
+  /* סדר TUNING / TAB — מלמעלה למטה: D · A · F · C (קורסים 0–3) */
   const COURSE_LABELS = ['D', 'A', 'F', 'C'];
   const COURSE_HE = ['רה', 'לה', 'פה', 'דו'];
 
+  /** shape ב-data.js / strumChord: [C, F, A, D] מהבס לגבוה */
+  function shapeToFrets(shape) {
+    return shape.slice().reverse().map(f =>
+      f === 'x' || f === null || f === undefined ? null : Number(f)
+    );
+  }
+
+  function fretsToShape(frets) {
+    return frets.slice().reverse().map(f => (f === null || f === 'x') ? 'x' : f);
+  }
+
+  function mkFromShape(id, name, he, shape, cat, desc) {
+    return { id, name, he, frets: shapeToFrets(shape), cat, desc };
+  }
+
+  const GREEK_KEYS = ['D', 'Dm', 'D7', 'Am', 'Em', 'A7', 'Gm', 'F', 'C', 'Bb', 'E7'];
   const DEFAULT_CHORDS = [
-    { id: 'D Major', name: 'D Major', he: 'רה מז׳ור', frets: [0, 2, 3, 2], cat: 'greek', desc: 'אקורד בסיסי לרמבטיקו' },
-    { id: 'D Minor', name: 'D Minor', he: 'רה מינור', frets: [0, 2, 2, 1], cat: 'greek', desc: 'לשירי זייבקיקו' },
-    { id: 'D7', name: 'D7', he: 'רה 7', frets: [0, 2, 1, 2], cat: 'greek', desc: 'דומיננטה יוונית' },
-    { id: 'Am', name: 'Am', he: 'לה מינור', frets: [5, 0, 0, 0], cat: 'greek', desc: 'אקורד מפתח יווני' },
-    { id: 'Em', name: 'Em', he: 'מי מינור', frets: [2, 2, 0, 0], cat: 'greek', desc: 'שכיח ברמבטיקו' },
-    { id: 'A7', name: 'A7', he: 'לה 7', frets: [5, 0, 2, 0], cat: 'greek', desc: 'סיום יווני' },
-    { id: 'Gm', name: 'Gm', he: 'סול מינור', frets: [5, 5, 3, 3], cat: 'greek', desc: 'צליל עצוב' },
-    { id: 'F', name: 'F', he: 'פה מז׳ור', frets: [3, 0, 0, 1], cat: 'greek', desc: 'שכיח' },
-    { id: 'C', name: 'C', he: 'דו מז׳ור', frets: [10, 9, 10, 0], cat: 'greek', desc: 'בסיסי' },
-    { id: 'Bb', name: 'Bb', he: 'סי♭', frets: [8, 7, 8, 6], cat: 'greek', desc: 'לשירים יווניים' },
-    { id: 'E7', name: 'E7', he: 'מי 7', frets: [2, 2, 2, 3], cat: 'greek', desc: 'רמבטיקו אופייני' },
-    { id: 'Hijaz D', name: 'Hijaz D', he: 'חיג׳אז רה', frets: [0, 1, 4, 1], cat: 'oriental', desc: 'מקאם חיג׳אז' },
-    { id: 'Bayat D', name: 'Bayat D', he: 'ביאת רה', frets: [0, 2, 2, 0], cat: 'oriental', desc: 'מקאם ביאת' },
-    { id: 'Nahawand', name: 'Nahawand', he: 'נהוואנד', frets: [0, 2, 2, 1], cat: 'oriental', desc: 'מקאם נהוואנד' },
-    { id: 'Kurd D', name: 'Kurd D', he: 'כורד רה', frets: [0, 1, 2, 1], cat: 'oriental', desc: 'מקאם כורד' },
-    { id: 'Saba', name: 'Saba', he: 'סבא', frets: [0, 1, 2, 0], cat: 'oriental', desc: 'מקאם סבא' },
-    { id: 'Rast', name: 'Rast', he: 'ראסט', frets: [0, 2, 3, 0], cat: 'oriental', desc: 'מקאם ראסט' },
-    { id: 'Nikriz', name: 'Nikriz', he: 'ניקריז', frets: [0, 1, 4, 2], cat: 'oriental', desc: 'מקאם ניקריז' },
+    ...GREEK_KEYS.map(k => mkFromShape(
+      k, k, CHORDS[k].he, CHORDS[k].shape, 'greek',
+      k === 'D' ? 'אקורד בסיסי לרמבטיקו' :
+      k === 'Dm' ? 'לשירי זייבקיקו' :
+      k === 'D7' ? 'דומיננטה יוונית' : ''
+    )),
+    mkFromShape('Hijaz D', 'Hijaz D', 'חיג׳אז רה', [1, 4, 1, 0], 'oriental', 'מקאם חיג׳אז'),
+    mkFromShape('Bayat D', 'Bayat D', 'ביאת רה', [0, 2, 2, 0], 'oriental', 'מקאם ביאת'),
+    mkFromShape('Nahawand', 'Nahawand', 'נהוואנד', [1, 2, 2, 0], 'oriental', 'מקאם נהוואנד'),
+    mkFromShape('Kurd D', 'Kurd D', 'כורד רה', [1, 2, 1, 0], 'oriental', 'מקאם כורד'),
+    mkFromShape('Saba', 'Saba', 'סבא', [0, 2, 1, 0], 'oriental', 'מקאם סבא'),
+    mkFromShape('Rast', 'Rast', 'ראסט', [0, 3, 2, 0], 'oriental', 'מקאם ראסט'),
+    mkFromShape('Nikriz', 'Nikriz', 'ניקריז', [2, 4, 1, 0], 'oriental', 'מקאם ניקריז'),
   ];
 
   function loadStore() {
@@ -55,10 +67,6 @@ const ChordLibrary = (() => {
 
   function parseFretsRow(row) {
     return row.map(normFretInput);
-  }
-
-  function fretsToShape(frets) {
-    return frets.map(f => (f === null || f === 'x') ? 'x' : f);
   }
 
   function cloneChord(c) {
@@ -173,7 +181,7 @@ const ChordLibrary = (() => {
         <label class="btn cl-import-label">ייבוא JSON<input type="file" id="cl-import" accept="application/json,.json" hidden></label>
         <button type="button" class="btn" id="cl-reset-all">איפוס ספרייה</button>
       </div>
-      <p class="hint cl-hint">סריגים לפי מיתרים: D (רה) · A (לה) · F (פה) · C (דו). x או ריק = מושתק. שינויים נשמרים במחשב ומשמשיכים גם במשחק ובתרגילים.</p>
+      <p class="hint cl-hint">סריגים לפי TAB (מלמעלה למטה): <b>D</b> רה · <b>A</b> לה · <b>F</b> פה · <b>C</b> דו (בס). x = מושתק. זהה ללוח הסריגים ולכיוונון CFAD של הבוזוקי.</p>
       <div class="cl-layout">
         <div class="cl-list" id="cl-list"></div>
         <form class="cl-form card" id="cl-form">
@@ -298,10 +306,8 @@ const ChordLibrary = (() => {
   function previewFormChord() {
     const data = readForm();
     AudioEngine.ensureCtx();
-    data.frets.forEach((v, ci) => {
-      const f = normFretInput(v);
-      if (f !== null) setTimeout(() => AudioEngine.pluckCourse(ci, f, 0, 0.5), ci * 70);
-    });
+    const frets = parseFretsRow(data.frets);
+    AudioEngine.strumChord(fretsToShape(frets), 'd', 0, 0.55);
   }
 
   function renderList() {

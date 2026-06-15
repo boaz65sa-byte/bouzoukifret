@@ -698,9 +698,7 @@ const MasterChords = (() => {
     const c = chords[idx];
     if (!c) return;
     AudioEngine.ensureCtx();
-    c.frets.forEach((f, ci) => {
-      if (f !== null) setTimeout(() => AudioEngine.pluckCourse(ci, f, 0, 0.5), ci * 60);
-    });
+    AudioEngine.strumChord(ChordLibrary.fretsToShape(c.frets), 'd', 0, 0.55);
   }
 
   function startTimer() {
@@ -779,9 +777,7 @@ const MasterChords = (() => {
     ChordLibrary.onPreview(c => {
       if (c) {
         AudioEngine.ensureCtx();
-        c.frets.forEach((f, ci) => {
-          if (f !== null) setTimeout(() => AudioEngine.pluckCourse(ci, f, 0, 0.5), ci * 60);
-        });
+        AudioEngine.strumChord(ChordLibrary.fretsToShape(c.frets), 'd', 0, 0.55);
       }
     });
     $('#mc-start').addEventListener('click', () => running ? stopGame() : startGame());
