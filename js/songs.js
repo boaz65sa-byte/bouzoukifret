@@ -210,6 +210,326 @@ const SongLibrary = (() => {
   let _currentBpm = 120;
   let _currentStep = 0;
   let _highlightEls = [];
+  let _playMode = 'bouzouki'; /* 'bouzouki' | 'simple' */
+  let _bouzoukiMeta = null;   /* מטא-נתונים של ליווי נוכחי */
+
+  /* ===================== תבניות ליווי בוזוקי ===================== */
+  const COURSE_LABELS = ['D', 'A', 'F', 'C']; /* רה, לה, פה, דו — מיתר עליון → תחתון */
+
+  const BOUZOUKI_PATTERNS = {
+    hasapiko: {
+      id: 'hasapiko', nameHe: 'חסאפיקו (4/4)', sub: 2, exerciseId: 'ch3',
+      desc: 'בס–פריטה–בס–פריטה (↓↑ בסוף). תבנית ברירת המחדל לרוב השירים ב-4/4.',
+    },
+    zeibekiko: {
+      id: 'zeibekiko', nameHe: 'ζεϊμπέκικο (9/4)', sub: 2, exerciseId: 'ch4',
+      desc: '9 פעימות עם שקטים — בס על 1, 5 ו-7. לשירי 9/4 ורבטיקו איטי.',
+    },
+    tsifteteli: {
+      id: 'tsifteteli', nameHe: 'ציפטטלי (4/4)', sub: 2, exerciseId: 'ch5',
+      desc: 'גרוב מזרחי: בס ופריטות למעלה עם שקטים. לשירים מהירים וריקודיים.',
+    },
+    ballad: {
+      id: 'ballad', nameHe: 'בלדה / איטי (4/4)', sub: 2, exerciseId: 'ch2',
+      desc: 'בס ואז אקורד מלא — פשוט ונקי לשירים איטיים ומינורה.',
+    },
+  };
+
+  function _cloneEv(ev, chord) {
+    const e = { ...ev, chord: chord || ev.chord };
+    if (ev.len !== undefined) e.len = ev.len;
+    return e;
+  }
+
+  function _hasapikoMeasure(ch) {
+    return [
+      { kind: 'bass', chord: ch, len: 2 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+      { kind: 'bass', chord: ch, len: 2 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+    ];
+  }
+
+  function _hasapikoFromBeats(beatChords) {
+    const events = [];
+    const beats = beatChords.length ? beatChords : ['Dm'];
+    beats.forEach((ch, i) => {
+      const c = ch || beats[i - 1] || 'Dm';
+      events.push({ kind: 'bass', chord: c, len: 2 });
+      if (i === beats.length - 1) {
+        events.push({ kind: 'strum', chord: c, dir: 'd', len: 1 });
+        events.push({ kind: 'strum', chord: c, dir: 'u', len: 1 });
+      } else {
+        events.push({ kind: 'strum', chord: c, dir: 'd', len: 2 });
+      }
+    });
+    return events;
+  }
+
+  function _zeibekikoMeasure(ch) {
+    return [
+      { kind: 'bass', chord: ch, len: 2 },
+      { kind: 'rest', len: 2 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+      { kind: 'rest', len: 2 },
+      { kind: 'bass', chord: ch, len: 2 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+      { kind: 'bass', chord: ch, len: 2 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+      { kind: 'rest', len: 2 },
+    ];
+  }
+
+  function _tsifteteliMeasure(ch) {
+    return [
+      { kind: 'bass', chord: ch, len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+      { kind: 'rest', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+      { kind: 'bass', chord: ch, len: 1 },
+      { kind: 'rest', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+      { kind: 'rest', len: 1 },
+      { kind: 'bass', chord: ch, len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+      { kind: 'rest', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+      { kind: 'bass', chord: ch, len: 1 },
+      { kind: 'rest', len: 1 },
+      { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+      { kind: 'rest', len: 1 },
+    ];
+  }
+
+  function _balladFromBeats(beatChords) {
+    const events = [];
+    const beats = beatChords.length ? beatChords : ['Dm'];
+    beats.forEach((ch, i) => {
+      const c = ch || beats[i - 1] || 'Dm';
+      events.push({ kind: 'bass', chord: c, len: 2 });
+      events.push({ kind: 'strum', chord: c, dir: 'd', len: 2 });
+    });
+    return events;
+  }
+
+  function _beatsPerMeasure(song) {
+    if (song.timeSignature === '9/4') return 9;
+    if (song.timeSignature === '3/4') return 3;
+    if (song.timeSignature === '2/4') return 2;
+    return 4;
+  }
+
+  function _collectBeatChords(song) {
+    const beats = [];
+    song.sections.forEach(sec => {
+      sec.lines.forEach(line => {
+        (line.chords || []).forEach(ch => beats.push(ch || null));
+      });
+    });
+    let last = null;
+    return beats.map(ch => {
+      if (ch) { last = ch; return ch; }
+      return last;
+    });
+  }
+
+  function _pickBouzoukiPattern(song) {
+    if (song.bouzoukiPattern && BOUZOUKI_PATTERNS[song.bouzoukiPattern]) {
+      return BOUZOUKI_PATTERNS[song.bouzoukiPattern];
+    }
+    if (song.bouzoukiPart && song.bouzoukiPart.pattern) {
+      const p = BOUZOUKI_PATTERNS[song.bouzoukiPart.pattern];
+      if (p) return p;
+    }
+    if (_isZeibekikoSong(song)) return BOUZOUKI_PATTERNS.zeibekiko;
+    if (song.style === 'tsifteteli') return BOUZOUKI_PATTERNS.tsifteteli;
+    if ((song.bpm || 120) <= 85) return BOUZOUKI_PATTERNS.ballad;
+    return BOUZOUKI_PATTERNS.hasapiko;
+  }
+
+  function _buildMeasureEvents(patternId, beatChords) {
+    const primary = [...beatChords].reverse().find(Boolean) || beatChords[0] || 'Dm';
+    if (patternId === 'zeibekiko') {
+      return _zeibekikoMeasure(primary).map(ev => _cloneEv(ev, primary));
+    }
+    if (patternId === 'tsifteteli') {
+      return _tsifteteliMeasure(primary).map(ev => _cloneEv(ev, primary));
+    }
+    if (patternId === 'ballad') {
+      return _balladFromBeats(beatChords);
+    }
+    return _hasapikoFromBeats(beatChords);
+  }
+
+  function _buildBouzoukiAccompaniment(song) {
+    if (song.bouzoukiPart && song.bouzoukiPart.events && song.bouzoukiPart.events.length) {
+      const pat = _pickBouzoukiPattern(song);
+      return {
+        pattern: pat,
+        events: song.bouzoukiPart.events,
+        sub: song.bouzoukiPart.sub || pat.sub,
+        custom: true,
+      };
+    }
+
+    const pattern = _pickBouzoukiPattern(song);
+    const beats = _collectBeatChords(song);
+    if (!beats.length || !beats.some(Boolean)) return null;
+
+    const bpm = _beatsPerMeasure(song);
+    const events = [];
+    for (let i = 0; i < beats.length; i += bpm) {
+      const slice = [];
+      for (let j = 0; j < bpm; j++) {
+        slice.push(beats[i + j] || beats[i + j - 1] || beats[i] || null);
+      }
+      events.push(..._buildMeasureEvents(pattern.id, slice));
+    }
+
+    return { pattern, events, sub: pattern.sub, custom: false };
+  }
+
+  function _bouzoukiTotalSteps(events) {
+    return events.reduce((s, n) => s + (n.len || 1), 0);
+  }
+
+  function _bouzoukiEventsAtSteps(events) {
+    const map = new Map();
+    let step = 0;
+    events.forEach((ev, idx) => {
+      map.set(step, { idx, ev });
+      step += ev.len || 1;
+    });
+    return map;
+  }
+
+  function _renderFretTable(chordNames) {
+    const names = [...chordNames].filter(ch => CHORDS[ch]);
+    if (!names.length) return '';
+    const rows = names.map(name => {
+      const shape = CHORDS[name].shape;
+      const cells = shape.map((f, i) => {
+        const fret = f === 'x' ? '×' : f;
+        return `<td><span class="fret-num">${fret}</span><span class="fret-course">${COURSE_LABELS[i]}</span></td>`;
+      }).join('');
+      return `<tr><th class="fret-chord-name">${name}</th>${cells}</tr>`;
+    }).join('');
+    return `
+      <table class="song-fret-table">
+        <thead><tr><th>אקורד</th>${COURSE_LABELS.map(l => `<th>${l}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="song-fret-hint">סדר מיתרים: רה (D) · לה (A) · פה (F) · דו (C) — מלמעלה למטה בטבלה</div>`;
+  }
+
+  function _drawSongStrumStrip(container, events) {
+    if (!container) return;
+    container.innerHTML = '';
+    events.forEach((ev, idx) => {
+      const cell = document.createElement('div');
+      const w = 30 + (ev.len || 1) * 26;
+      cell.style.width = w + 'px';
+      cell.style.flexShrink = '0';
+      cell.dataset.idx = idx;
+      if (ev.kind === 'rest') {
+        cell.className = 'strum-cell rest';
+        cell.innerHTML = '<div class="sc-top">·</div><div class="sc-bottom">שקט</div>';
+      } else if (ev.kind === 'bass') {
+        cell.className = 'strum-cell bass';
+        cell.innerHTML = `<div class="sc-top">↓</div><div class="sc-bottom">בס ${ev.chord}</div>`;
+      } else {
+        cell.className = 'strum-cell';
+        cell.innerHTML = `<div class="sc-top">${ev.dir === 'd' ? '↓' : '↑'}</div><div class="sc-bottom">${ev.chord}</div>`;
+      }
+      container.appendChild(cell);
+    });
+  }
+
+  function _renderBouzoukiPart(song) {
+    const acc = _buildBouzoukiAccompaniment(song);
+    if (!acc || !acc.events.length) {
+      return '<div class="song-bouzouki-empty">אין מספיק אקורדים לבניית ליווי בוזוקי</div>';
+    }
+
+    const uniqueChords = new Set();
+    acc.events.forEach(ev => { if (ev.chord) uniqueChords.add(ev.chord); });
+
+    const modeSimple = _playMode === 'simple';
+    return `
+      <div class="song-bouzouki-part">
+        <div class="song-bouzouki-head">
+          <h3 class="song-bouzouki-title">🎸 תפקיד בוזוקי — ליווי</h3>
+          <span class="song-bouzouki-pattern badge alt">${acc.pattern.nameHe}</span>
+          ${acc.custom ? '<span class="song-bouzouki-custom badge">מותאם</span>' : '<span class="song-bouzouki-auto badge">אוטומטי</span>'}
+        </div>
+        <p class="song-bouzouki-desc">${acc.pattern.desc}${acc.custom ? '' : ' · נבנה אוטומטית מהאקורדים ומסגנון השיר.'}</p>
+        ${song.bouzoukiTips ? `<p class="song-bouzouki-tips">💡 ${song.bouzoukiTips}</p>` : ''}
+        <div class="song-play-mode">
+          <button type="button" class="btn btn-sm ${_playMode === 'bouzouki' ? 'btn-gold' : ''}" id="song-mode-bouzouki">ליווי בוזוקי</button>
+          <button type="button" class="btn btn-sm ${_playMode === 'simple' ? 'btn-gold' : ''}" id="song-mode-simple">אקורדים בלבד</button>
+        </div>
+        <div class="song-bouzouki-section">
+          <div class="song-bouzouki-label">סריגים על הלוח (CFAD)</div>
+          ${_renderFretTable(uniqueChords)}
+        </div>
+        <div class="song-bouzouki-section" style="${modeSimple ? 'display:none' : ''}">
+          <div class="song-bouzouki-label">תבנית פריטה לאורך השיר</div>
+          <div class="song-strum-scroll">
+            <div class="strum-strip song-strum-strip" id="song-strum-strip"></div>
+          </div>
+          <div class="song-bouzouki-hint">↓ = פריטה · <span class="hint-gold">בס</span> = מיתר נמוך בלבד · · = שקט · רוחב תא = אורך הצליל</div>
+        </div>
+        <div class="song-bouzouki-learn">
+          <span>לתרגל את התבנית:</span>
+          <button type="button" class="btn btn-sm" id="song-goto-exercise" data-ex-id="${acc.pattern.exerciseId}">תרגיל ${acc.pattern.exerciseId} →</button>
+        </div>
+      </div>`;
+  }
+
+  function _bindBouzoukiPartEvents(detail, song) {
+    const strip = detail.querySelector('#song-strum-strip');
+    if (strip && _playMode === 'bouzouki') {
+      const acc = _buildBouzoukiAccompaniment(song);
+      if (acc) _drawSongStrumStrip(strip, acc.events);
+    }
+
+    const modeB = detail.querySelector('#song-mode-bouzouki');
+    const modeS = detail.querySelector('#song-mode-simple');
+    if (modeB) modeB.onclick = () => {
+      _playMode = 'bouzouki';
+      _refreshSongView(song, detail);
+    };
+    if (modeS) modeS.onclick = () => {
+      _playMode = 'simple';
+      _refreshSongView(song, detail);
+    };
+
+    const gotoEx = detail.querySelector('#song-goto-exercise');
+    if (gotoEx) gotoEx.onclick = () => {
+      const exId = gotoEx.dataset.exId;
+      const exBtn = document.querySelector('.nav-btn[data-screen="exercises"]');
+      if (exBtn) exBtn.click();
+      setTimeout(() => {
+        if (typeof EXERCISES === 'undefined') return;
+        for (const cat of EXERCISES) {
+          const item = cat.items.find(it => it.id === exId);
+          if (item) {
+            const catIdx = EXERCISES.indexOf(cat);
+            const tabs = document.querySelectorAll('#ex-cats .rhythm-tab');
+            if (tabs[catIdx]) tabs[catIdx].click();
+            setTimeout(() => {
+              const items = document.querySelectorAll('#ex-list .dromos-item');
+              const itemIdx = cat.items.indexOf(item);
+              if (items[itemIdx]) items[itemIdx].click();
+            }, 80);
+            break;
+          }
+        }
+      }, 120);
+    };
+  }
 
   /* ===================== בסיס נתונים — שירים ===================== */
   const BUILTIN_SONGS = [
@@ -228,6 +548,8 @@ const SongLibrary = (() => {
       bpm: 120,
       timeSignature: '4/4',
       difficulty: 2,
+      bouzoukiPattern: 'hasapiko',
+      bouzoukiTips: 'חיג׳אז מהיר: הדגישו D→Eb (מי♭) — הבס על D ואז מעבר חד ל-Eb. שמרו על ↓↑ בסוף כל תיבה.',
       sections: [
         {
           name: 'Intro',
@@ -269,6 +591,8 @@ const SongLibrary = (() => {
       bpm: 100,
       timeSignature: '4/4',
       difficulty: 2,
+      bouzoukiPattern: 'hasapiko',
+      bouzoukiTips: 'מינורה קלאסית Dm–Gm–A7: בס נקי לפני כל פריטה, מעבר חלק בין הצורות בלי לעצור את יד ימין.',
       sections: [
         {
           name: 'Intro',
@@ -4826,7 +5150,41 @@ const SongLibrary = (() => {
     _currentBpm = song.bpm || 120;
     _currentStep = 0;
 
-    /* יוצר רשימה שטוחה של כל האקורדים */
+    if (_playMode === 'bouzouki') {
+      _bouzoukiMeta = _buildBouzoukiAccompaniment(song);
+      if (_bouzoukiMeta && _bouzoukiMeta.events.length) {
+        const { events, sub } = _bouzoukiMeta;
+        const evMap = _bouzoukiEventsAtSteps(events);
+        const total = _bouzoukiTotalSteps(events);
+        const strumCells = document.querySelectorAll('#song-strum-strip .strum-cell');
+
+        const sched = new AudioEngine.Scheduler(
+          (step, time) => {
+            const hit = evMap.get(step);
+            if (hit) {
+              const ev = hit.ev;
+              const chord = CHORDS[ev.chord];
+              if (chord) {
+                if (ev.kind === 'strum') AudioEngine.strumChord(chord.shape, ev.dir, time, 0.44);
+                else if (ev.kind === 'bass') AudioEngine.bassOfChord(chord.shape, time, 0.58);
+              }
+            }
+          },
+          (step) => {
+            _currentStep = step;
+            _highlightBouzoukiStep(evMap, step, strumCells);
+          }
+        );
+        sched.stepDur = 60 / _currentBpm / sub;
+        sched.numSteps = total;
+        sched.start();
+        _scheduler = sched;
+        if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(sched);
+        return;
+      }
+    }
+
+    /* מצב פשוט — אקורד אחד לכל beat */
     const allChords = [];
     song.sections.forEach(sec => {
       sec.lines.forEach(line => {
@@ -4862,6 +5220,24 @@ const SongLibrary = (() => {
     }
   }
 
+  function _highlightBouzoukiStep(evMap, step, strumCells) {
+    _clearHighlights();
+    const hit = evMap.get(step);
+    if (hit && strumCells.length) {
+      strumCells.forEach(el => el.classList.remove('lit'));
+      const cell = document.querySelector(`#song-strum-strip .strum-cell[data-idx="${hit.idx}"]`);
+      if (cell) {
+        cell.classList.add('lit');
+        cell.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+      }
+      if (hit.ev.chord) {
+        document.querySelectorAll('.song-chord').forEach(el => {
+          el.classList.toggle('chord-active', el.dataset.chord === hit.ev.chord);
+        });
+      }
+    }
+  }
+
   function stopSong() {
     if (_scheduler) {
       _scheduler.stop();
@@ -4869,7 +5245,9 @@ const SongLibrary = (() => {
     }
     _playing = false;
     _currentStep = 0;
+    _bouzoukiMeta = null;
     _clearHighlights();
+    document.querySelectorAll('#song-strum-strip .strum-cell.lit').forEach(e => e.classList.remove('lit'));
     if (_scrollTimer) {
       clearInterval(_scrollTimer);
       _scrollTimer = null;
@@ -5100,6 +5478,8 @@ const SongLibrary = (() => {
         </div>
       </div>
 
+      ${_renderBouzoukiPart(song)}
+
       <div class="song-scroll-area" id="song-scroll-area">
         ${_renderSections(song)}
       </div>
@@ -5133,13 +5513,19 @@ const SongLibrary = (() => {
       displaySong = { ...displaySong, bpm: Math.max(30, displaySong.bpm - 5) };
       _currentBpm = displaySong.bpm;
       if (bpmVal) bpmVal.textContent = displaySong.bpm;
-      if (_scheduler) _scheduler.stepDur = 60 / _currentBpm;
+      if (_scheduler) {
+        const sub = (_bouzoukiMeta && _playMode === 'bouzouki') ? _bouzoukiMeta.sub : 1;
+        _scheduler.stepDur = 60 / _currentBpm / sub;
+      }
     };
     if (bpmUp) bpmUp.onclick = () => {
       displaySong = { ...displaySong, bpm: Math.min(240, displaySong.bpm + 5) };
       _currentBpm = displaySong.bpm;
       if (bpmVal) bpmVal.textContent = displaySong.bpm;
-      if (_scheduler) _scheduler.stepDur = 60 / _currentBpm;
+      if (_scheduler) {
+        const sub = (_bouzoukiMeta && _playMode === 'bouzouki') ? _bouzoukiMeta.sub : 1;
+        _scheduler.stepDur = 60 / _currentBpm / sub;
+      }
     };
 
     if (trDown) trDown.onclick = () => {
@@ -5160,6 +5546,8 @@ const SongLibrary = (() => {
       _renderList();
       detail.innerHTML = '<div class="songs-empty-state"><h2>השיר נמחק</h2></div>';
     };
+
+    _bindBouzoukiPartEvents(detail, displaySong);
   }
 
   function _refreshSongView(song, detail) {
@@ -5183,6 +5571,20 @@ const SongLibrary = (() => {
         b.textContent = song.key;
       }
     });
+    const bouzPart = detail.querySelector('.song-bouzouki-part');
+    const bouzEmpty = detail.querySelector('.song-bouzouki-empty');
+    const bouzHtml = _renderBouzoukiPart(song);
+    if (bouzPart) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = bouzHtml;
+      bouzPart.replaceWith(tmp.firstElementChild);
+      _bindBouzoukiPartEvents(detail, song);
+    } else if (bouzEmpty) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = bouzHtml;
+      bouzEmpty.replaceWith(tmp.firstElementChild);
+      _bindBouzoukiPartEvents(detail, song);
+    }
   }
 
   function _renderSections(song) {
@@ -5485,6 +5887,63 @@ More lyrics here</pre>
       .chord-mini-svg {
         width: 52px; height: 68px; background: rgba(11,22,35,0.5);
         border-radius: 6px; border: 1px solid rgba(79,179,217,0.12);
+      }
+
+      /* Bouzouki accompaniment part */
+      .song-bouzouki-part {
+        margin: 16px 0; padding: 16px;
+        background: rgba(11,22,35,0.45); border-radius: 12px;
+        border: 1px solid rgba(227,179,65,0.22);
+      }
+      .song-bouzouki-head {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+      }
+      .song-bouzouki-title {
+        margin: 0; font-size: 17px; color: var(--gold);
+      }
+      .song-bouzouki-desc {
+        font-size: 13px; color: var(--text-dim); margin: 0 0 12px; line-height: 1.5;
+      }
+      .song-bouzouki-tips {
+        font-size: 13px; color: var(--gold); margin: -4px 0 12px; line-height: 1.5;
+        padding: 8px 12px; background: rgba(227,179,65,0.08); border-radius: 8px;
+        border-right: 3px solid var(--gold);
+      }
+      .song-play-mode { display: flex; gap: 8px; margin-bottom: 14px; }
+      .song-bouzouki-section { margin-bottom: 14px; }
+      .song-bouzouki-label {
+        font-size: 12px; font-weight: 700; color: var(--aegean);
+        margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .song-fret-table {
+        width: 100%; max-width: 420px; border-collapse: collapse;
+        font-family: 'Courier New', monospace; direction: ltr;
+      }
+      .song-fret-table th, .song-fret-table td {
+        border: 1px solid rgba(79,179,217,0.15); padding: 6px 10px; text-align: center;
+      }
+      .song-fret-table th { background: rgba(79,179,217,0.08); color: var(--aegean); font-size: 12px; }
+      .song-fret-table .fret-chord-name { color: var(--gold); font-weight: 700; }
+      .song-fret-table .fret-num { display: block; font-size: 18px; font-weight: 900; color: var(--text); }
+      .song-fret-table .fret-course { display: block; font-size: 10px; color: var(--text-dim); }
+      .song-fret-hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; direction: rtl; }
+      .song-strum-scroll {
+        overflow-x: auto; padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .song-strum-strip {
+        display: flex; gap: 4px; min-width: min-content; padding: 4px 0;
+      }
+      .song-bouzouki-hint { font-size: 11.5px; color: var(--text-dim); margin-top: 6px; }
+      .song-bouzouki-hint .hint-gold { color: var(--gold); font-weight: 700; }
+      .song-bouzouki-learn {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        font-size: 13px; color: var(--text-dim); margin-top: 4px;
+      }
+      .song-bouzouki-auto { background: rgba(79,179,217,0.15); }
+      .song-bouzouki-custom { background: rgba(227,179,65,0.15); }
+      .song-bouzouki-empty {
+        padding: 12px; color: var(--text-dim); font-size: 13px;
       }
 
       /* Scroll area */
