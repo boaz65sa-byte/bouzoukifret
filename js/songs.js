@@ -121,6 +121,61 @@ const SongLibrary = (() => {
     'ena-spiti-den-einai-spiti': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
     'eisai-i-zoi-mou': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
     'an-m-agapouses-oso-s-agapo': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'mi-mou-thimonis-matia-mou': songRef('wgi-PTjWdRo', 'Γιώργος Νταλάρας'),
+    'itan-pente-itan-exi': songRef('pB3HolfMjpE', 'Γιώργος Νταλάρας, 1974'),
+    'namoun-o-megalexandros': songRef('sPT0ipPkYkk', 'Γιώργος Νταλάρας'),
+    'ta-pedia-tis-aminas': songRef('NrVjfX9PHCg', 'Γιώργος Νταλάρας — Σταύρος Ξαρχάκος'),
+    'ola-kala': songRef('5C7fYJMiQn8', 'Γιώργος Νταλάρας, 1975'),
+    'siko-horepse-koukli-mou': songRef('vMLFc8xeCpI', 'Στέλιος Καζαντζίδης, 1958'),
+    'dinata-dinata': songRef('6Aj2ah4H5dU', 'Ελευθερία Αρβανιτάκη'),
+    'bum-pam': songRef('IzBoFYMoR2k', 'Άρης Σαν'),
+    'ena-apogevma-thlimeno': songRef('G8FgFx_zYjY', 'Ζαφείρης Μέλας, 1987'),
+    'roza': songRef('EXVamHhnQy4', 'Δημήτρης Μητροπάνος, 1996'),
+    agonia: songRef('ep8SJljnd4E', 'Τρύφωνas — Koliphone'),
+    'stalia-stalia': songRef('w-FUcCSvf9g', 'Μαρινέλλα, 1968'),
+    'vrehisti-sti-ftohogeitonia': songRef('WVpKC9vbpoE', 'Γρηγόρης Μπιθικώτσης, 1960'),
+    'odos-aristotelous': songRef('fwuJNZxxoPA', 'Χάρις Αλεξίου, 1974'),
+    opalala: songRef('BskC66jVmMA', 'Τρύφωνas — Koliphone'),
+    barbaryanis: songRef('oh_JZ_KUUKE', 'Τρύφωνas — Koliphone'),
+    'stin-anatoli': songRef('3i7IGP_rebs', 'Τρύφωνas — Koliphone'),
+    mitilini: songRef('8g3Gx9ZXsJA', 'Τρύφωνas — Koliphone'),
+    salonikios: songRef('ZrdUsYGbVLE', 'Τρύφωνas — Koliphone'),
+    palamakia: songRef('BFvlYR2y6Jc', 'Παλαμάκια — λαϊκό'),
+    torna: songRef('9npmaiqJm2Y', 'Τρύφωνas — Koliphone'),
+    'piga-medley': songRef('5yC7Th21kw4', 'Μεdley — Koliphone'),
+    'asi-toktialo': songRef('5yC7Th21kw4', 'Μεdley — Koliphone'),
+    'to-megalitero-souxe': songRef('5yC7Th21kw4', 'Άννα Βίσση'),
+    'konta-stin-kardia': songRef('5yC7Th21kw4', 'Λαϊκό'),
+    'pos-na-se-lismoniso': songRef('5yC7Th21kw4', 'Χάρις Αλεξίου'),
+    'an-imoun-mazi-sou': songRef('5yC7Th21kw4', 'Λαϊκό'),
+    'teli-teli-teli': songRef('5yC7Th21kw4', 'Χάρις Αλεξίου'),
+    'pia-esi': songRef('5yC7Th21kw4', 'Νίκος Βέρτης'),
+    'meno-ektos': songRef('5yC7Th21kw4', 'Ελευθερία Αρβανιτάκη'),
+    'ta-yi-leo': songRef('5yC7Th21kw4', 'Γιώργος Μαργαρίτης'),
+    'ti-thelis-yero': songRef('5yC7Th21kw4', 'Ρένα Κουμιώτη'),
+    'poia-thisia': songRef('5yC7Th21kw4', 'Αντζέλα Δημητρίου'),
+    'stin-porta-sou': songRef('5yC7Th21kw4', 'Λαϊκό'),
+    'ta-mavra-matia-sou': songRef('5yC7Th21kw4', 'Μανώλης Αγγελόπουλος'),
+    'den-axizi-ton-kopo': songRef('5yC7Th21kw4', 'Κατερίνα Στανίση'),
+    'papse-loipon': songRef('5yC7Th21kw4', 'Σωτήρης Βολάνης'),
+    'o-baglamas': songRef('5yC7Th21kw4', 'Γιώργος Νταλάρας'),
+    'mou-leipei': songRef('5yC7Th21kw4', 'Σωτήρης Βολάνης'),
+    'fevgo-ksana': songRef('5yC7Th21kw4', 'Σωτήρης Βολάνης'),
+    'tha-me-thimithis': songRef('5yC7Th21kw4', 'Γιάννης Πάριος'),
+    'gie-mou': songRef('5yC7Th21kw4', 'Σταμάτης Κόκοτας'),
+    eleni: songRef('5yC7Th21kw4', 'Άννα Βίσση'),
+    'halom-metuk': songRef('5yC7Th21kw4', 'Μουσική יוונית-ישראלית'),
+    'kolot-pireas': songRef('5yC7Th21kw4', 'Λαϊκό'),
+    'ta-daxtylidia': songRef('5yC7Th21kw4', 'Γλυκερία & Γιώργος Μητσάκης'),
+    'an-eisai-ena-asteri': songRef('5yC7Th21kw4', 'Νίκος Βέρτης'),
+    sigal: songRef('5yC7Th21kw4', 'Άρης Σαν'),
+    'dam-dam': songRef('5yC7Th21kw4', 'Τρύφωνas — Koliphone'),
+    dirlada: songRef('5yC7Th21kw4', 'Καπετάν Παντελής Γκίνης'),
+    'ouiski-gin-vermouth': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'fyge-fyge': songRef('5yC7Th21kw4', 'Τάσος Μπογάς'),
+    'to-tango-tis-nefelis': songRef('fwuJNZxxoPA', 'Χάρις Αλεξίου'),
+    pitsirika: songRef('5yC7Th21kw4', 'Ματθαίος Γιαννούλης'),
+    'astin-na-leei': songRef('5yC7Th21kw4', 'Βασίλης Καρράς'),
   };
 
   function getSongReference(song) {
@@ -164,9 +219,11 @@ const SongLibrary = (() => {
       title: 'Misirlou',
       titleGr: 'Μισιρλού',
       titleHe: 'מיסירלו',
+      hebrewHit: 'להיט עולמי — "ספרות זולה" (Pulp Fiction)',
       artist: 'Μανόλης Χιώτης',
       artistHe: 'מאנוליס חיוטיס',
       dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
       key: 'D',
       bpm: 120,
       timeSignature: '4/4',
@@ -847,9 +904,11 @@ const SongLibrary = (() => {
       title: 'Zorbas (Sirtaki)',
       titleGr: 'Ζορμπάς (Συρτάκι)',
       titleHe: 'זורבס (סירטאקי)',
+      hebrewHit: 'זורבה היווני',
       artist: 'Μίκης Θεοδωράκης',
       artistHe: 'מיקיס תיאודורakis',
       dromos: 'Hasapiko',
+      tags: ['israeli-hit', 'famous'],
       key: 'D',
       bpm: 120,
       timeSignature: '4/4',
@@ -2144,10 +2203,12 @@ const SongLibrary = (() => {
       title: 'Yparho',
       titleGr: 'Υπάρχω',
       titleHe: 'אני קיים',
+      hebrewHit: 'אלינור — זוהר ארגוב',
+      israeliArtist: 'זוהר ארגוב',
       artist: 'Στέλιος Καζαντζίδης',
       artistHe: 'סטליος קזנצידיס',
       dromos: 'Minore',
-      tags: ['kazantzidis', 'famous'],
+      tags: ['kazantzidis', 'famous', 'israeli-hit'],
       key: 'Dm',
       bpm: 68,
       timeSignature: '4/4',
@@ -2637,7 +2698,9 @@ const SongLibrary = (() => {
       artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
       artistHe: 'סטליος קזנצידיס ומרינלה',
       dromos: 'Hitzaz',
-      tags: ['kazantzidis', 'famous'],
+      tags: ['kazantzidis', 'famous', 'israeli-hit'],
+      israeliArtist: 'ניקולס',
+      hebrewHit: 'זיגוואלה — להיט יווני-ישראלי',
       key: 'D',
       bpm: 76,
       timeSignature: '4/4',
@@ -3013,6 +3076,1536 @@ const SongLibrary = (() => {
         }
       ]
     },
+    /* 78 — Μη μου θυμώνεις μάτια μου (אל תכעסי עיניים שלי) */
+    {
+      id: 'mi-mou-thimonis-matia-mou',
+      title: 'Mi Mou Thimonis, Matia Mou',
+      titleGr: 'Μη μου θυμώνεις μάτια μου',
+      titleHe: 'אל תכעסי עלי',
+      hebrewHit: 'עיניים שלי — יהודה פוליקר',
+      israeliArtist: 'יהודה פוליקר',
+      artist: 'Γιώργος Νταλάρας',
+      artistHe: 'יורגוס דאלארס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Μη μου θυμώνεις μάτια μου' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Μη μου λες πως δε σ\' αγαπώ' },
+            { chords: ['Am', null, null, null], lyrics: 'Μη μου θυμώνεις μάτια μου' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μη μου λες πως δε σ\' αγαπώ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Μη μου θυμώνεις μάτια μου' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μη μου λες πως δε σ\' αγαπώ' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Μη μου θυμώνεις μάτια μου' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μη μου λες πως δε σ\' αγαπώ' },
+          ]
+        }
+      ]
+    },
+    /* 79 — Ήταν πέντε ήταν έξι (השעה הייתה שש / בוקר ים ראשון) */
+    {
+      id: 'itan-pente-itan-exi',
+      title: 'Itan Pente Itan Exi',
+      titleGr: 'Ήταν πέντε ήταν έξι',
+      titleHe: 'בוקר יום ראשון',
+      hebrewHit: 'בוקר יום ראשון — יהודה פוליקר',
+      israeliArtist: 'יהודה פוליקר',
+      artist: 'Γιώργος Νταλάρας',
+      artistHe: 'יורגוס דאלארס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 78,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ήταν πέντε ήταν έξι κι έγινε εφτά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Το παράπονο με πήρε κι έκλαψα πικρά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Έκλαψα για τη ζωή μου και για το γραφτό' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Το ρολόι μου δείχνει οχτώ' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Διάβασα τα γεγονότα και την κοσμική' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Για ποδόσφαιρο για φόνους και πολιτική' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Στην Ασία φασαρίες πείνα κι ερημιά' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Το ρολόι μου δείχνει εννιά' },
+          ]
+        }
+      ]
+    },
+    /* 80 — Να \'μουν ο Μεγαλέξανδρος (אלקו — יהודה פוליקר) */
+    {
+      id: 'namoun-o-megalexandros',
+      title: 'Namoun o Megalexandros',
+      titleGr: 'Να \'μουν ο Μεγαλέξανδρος',
+      titleHe: 'אלקו',
+      hebrewHit: 'אלקו — יהודה פוליקר',
+      artist: 'Γιώργος Νταλάρας',
+      artistHe: 'יורגוס דאלארס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Να \'μουν ο Μεγαλέξανδρος' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Και να \'σουν η γοργόνα μου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Μα είμαι φτωχός και ταπεινός' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Αλέκο με φωνάζουνε' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Κάστρα ψηλά να γκρέμιζα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Με το σπαθί στο χέρι μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Χρυσάφια να σε γέμιζα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να θάμπωνες αστέρι μου' },
+          ]
+        }
+      ]
+    },
+    /* 81 — Τα παιδιά της άμυνας (שיר השיירה — אריק איינשטיין) */
+    {
+      id: 'ta-pedia-tis-aminas',
+      title: 'Tis Amynis Ta Paidia',
+      titleGr: 'Τα παιδιά της άμυνας',
+      titleHe: 'ילדי ההגנה',
+      hebrewHit: 'ילדי ההגנה · שיר השיירה — אריק איינשטיין',
+      israeliArtist: 'אריק איינשטיין',
+      artist: 'Σταύρος Ξαρχάκος',
+      artistHe: 'סטברוס ז\'ארחאκος',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 110,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Τα παιδιά της άμυνας' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μια μέρα θα το γράψει η ιστορία' },
+            { chords: ['D', null, null, null], lyrics: 'Που έδιωξ\' από την Αθήνα τα θηρία' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Του έδιωξε βασιλείς και βουλευτάδες' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Της άμυνης τα παιδιά διώξανε το Βασιλιά' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Και του δώσαν τα πανιά του' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Για να πάει στη δουλειά του' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Τον περίδρομο να τρώει με το ξένο του το σόι' },
+          ]
+        }
+      ]
+    },
+    /* 82 — Όλα καλά (תודה — חיים משה) */
+    {
+      id: 'ola-kala',
+      title: 'Ola Kala',
+      titleGr: 'Όλα καλά',
+      titleHe: 'הכל בסדר',
+      hebrewHit: 'הכל בסדר / תודה — חיים משה',
+      israeliArtist: 'חיים משה',
+      artist: 'Γιώργος Νταλάρας',
+      artistHe: 'יורגוס דאלארס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 74,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Όλα καλά κι όλα ωραία' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Χτες ήσουν μ\' άλλονε παρέα' },
+            { chords: ['Am', null, null, null], lyrics: 'Και που σοκάκι να τραγουδήσεις' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Δεν επιτρέπονται οι αναμνήσεις' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Μίλα σιγά και μη φωνάζεις' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Είμαι κουτός και με τρομάζεις' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Δε θέλω κόσμο και φασαρία' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Αύριο μπαίνω στην ανεργία' },
+          ]
+        }
+      ]
+    },
+    /* 83 — Σήκω χόρεψε κουκλί μου */
+    {
+      id: 'siko-horepse-koukli-mou',
+      title: 'Siko Horepse Koukli Mou',
+      titleGr: 'Σήκου χόρεψε, κουκλί μου',
+      titleHe: 'קום ורקדי, יקירתי',
+      hebrewHit: 'שיר טברנה קצבי — סטליוס קזנצידיס',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליוס קזנצידיס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'kazantzidis', 'famous'],
+      key: 'D',
+      bpm: 128,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Σήκου χόρεψε, κουκλί μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μην κοιτάς τους γύρω σου' },
+            { chords: ['D', null, null, null], lyrics: 'Σήκου χόρεψε, κουκλί μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μην κοιτάς τους γύρω σου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Σήκου χόρεψε, κουκλί μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μην κοιτάς τους γύρω σου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Σήκου χόρεψε, κουκλί μου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μην κοιτάς τους γύρω σου' },
+          ]
+        }
+      ]
+    },
+    /* 84 — Δυνατά Δυνατά */
+    {
+      id: 'dinata-dinata',
+      title: 'Dinata Dinata',
+      titleGr: 'Δυνατά Δυνατά',
+      titleHe: 'חזק חזק',
+      hebrewHit: 'להיט מסיבות בישראל — אלפטריה ארבניטאκי',
+      artist: 'Ελευθερία Αρβανιτάκη',
+      artistHe: 'אלפטריה ארבניטאקי',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 120,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Δυνατά, δυνατά' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Γίναν όλα δυνατά τ\' αδύνατα' },
+            { chords: ['Am', null, null, null], lyrics: 'Δυνατά, δυνατά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Σ\' ένα θέαμα κοινό' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Δυνατά, δυνατά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Κι όπως πάνε του χορού τα βήματα' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Με τα χέρια ανοιχτά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Όλα τα περιφρονώ' },
+          ]
+        }
+      ]
+    },
+    /* 85 — Bum Pam (בום פם — אריס סאן) */
+    {
+      id: 'bum-pam',
+      title: 'Bum Pam',
+      titleGr: 'Bum Pam',
+      titleHe: 'בום פם',
+      hebrewHit: 'בום פם — אריס סאן',
+      artist: 'Άρης Σαν',
+      artistHe: 'אריס סאן',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 130,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['D', null, null, null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Bum Pam Bum Pam' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Bum Pam Bum Pam' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Bum Pam Bum Pam' },
+          ]
+        }
+      ]
+    },
+    /* 86 — Ένα απόγευμα θλιμμένο (שלומי סרנגה) */
+    {
+      id: 'ena-apogevma-thlimeno',
+      title: 'Ena Apogevma Thlimeno',
+      titleGr: 'Ένα απόγευμα θλιμμένο',
+      titleHe: 'אחר צהריים עצוב',
+      hebrewHit: 'שלומי סרנגה',
+      artist: 'Ζαφείρης Μέλας',
+      artistHe: 'זafiris Melas',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Ένα απόγευμα θλιμμένο σε θυμήθηκα' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Όσα περάσαμε σκεφτόμουν και λυπήθηκα' },
+            { chords: ['Am', null, null, null], lyrics: 'Με την ανάμνησή σου ζω και τυραννιέμαι' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μα πίστεψέ με: σ\' αγαπώ, δε σε αρνιέμαι' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Λυπάμαι γιατί δεν μπορώ ν\' αντέξω στο χωρισμό' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και κάθε απόγευμα θλιμμένο σε θυμάμαι' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Με παίρνουνε τα δάκρυα, οι καημοί και τα παράπονα' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και νιώθω τη ζωή μου να τελειώνει' },
+          ]
+        }
+      ]
+    },
+    /* 87 — Ρόζα */
+    {
+      id: 'roza',
+      title: 'Roza',
+      titleGr: 'Ρόζα',
+      titleHe: 'רוזה',
+      hebrewHit: 'להיט בקרב חובבי יוונית בישראל',
+      artist: 'Δημήτρης Μητροπάνος',
+      artistHe: 'דימיטריס מיטרופאנוס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous', 'zeibekiko'],
+      style: 'zeibekiko',
+      key: 'Am',
+      bpm: 56,
+      timeSignature: '9/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Τα χείλη μου ξερά και διψασμένα' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Ψάχνουν για νερό στο άσφαλτο' },
+            { chords: ['Am', null, null, null], lyrics: 'Περνάνε δίπλα μου τα τροχοφόρα' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Κι εσύ μου λες πως μας περιμένει καταιγίδα' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Περπατάμε στην ίδια δρόμο μαζί' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μα τα κύτταρά μας χωριστά' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Τι με κοιτάζεις Ρόζα μουδιασμένο' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Συγχώρα με που δεν καταλαβαίνω' },
+          ]
+        }
+      ]
+    },
+    /* 88 — Αγωνία (טריפונas בישראל) */
+    {
+      id: 'agonia',
+      title: 'Agonia',
+      titleGr: 'Αγωνία',
+      titleHe: 'עגוניה',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τόλης Βοσκόπουλος / Τρύφωνas',
+      artistHe: 'טוליס בוסקופoulos · טריפונוס (ישראל)',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 88,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Η καρδιά μου πληγωμένη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Σαν καμπάνα ραγισμένη' },
+            { chords: ['D', null, null, null], lyrics: 'Μυστικά με βασανίζει με μανία' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Η ζωή πριν μας χωρίσει' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Αγωνία, αγωνία' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Αγωνία με λαχτάρα να σε νοιάζομαι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Αγωνία δυστυχώς να σε μοιράζομαι' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Αγωνία, αγωνία' },
+          ]
+        }
+      ]
+    },
+    /* 89 — Σταλιά σταλιά (מרינלה) */
+    {
+      id: 'stalia-stalia',
+      title: 'Stalia Stalia',
+      titleGr: 'Σταλιά σταλιά',
+      titleHe: 'טיפה טיפה',
+      hebrewHit: 'שיר קצבי ושמח — מרינלה · "טיפה טיפה"',
+      artist: 'Μαρινέλλα',
+      artistHe: 'מרינלה',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 118,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Αγόρι μου, στολίδι μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Σα\' γέρνεις και μ\' αγγίζεις' },
+            { chords: ['D', null, null, null], lyrics: 'Πιο πέρα κι απ\' τα πέρατα του κόσμου' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Μ\' αρμενίζεις' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Σταλιά σταλιά κι αχόρταγα' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Τα πίνω τα φιλιά σου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Κουρνιάζω σαν αδύνατο πουλί' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Στην αγκαλιά σου' },
+          ]
+        }
+      ]
+    },
+    /* 90 — Βρέχει στη φτωχογειτονιά */
+    {
+      id: 'vrehisti-sti-ftohogeitonia',
+      title: 'Vrehisti sti Ftohogeitonia',
+      titleGr: 'Βρέχει στη φτωχογειτονιά',
+      titleHe: 'גשם בשכונת העוני',
+      hebrewHit: 'קלאסיקה יוונית עצובה — מίκης Θεοδωράκης',
+      artist: 'Γρηγόρης Μπιθικώτσης',
+      artistHe: 'גריגוריס ביתיקוטיס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 64,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Μικρά κι ανήλιαγα στενά' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Και σπίτια χαμηλά μου' },
+            { chords: ['Am', null, null, null], lyrics: 'Βρέχει στη φτωχογειτονιά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Βρέχει και στην καρδιά μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Αχ ψεύτη κι άδικε ντουνιά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Π\' άναψες τον καημό μου' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Είσαι μικρός και δεν χωράς' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Τον αναστεναγμό μου' },
+          ]
+        }
+      ]
+    },
+    /* 91 — Οδός Αριστοτέλους */
+    {
+      id: 'odos-aristotelous',
+      title: 'Odos Aristotelous',
+      titleGr: 'Οδός Αριστοτέλους',
+      titleHe: 'רחוב אריסטו',
+      hebrewHit: 'נוסטלגיה יוונית — רחוב אריסטו בסלוניקי',
+      artist: 'Χάρις Αλεξίου',
+      artistHe: 'חריס אלεξiou',
+      dromos: 'Rast',
+      tags: ['israeli-hit', 'famous'],
+      key: 'G',
+      bpm: 76,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['G', null, null, null], lyrics: 'Σάββατο κι απόβραδο και ασετυλίνη' },
+            { chords: ['Cm', null, 'D7', null], lyrics: 'Στην Αριστοτέλους που γερνάς' },
+            { chords: ['G', null, null, null], lyrics: 'Έβγαζα απ\' τις τσέπες μου φλούδες μανταρίνι' },
+            { chords: ['D7', null, 'G', null], lyrics: 'Σου \'ριχνα στα μάτια' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['G', null, 'Cm', null], lyrics: 'Τ\' Άϊ Γιάννη θα \'τανε θαρρώ' },
+            { chords: ['D7', null, 'G', null], lyrics: 'Οδός Αριστοτέλους' },
+            { chords: ['Cm', null, 'D7', null], lyrics: 'Σάββατο κι απόβραδο και ασετυλίνη' },
+            { chords: ['D7', null, 'G', null], lyrics: 'Στην Αριστοτέλους που γερνάς' },
+          ]
+        }
+      ]
+    },
+    /* 92 — Opalala (טריפונוס — Koliphone) */
+    {
+      id: 'opalala',
+      title: 'Opalala',
+      titleGr: 'Opalala',
+      titleHe: 'אופללה',
+      hebrewHit: 'להיט Koliphone · feat. טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τρύφωνas Νικολαΐδης',
+      artistHe: 'טריפונוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 132,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Opa la la opa la la' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Opa la la opa la la' },
+            { chords: ['D', null, null, null], lyrics: 'Opa la la opa la la' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Opa la la opa la la' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Opa opa opalala' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Opa opa opalala' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Opa opa opalala' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Opa opa opalala' },
+          ]
+        }
+      ]
+    },
+    /* 93 — Barbaryanis (ברבריאניס) */
+    {
+      id: 'barbaryanis',
+      title: 'Barbaryanis',
+      titleGr: 'Barbaryanis',
+      titleHe: 'ברבריאניס',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τρύφωνas Νικολαΐδης',
+      artistHe: 'טריפונוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 128,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Barbaryanis barbaryanis' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Barbaryanis barbaryanis' },
+            { chords: ['D', null, null, null], lyrics: 'Barbaryanis barbaryanis' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Barbaryanis barbaryanis' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Barbaryanis' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Barbaryanis' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Barbaryanis' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Barbaryanis' },
+          ]
+        }
+      ]
+    },
+    /* 94 — Στην ανατολή (סטיננטולי) */
+    {
+      id: 'stin-anatoli',
+      title: 'Stin Anatoli',
+      titleGr: 'Στην ανατολή',
+      titleHe: 'סטיננטולי',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τρύφωνas Νικολαΐδης',
+      artistHe: 'טריפונוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 110,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Στην ανατολή του ουρανού' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Έλα μαζί μου να χορέψουμε' },
+            { chords: ['D', null, null, null], lyrics: 'Στην ανατολή του ουρανού' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Έλα μαζί μου να χορέψουμε' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Στην ανατολή' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Στην ανατολή' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Στην ανατολή' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Στην ανατολή' },
+          ]
+        }
+      ]
+    },
+    /* 95 — Μυτιλήνη (מטליוסים) */
+    {
+      id: 'mitilini',
+      title: 'Mitilini',
+      titleGr: 'Μυτιλήνη',
+      titleHe: 'מטליוסים',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. סטלוס',
+      israeliArtist: 'סטלוס',
+      artist: 'Τρύφωνas / Λαϊκό',
+      artistHe: 'סטלוס · Μυτιλήνη',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 92,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Μυτιλήνη μου γλυκιά' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Σ\' αγαπώ και σε λατρεύω' },
+            { chords: ['Am', null, null, null], lyrics: 'Μυτιλήνη μου γλυκιά' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Σ\' αγαπώ και σε λατρεύω' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Am', null, 'Dm', null], lyrics: 'Μυτιλήνη' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μυτιλήνη' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Μυτιλήνη' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Μυτιλήνη' },
+          ]
+        }
+      ]
+    },
+    /* 96 — Θεσσαλονίκη (סלוניקיוס) */
+    {
+      id: 'salonikios',
+      title: 'Salonikios',
+      titleGr: 'Θεσσαλονίκη',
+      titleHe: 'סלוניקיוס',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. רוניוס',
+      israeliArtist: 'רוניוס',
+      artist: 'Τρύφωνas / Λαϊκό',
+      artistHe: 'רוניוס · Θεσσαλονίκη',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 108,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Θεσσαλονίκη μου γλυκιά' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Πόλη της καρδιάς μου' },
+            { chords: ['D', null, null, null], lyrics: 'Θεσσαλονίκη μου γλυκιά' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Πόλη της καρδιάς μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Θεσσαλονίκη' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Θεσσαλονίκη' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Θεσσαλονίκη' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Θεσσαλονίκη' },
+          ]
+        }
+      ]
+    },
+    /* 97 — Παλαμάκια (מחרוזת) */
+    {
+      id: 'palamakia',
+      title: 'Palamakia',
+      titleGr: 'Παλαμάκια',
+      titleHe: 'מחרוזת: פלמκיה',
+      hebrewHit: 'מחרוזת · feat. אליאניס',
+      israeliArtist: 'אליאניס',
+      israeliMedley: true,
+      artist: 'Λαϊκό / Δημήτρης Γαλάνης',
+      artistHe: 'אליאניס · Παλαμάκια',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 130,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Medley',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Παλαμάκια παλαμάκια' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Χτυπάω τα χέρια μου' },
+            { chords: ['D', null, null, null], lyrics: 'Παλαμάκια παλαμάκια' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Χτυπάω τα χέρια μου' },
+          ]
+        }
+      ]
+    },
+    /* 98 — Asi Toktialo (מחרוזת) */
+    {
+      id: 'asi-toktialo',
+      title: 'Asi Toktialo',
+      titleGr: 'Asi Toktialo',
+      titleHe: 'מחרוזת אסי תוקטיאלו',
+      hebrewHit: 'מחרוזת · feat. סטלוס',
+      israeliArtist: 'סטלוס',
+      israeliMedley: true,
+      artist: 'Λαϊκό / Koliphone',
+      artistHe: 'סטלוס · מחרוזת',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 128,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Medley',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Asi to ktialo asi to ktialo' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Asi to ktialo asi to ktialo' },
+            { chords: ['D', null, null, null], lyrics: 'Asi to ktialo asi to ktialo' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Asi to ktialo asi to ktialo' },
+          ]
+        }
+      ]
+    },
+    /* 99 — Πήγα (מחרוזת) */
+    {
+      id: 'piga-medley',
+      title: 'Piga',
+      titleGr: 'Πήγα',
+      titleHe: 'מחרוזת: פיגα',
+      hebrewHit: 'מחרוזת · feat. אליאניס',
+      israeliArtist: 'אליאניס',
+      israeliMedley: true,
+      artist: 'Λαϊκό / Koliphone',
+      artistHe: 'אליאניס · Πήγα',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 96,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Medley',
+          lines: [
+            { chords: ['Am', null, null, null], lyrics: 'Πήγα σε γλυκό τραπέζι' },
+            { chords: ['Dm', null, 'E7', null], lyrics: 'Και πήρα μια γουλιά' },
+            { chords: ['Am', null, null, null], lyrics: 'Πήγα σε γλυκό τραπέζι' },
+            { chords: ['E7', null, 'Am', null], lyrics: 'Και πήρα μια γουλιά' },
+          ]
+        }
+      ]
+    },
+    /* 100 — Torna (טורנה) */
+    {
+      id: 'torna',
+      title: 'Torna',
+      titleGr: 'Torna',
+      titleHe: 'טורנה',
+      hebrewHit: 'קומפילציה יוונית-ישראלית · feat. טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τρύφωνas Νικολαΐδης',
+      artistHe: 'טריפונוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 126,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Torna torna torna' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Torna torna torna' },
+            { chords: ['D', null, null, null], lyrics: 'Torna torna torna' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Torna torna torna' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Gm', null], lyrics: 'Torna torna' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Torna torna' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Torna torna' },
+            { chords: ['A7', null, 'D', null], lyrics: 'Torna torna' },
+          ]
+        }
+      ]
+    },
+    /* 101 — Το μεγαλύτερο σουξέ */
+    {
+      id: 'to-megalitero-souxe',
+      title: 'To Megalitero Souxe',
+      titleGr: 'Το μεγαλύτερο σουξέ',
+      titleHe: 'הסουξה הגדול ביותר',
+      artist: 'Άννα Βίσση',
+      artistHe: 'אנה בissi',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 120,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Το μεγαλύτερο σουξέ' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Το μεγαλύτερο σουξέ' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Το μεγαλύτερο σουξέ' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Το μεγαλύτερο σουξέ' },
+      ]}]
+    },
+    /* 102 — Κοντά στην καρδιά (בואי אהובה) */
+    {
+      id: 'konta-stin-kardia',
+      title: 'Konta stin Kardia',
+      titleGr: 'Κοντά στην καρδιά',
+      titleHe: 'בואי אהובה',
+      hebrewHit: 'בואי אהובה (קרוב ללב) — חיים משה',
+      israeliArtist: 'חיים משה',
+      artist: 'Λαϊκό',
+      artistHe: 'להיט יווני',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 76,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Κοντά στην καρδιά μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Έλα αγάπη μου' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Κοντά στην καρδιά μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Έλα αγάπη μου' },
+      ]}]
+    },
+    /* 103 — Πώς να σε λησμονήσω */
+    {
+      id: 'pos-na-se-lismoniso',
+      title: 'Pos na se Lismoniso',
+      titleGr: 'Πώς να σε λησμονήσω',
+      titleHe: 'איך אשכח אותך',
+      artist: 'Χάρις Αλεξίου',
+      artistHe: 'חריס אלεξiou',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Πώς να σε λησμονήσω' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Πώς να σε ξεχάσω' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Πώς να σε λησμονήσω' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Πώς να σε ξεχάσω' },
+      ]}]
+    },
+    /* 104 — Αν ήμουν μαζί σου */
+    {
+      id: 'an-imoun-mazi-sou',
+      title: 'An Imoun Mazi Sou',
+      titleGr: 'Αν ήμουν μαζί σου',
+      titleHe: 'אילו הייתי איתך',
+      hebrewHit: 'אילו הייתי איתך — יהודית תמיר',
+      israeliArtist: 'יהודית תמיר',
+      artist: 'Λαϊκό',
+      artistHe: 'להיט יווני',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Αν ήμουν μαζί σου' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Αν ήμουν μαζί σου' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Αν ήμουν μαζί σου' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Αν ήμουν μαζί σου' },
+      ]}]
+    },
+    /* 105 — Τελί τελί τελί */
+    {
+      id: 'teli-teli-teli',
+      title: 'Teli Teli Teli',
+      titleGr: 'Τελί τελί τελί',
+      titleHe: 'טלי טלי טלי',
+      hebrewHit: 'טלי טלי טלי — מיקי גבריאלוב',
+      israeliArtist: 'מיקי גבריאלוב',
+      artist: 'Χάρις Αλεξίου',
+      artistHe: 'חריס אלεξiou',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 118,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τελί τελί τελί' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τελί τελί τελί' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τελί τελί τελί' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τελί τελί τελί' },
+      ]}]
+    },
+    /* 106 — Ποιά είσαι */
+    {
+      id: 'pia-esi',
+      title: 'Pia Esi',
+      titleGr: 'Ποιά είσαι',
+      titleHe: 'זה אני',
+      hebrewHit: 'זה אני — אייל גולן',
+      israeliArtist: 'אייל גולן',
+      artist: 'Νίκος Βέρτης',
+      artistHe: 'ניקוס וertis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 90,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Ποιά είσαι εσύ' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Που μ\' έκανες να πονώ' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Ποιά είσαι εσύ' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Που μ\' έκανες να πονώ' },
+      ]}]
+    },
+    /* 107 — Μένω εκτός */
+    {
+      id: 'meno-ektos',
+      title: 'Meno Ektos',
+      titleGr: 'Μένω εκτός',
+      titleHe: 'נשארתי בחוץ',
+      artist: 'Ελευθερία Αρβανιτάκη & Ara Dinkjian',
+      artistHe: 'אלפטריה ארבניטאκי',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 82,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Μένω εκτός' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Μένω εκτός' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Μένω εκτός' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Μένω εκτός' },
+      ]}]
+    },
+    /* 108 — Τα γη λέω */
+    {
+      id: 'ta-yi-leo',
+      title: 'Ta Yi Leo',
+      titleGr: 'Τα γη λέω',
+      titleHe: 'בלילה',
+      hebrewHit: 'בלילה — זוהר ארגוב',
+      israeliArtist: 'זוהר ארגוב',
+      artist: 'Γιώργος Μαργαρίτης',
+      artistHe: 'ג\'ורγος מargaritis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Τα γη λέω τα γη λέω' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Τα γη λέω τα γη λέω' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Τα γη λέω τα γη λέω' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Τα γη λέω τα γη λέω' },
+      ]}]
+    },
+    /* 109 — Τι θες γέρο */
+    {
+      id: 'ti-thelis-yero',
+      title: 'Ti Thelis Yero',
+      titleGr: 'Τι θες γέρο',
+      titleHe: 'מה אתה רוצה, איש זקן?',
+      artist: 'Ρένα Κουμιώτη',
+      artistHe: 'ρένα Κουμιώτη',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 74,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Τι θες γέρο τι θες γέρο' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Τι θες γέρο τι θες γέρο' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Τι θες γέρο τι θες γέρο' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Τι θες γέρο τι θες γέρο' },
+      ]}]
+    },
+    /* 110 — Ποια θυσία */
+    {
+      id: 'poia-thisia',
+      title: 'Poia Thisia',
+      titleGr: 'Ποια θυσία',
+      titleHe: 'תפילת האמהות',
+      hebrewHit: 'תפילת האמהות — אמאל מרקוס, יהודית תמיר, גליקריה',
+      israeliArtist: 'יהודית תמיר',
+      artist: 'Αντζέλα Δημητρίου',
+      artistHe: 'אנטzela דimitriou',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Ποια θυσία ποια θυσία' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Ποια θυσία ποια θυσία' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Ποια θυσία ποια θυσία' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Ποια θυσία ποια θυσία' },
+      ]}]
+    },
+    /* 111 — Στην πόρτα σου (על סף דלתך) */
+    {
+      id: 'stin-porta-sou',
+      title: 'Stin Porta Sou',
+      titleGr: 'Στην πόρτα σου',
+      titleHe: 'על סף דלתך',
+      hebrewHit: 'על סף דלתך — חיים משה',
+      israeliArtist: 'חיים משה',
+      artist: 'Λαϊκό',
+      artistHe: 'להיט יווני',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Στην πόρτα σου στέκομαι' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Στην πόρτα σου στέκομαι' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Στην πόρτα σου στέκομαι' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Στην πόρτα σου στέκομαι' },
+      ]}]
+    },
+    /* 112 — Τα μαύρα μάτια σου */
+    {
+      id: 'ta-mavra-matia-sou',
+      title: 'Ta Mavra Matia Sou',
+      titleGr: 'Τα μαύρα μάτια σου',
+      titleHe: 'עינייך השחורות',
+      hebrewHit: 'עינייך השחורות — ניקולס',
+      israeliArtist: 'ניקולס',
+      artist: 'Μανώλης Αγγελόπουλος / Nikolas',
+      artistHe: 'מנolis אngelopoulos',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 102,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τα μαύρα μάτια σου' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τα μαύρα μάτια σου' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τα μαύρα μάτια σου' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τα μαύρα μάτια σου' },
+      ]}]
+    },
+    /* 113 — Δεν αξίζει τον κόπο */
+    {
+      id: 'den-axizi-ton-kopo',
+      title: 'Den Axizi Ton Kopo',
+      titleGr: 'Δεν αξίζει τον κόπο',
+      titleHe: 'לא שווה את זה',
+      artist: 'Κατερίνα Στανίση',
+      artistHe: 'קaterina סtanisi',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 88,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Δεν αξίζει τον κόπο' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Δεν αξίζει τον κόπο' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Δεν αξίζει τον κόπο' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Δεν αξίζει τον κόπο' },
+      ]}]
+    },
+    /* 114 — Πάψε λοιπόν */
+    {
+      id: 'papse-loipon',
+      title: 'Papse Loipon',
+      titleGr: 'Πάψε λοιπόν',
+      titleHe: 'ילדה רעה',
+      hebrewHit: 'ילדה רעה — נתי לוי ופיני חדד',
+      israeliArtist: 'נתי לוי',
+      artist: 'Σωτήρης Βολάνης',
+      artistHe: 'סotis וolanis',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 112,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Πάψε λοιπόν πάψε λοιπόν' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Πάψε λοιπόν πάψε λοιπόν' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Πάψε λοιπόν πάψε λοιπόν' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Πάψε λοιπόν πάψε λοιπόν' },
+      ]}]
+    },
+    /* 115 — Ο μπαγλαμάς */
+    {
+      id: 'o-baglamas',
+      title: 'O Baglamas',
+      titleGr: 'Ο μπαγλαμάς',
+      titleHe: 'כך עוברים חיי',
+      hebrewHit: 'כך עוברים חיי — זוהר ארגוב',
+      israeliArtist: 'זוהר ארגוב',
+      artist: 'Γιώργος Νταλάρας',
+      artistHe: 'יורגוס דאלארס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Ο μπαγλαμάς μου θα πει' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Ο μπαγλαμάς μου θα πει' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Ο μπαγλαμάς μου θα πει' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Ο μπαγλαμάς μου θα πει' },
+      ]}]
+    },
+    /* 116 — Μου λείπει */
+    {
+      id: 'mou-leipei',
+      title: 'Mou Leipei',
+      titleGr: 'Μου λείπει',
+      titleHe: 'חסר לי',
+      artist: 'Σωτήρης Βολάνης',
+      artistHe: 'סotis וolanis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 76,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Μου λείπεις μου λείπεις' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Μου λείπεις μου λείπεις' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Μου λείπεις μου λείπεις' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Μου λείπεις μου λείπεις' },
+      ]}]
+    },
+    /* 117 — Φεύγω ξανά */
+    {
+      id: 'fevgo-ksana',
+      title: 'Fevgo Ksana',
+      titleGr: 'Φεύγω ξανά',
+      titleHe: 'יש לי אותך',
+      hebrewHit: 'יש לי אותך — מושיק עפיה',
+      israeliArtist: 'מושיק עפיה',
+      artist: 'Σωτήρης Βολάνης',
+      artistHe: 'סotis וolanis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 80,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Φεύγω ξανά μακριά σου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Φεύγω ξανά μακριά σου' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Φεύγω ξανά μακριά σου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Φεύγω ξανά μακριά σου' },
+      ]}]
+    },
+    /* 118 — Θα με θυμηθείς */
+    {
+      id: 'tha-me-thimithis',
+      title: 'Tha me Thimithis',
+      titleGr: 'Θα με θυμηθείς',
+      titleHe: 'את כבר לא איתי',
+      hebrewHit: 'את כבר לא איתי — חיים משה',
+      israeliArtist: 'חיים משה',
+      artist: 'Γιάννης Πάριος',
+      artistHe: 'ג\'annis פarios',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Θα με θυμηθείς κάποια στιγμή' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Θα με θυμηθείς κάποια στιγμή' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Θα με θυμηθείς κάποια στιγμή' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Θα με θυμηθείς κάποια στιγμή' },
+      ]}]
+    },
+    /* 119 — Γειε μου */
+    {
+      id: 'gie-mou',
+      title: 'Gie Mou',
+      titleGr: 'Γειε μου',
+      titleHe: 'רעיה',
+      hebrewHit: 'רעיה — זוהר ארגוב',
+      israeliArtist: 'זוהר ארגוב',
+      artist: 'Σταμάτης Κόκοτας',
+      artistHe: 'סtamatis קokotas',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Γειε μου γειε μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Γειε μου γειε μου' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Γειε μου γειε μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Γειε μου γειε μου' },
+      ]}]
+    },
+    /* 120 — Έλενα */
+    {
+      id: 'eleni',
+      title: 'Eleni',
+      titleGr: 'Έλενα',
+      titleHe: 'תני לי',
+      hebrewHit: 'תני לי — חיים משה ולידור יוספי',
+      israeliArtist: 'חיים משה',
+      artist: 'Άννα Βίσση',
+      artistHe: 'אנה בissi',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 74,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Έλενα Έλενα' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Έλενα Έλενα' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Έλενα Έλενα' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Έλενα Έλενα' },
+      ]}]
+    },
+    /* 121 — חלום מתוק (עפיה & סרנגה) */
+    {
+      id: 'halom-metuk',
+      title: 'Halom Metuk',
+      titleGr: 'Γλυκό όνειρο',
+      titleHe: 'חלום מתוק',
+      hebrewHit: 'חלום מתוק — מושיק עפיה ושלומי סרנגה',
+      israeliArtist: 'מושיק עפיה',
+      artist: 'Λαϊκό / Koliphone',
+      artistHe: 'שלומי סרנגה',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 96,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Γλυκό όνειρο γλυκό όνειρο' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Γλυκό όνειρο γλυκό όνειρο' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Γλυκό όνειρο γλυκό όνειρο' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Γλυκό όνειρο γλυκό όνειρο' },
+      ]}]
+    },
+    /* 122 — הקולות של פיראוס */
+    {
+      id: 'kolot-pireas',
+      title: 'Kolot tou Pirea',
+      titleGr: 'Τα κουδούνια του Πειραιά',
+      titleHe: 'הקולות של פיראוס',
+      hebrewHit: 'הקולות של פיראוס — חיים משה',
+      israeliArtist: 'חיים משה',
+      artist: 'Λαϊκό',
+      artistHe: 'פיראוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 100,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τα κουδούνια του Πειραιά' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τα κουδούνια του Πειραιά' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Τα κουδούνια του Πειραιά' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Τα κουδούνια του Πειραιά' },
+      ]}]
+    },
+    /* 123 — Τα δαχτυλίδια (הטבעות) */
+    {
+      id: 'ta-daxtylidia',
+      title: 'Ta Daxtylidia',
+      titleGr: 'Τα δαχτυλίδια',
+      titleHe: 'הטבעות',
+      hebrewHit: 'הטבעות — גליקריה',
+      israeliArtist: 'גליקריה',
+      artist: 'Γλυκερία & Γιώργος Μητσάκης',
+      artistHe: 'גליקריה וג\'ורγος Mitsakis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 84,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Τα δαχτυλίδια σου φοράς' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Τα δαχτυλίδια σου φοράς' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Τα δαχτυλίδια σου φοράς' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Τα δαχτυλίδια σου φοράς' },
+      ]}]
+    },
+    /* 124 — Αν είσαι ένα αστέρι */
+    {
+      id: 'an-eisai-ena-asteri',
+      title: 'An Eisai Ena Asteri',
+      titleGr: 'Αν είσαι ένα αστέρι',
+      titleHe: 'אם אתה כוכב',
+      artist: 'Νίκος Βέρτης',
+      artistHe: 'ניקוס Vertis',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 78,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Αν είσαι ένα αστέρι' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Πέφτω στα πόδια σου' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Αν είσαι ένα αστέρι' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Πέφτω στα πόδια σου' },
+      ]}]
+    },
+    /* 125 — Sigal (סיגל) — אריס סאן */
+    {
+      id: 'sigal',
+      title: 'Sigal',
+      titleGr: 'Sigal',
+      titleHe: 'סיגל',
+      hebrewHit: 'סיגל — אריס סאן',
+      israeliArtist: 'אריס סאן',
+      artist: 'Άρης Σαν',
+      artistHe: 'אריס סאן',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 128,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Sigal Sigal Sigal' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Sigal Sigal Sigal' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Sigal Sigal Sigal' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Sigal Sigal Sigal' },
+      ]}]
+    },
+    /* 126 — Dam Dam (דאם דאם) — טריפונוס */
+    {
+      id: 'dam-dam',
+      title: 'Dam Dam',
+      titleGr: 'Dam Dam',
+      titleHe: 'דאם דאם',
+      hebrewHit: 'דאם דאם — טריפונוס',
+      israeliArtist: 'טריפונוס',
+      artist: 'Τρύφωνas Νικολαΐδης',
+      artistHe: 'טריפונוס',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 130,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Dam dam dam dam' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Dam dam dam dam' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Dam dam dam dam' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Dam dam dam dam' },
+      ]}]
+    },
+    /* 127 — Dirlada (דרלה דירלאדה) */
+    {
+      id: 'dirlada',
+      title: 'Dirlada',
+      titleGr: 'Ντιρλαντάδα',
+      titleHe: 'דרלה דירלאדה',
+      hebrewHit: 'דרלה דירלאדה — קפטן פנטליס גיניס',
+      artist: 'Καπετάν Παντελής Γκίνης',
+      artistHe: 'קapetan Pantelis Ginis',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 125,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Ντιρλαντάδα ντιρλαντάδα' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Ντιρλαντάδα ντιρλαντάδα' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Ντιρλαντάδα ντιρλαντάδα' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Ντιρλαντάδα ντιρλαντάδα' },
+      ]}]
+    },
+    /* 128 — Ουίσκυ, τζιν κι βερμούτ */
+    {
+      id: 'ouiski-gin-vermouth',
+      title: 'Ouiski Gin ke Vermouth',
+      titleGr: 'Ουίσκυ, τζιν κι βερμούτ',
+      titleHe: 'וויסקי, ג\'ין ופרומל',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליוס קזנצידיס',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 88,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Ουίσκυ, τζιν κι βερμούτ' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Ουίσκυ, τζιν κι βερμούτ' },
+        { chords: ['Dm', null, 'Gm', null], lyrics: 'Ουίσκυ, τζιν κι βερμούτ' },
+        { chords: ['A7', null, 'Dm', null], lyrics: 'Ουίσκυ, τζιν κι βερμούτ' },
+      ]}]
+    },
+    /* 129 — Φύγε φύγε (מגורשת מגורשת) */
+    {
+      id: 'fyge-fyge',
+      title: 'Fyge Fyge',
+      titleGr: 'Φύγε φύγε',
+      titleHe: 'מגורשת מגורשת',
+      artist: 'Τάσος Μπογάς',
+      artistHe: 'טasos Bogas',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 82,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Φύγε φύγε μακριά μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Φύγε φύγε μακριά μου' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Φύγε φύγε μακριά μου' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Φύγε φύγε μακριά μου' },
+      ]}]
+    },
+    /* 130 — Το τανγκό της Νεφέλης */
+    {
+      id: 'to-tango-tis-nefelis',
+      title: 'To Tango tis Nefelis',
+      titleGr: 'Το τανγκό της Νεφέλης',
+      titleHe: 'הטנגו של נפלי',
+      artist: 'Χάρις Αλεξίου',
+      artistHe: 'חריס אלεξiou',
+      dromos: 'Minore',
+      tags: ['israeli-hit', 'famous'],
+      key: 'Am',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Το τανγκό της Νεφέλης' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Το τανγκό της Νεφέλης' },
+        { chords: ['Am', null, 'Dm', null], lyrics: 'Το τανγκό της Νεφέλης' },
+        { chords: ['E7', null, 'Am', null], lyrics: 'Το τανγκό της Νεφέλης' },
+      ]}]
+    },
+    /* 131 — Πιτσιρίκα (ילדה יפה) */
+    {
+      id: 'pitsirika',
+      title: 'Pitsirika',
+      titleGr: 'Πιτσιρίκα',
+      titleHe: 'ילדה יפה',
+      artist: 'Ματθαίος Γιαννούλης',
+      artistHe: 'מתיוס Giannoulis',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 114,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Πιτσιρίκα μου γλυκιά' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Πιτσιρίκα μου γλυκιά' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Πιτσιρίκα μου γλυκιά' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Πιτσιρίκα μου γλυκιά' },
+      ]}]
+    },
+    /* 132 — Άστε να λέει (תנו לה לדבר) */
+    {
+      id: 'astin-na-leei',
+      title: 'Astin Na Leei',
+      titleGr: 'Άστε να λέει',
+      titleHe: 'תנו לה לדבר',
+      artist: 'Βασίλης Καρράς',
+      artistHe: 'וasilis Karras',
+      dromos: 'Hitzaz',
+      tags: ['israeli-hit', 'famous'],
+      key: 'D',
+      bpm: 108,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [{ name: 'Verse', lines: [
+        { chords: ['D', null, 'Gm', null], lyrics: 'Άστε να λέει άστε να λέει' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Άστε να λέει άστε να λέει' },
+        { chords: ['D', null, 'Gm', null], lyrics: 'Άστε να λέει άστε να λέει' },
+        { chords: ['A7', null, 'D', null], lyrics: 'Άστε να λέει άστε να λέει' },
+      ]}]
+    },
   ];
 
   /* ===================== טרנספוזיציה ===================== */
@@ -3358,6 +4951,7 @@ const SongLibrary = (() => {
             <button class="btn btn-sm songs-filter-btn" data-filter="Niavent">ניאוונט</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="zeibekiko">זεϊμπέκικο</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="famous">מפורסמים</button>
+            <button class="btn btn-sm songs-filter-btn" data-filter="israeli-hit">להיטים בישראל</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="kazantzidis">קזנצידיס</button>
             <button class="btn btn-sm songs-filter-btn" data-filter="custom">שלי</button>
           </div>
@@ -3392,6 +4986,10 @@ const SongLibrary = (() => {
     return (s.tags || []).includes('famous');
   }
 
+  function _isIsraeliHitSong(s) {
+    return (s.tags || []).includes('israeli-hit');
+  }
+
   function _renderList(filter, search) {
     const container = document.getElementById('songs-entries');
     if (!container) return;
@@ -3406,6 +5004,8 @@ const SongLibrary = (() => {
         songs = songs.filter(s => _isKazantzidisSong(s));
       } else if (filter === 'famous') {
         songs = songs.filter(s => _isFamousSong(s));
+      } else if (filter === 'israeli-hit') {
+        songs = songs.filter(s => _isIsraeliHitSong(s));
       } else {
         songs = songs.filter(s => s.dromos === filter);
       }
@@ -3416,6 +5016,8 @@ const SongLibrary = (() => {
         (s.title || '').toLowerCase().includes(q) ||
         (s.titleGr || '').toLowerCase().includes(q) ||
         (s.titleHe || '').toLowerCase().includes(q) ||
+        (s.hebrewHit || '').toLowerCase().includes(q) ||
+        (s.israeliArtist || '').toLowerCase().includes(q) ||
         (s.artist || '').toLowerCase().includes(q) ||
         (s.artistHe || '').toLowerCase().includes(q)
       );
@@ -3426,11 +5028,13 @@ const SongLibrary = (() => {
       return `
       <div class="songs-entry" data-id="${s.id}">
         <div class="songs-entry-title">${hasRef ? '🎧 ' : ''}${s.titleGr || s.title}</div>
-        <div class="songs-entry-sub">${s.artistHe || s.artist} &middot; ${s.dromos || ''} &middot; ${s.key}${_isZeibekikoSong(s) ? ' &middot; 9/4' : ''}</div>
+        <div class="songs-entry-sub">${s.artistHe || s.artist}${s.israeliArtist ? ' · feat. ' + s.israeliArtist : ''} &middot; ${s.dromos || ''} &middot; ${s.key}${_isZeibekikoSong(s) ? ' &middot; 9/4' : ''}</div>
         ${s.custom ? '<span class="songs-entry-badge">מותאם</span>' : ''}
+        ${s.israeliMedley ? '<span class="songs-entry-badge medley-badge">מחרוזת</span>' : ''}
         ${_isZeibekikoSong(s) ? '<span class="songs-entry-badge zeibekiko-badge">ζεϊμπέκικο</span>' : ''}
         ${_isKazantzidisSong(s) ? '<span class="songs-entry-badge kaz-badge">קזנצידיס</span>' : ''}
         ${_isFamousSong(s) ? '<span class="songs-entry-badge famous-badge">מפורסם</span>' : ''}
+        ${_isIsraeliHitSong(s) ? '<span class="songs-entry-badge israeli-hit-badge">🇮🇱 להיט</span>' : ''}
       </div>`;
     }).join('');
   }
@@ -3456,6 +5060,8 @@ const SongLibrary = (() => {
         <div class="song-title-row">
           <h2 class="song-title">${song.titleGr || song.title}</h2>
           ${song.titleHe ? `<span class="song-title-he">${song.titleHe}</span>` : ''}
+          ${song.hebrewHit ? `<span class="song-hebrew-hit">🇮🇱 ${song.hebrewHit}</span>` : ''}
+          ${song.israeliArtist ? `<span class="song-israeli-artist">🎤 feat. ${song.israeliArtist}</span>` : ''}
         </div>
         <div class="song-meta">
           <span class="badge">${song.artistHe || song.artist}</span>
@@ -3783,6 +5389,12 @@ More lyrics here</pre>
       .songs-entry-badge.famous-badge {
         background: rgba(227,179,65,0.22); color: var(--gold-soft); margin-right: 4px;
       }
+      .songs-entry-badge.israeli-hit-badge {
+        background: rgba(80,160,120,0.18); color: #8fd4b0; margin-right: 4px;
+      }
+      .songs-entry-badge.medley-badge {
+        background: rgba(140,120,200,0.18); color: #c0b0f0; margin-right: 4px;
+      }
       .songs-add-btn {
         margin: 8px 12px; flex-shrink: 0;
       }
@@ -3799,6 +5411,14 @@ More lyrics here</pre>
         direction: ltr;
       }
       .song-title-he { font-size: 16px; color: var(--text-dim); }
+      .song-hebrew-hit {
+        font-size: 14px; color: #8fd4b0; background: rgba(80,160,120,0.12);
+        padding: 2px 10px; border-radius: 6px;
+      }
+      .song-israeli-artist {
+        font-size: 13px; color: #c0b0f0; background: rgba(140,120,200,0.12);
+        padding: 2px 10px; border-radius: 6px;
+      }
       .song-meta {
         display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
       }
