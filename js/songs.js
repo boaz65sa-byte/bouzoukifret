@@ -110,6 +110,17 @@ const SongLibrary = (() => {
     'apones-exousies': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μίκης Θεοδωράκης, 1974'),
     'min-taxideveis-more': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
     'ach-koritsi-mou': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'zigkouala': songRef('QKdIAT4vERI', 'Στέλιος Καζαντζίδης & Μαρινέλλα, 1960'),
+    'emis-mazi-tha-zisoume': songRef('3h264pPSqdI', 'Στέλιος Καζαντζίδης & Μαρινέλλα, 1965'),
+    'o-vrachos': songRef('xepMvz5KYEg', 'Στέλιος Καζαντζίδης'),
+    'to-pelago-einai-vathy': songRef('wcOUFwczuME', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'to-tholomeno-mou-myalo': songRef('v2qZHK4RqnE', 'Στέλιος Καζαντζίδης, 1974'),
+    'opoiia-kai-na-eisai': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'gia-mas-pote-min-ximerosei': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'gi-afto-se-filo': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'ena-spiti-den-einai-spiti': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης'),
+    'eisai-i-zoi-mou': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
+    'an-m-agapouses-oso-s-agapo': songRef('5yC7Th21kw4', 'Στέλιος Καζαντζίδης & Μαρινέλλα'),
   };
 
   function getSongReference(song) {
@@ -2613,6 +2624,391 @@ const SongLibrary = (() => {
             { chords: ['Eb', null, 'D', null], lyrics: 'Που μ\' έκλεψες την καρδιά' },
             { chords: ['Gm', null, 'A7', null], lyrics: 'Και μ\' άφησες μόνο' },
             { chords: ['A7', null, 'D', null], lyrics: 'Με τον πόνο και τη λύπη' },
+          ]
+        }
+      ]
+    },
+    /* 67 — Ζιγκουάλα (Η κυρία Δήμαρχος) */
+    {
+      id: 'zigkouala',
+      title: 'Zigkouala',
+      titleGr: 'Ζιγκουάλα',
+      titleHe: 'זינגואלה',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Hitzaz',
+      tags: ['kazantzidis', 'famous'],
+      key: 'D',
+      bpm: 76,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['D', null, null, null], lyrics: 'Ζιγκουάλα Ζιγκουάλα Ζιγκουάλα' },
+            { chords: ['Eb', null, 'D', null], lyrics: 'Εισ\' ο ήλιος το φεγγάρι και το φως μου' },
+            { chords: ['Gm', null, null, null], lyrics: 'Μονάκριβο στολίδι είσαι του κόσμου' },
+            { chords: ['Cm', null, 'D', null], lyrics: 'Μελαχρινή ομορφιά μου παντοτινή χαρά μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['D', null, 'Eb', null], lyrics: 'Ζιγκουάλα Ζιγκουάλα Ζιγκουάλα' },
+            { chords: ['Gm', null, 'Cm', null], lyrics: 'Πες μου ποιο είναι το πικρό παράπονό σου' },
+            { chords: ['D', null, 'Eb', null], lyrics: 'Αν μου φύγεις δε θ\' αντέξω στο χαμό σου' },
+            { chords: ['Gm', null, 'D', null], lyrics: 'Μελαχρινή ομορφιά μου παντοτινή χαρά μου' },
+          ]
+        }
+      ]
+    },
+    /* 68 — Εμείς μαζί θα ζήσουμε */
+    {
+      id: 'emis-mazi-tha-zisoume',
+      title: 'Emis Mazi tha Zisoume',
+      titleGr: 'Εμείς μαζί θα ζήσουμε',
+      titleHe: 'יחד נחיה',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Πες μου τι ζήλεψες απ\' την καρδιά μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Κι απ\' το χαμένο μου κορμί' },
+            { chords: ['Dm', null, null, null], lyrics: 'Φύγε από μένανε, φύγε γλυκιά μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Προτού σε βρει η καταστροφή' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Εμείς μαζί θα ζήσουμε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Ποτέ δε θα χωρίσουμε' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Δεν θα χωρίσουμε' },
+            { chords: ['A7', null, 'Dm', null], lyrics: '' },
+          ]
+        }
+      ]
+    },
+    /* 69 — Ο βράχος */
+    {
+      id: 'o-vrachos',
+      title: 'O Vrachos',
+      titleGr: 'Ο βράχος',
+      titleHe: 'הסלע',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 66,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Σαν βράχο μέσ\' στα κύματα' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Αχμ\' άφησες να χτυπιέμαι' },
+            { chords: ['Dm', null, null, null], lyrics: 'Στου χωρισμού την κόλαση' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Να κλαίω να τυραννιέμαι' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ως πότε πια αγάπη μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μες στην ζωή μονάχος' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Στα οργισμένα κύματα' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Λησμονημένος βράχος' },
+          ]
+        }
+      ]
+    },
+    /* 70 — Το πέλαγο είναι βαθύ */
+    {
+      id: 'to-pelago-einai-vathy',
+      title: 'To Pelago einai Vathy',
+      titleGr: 'Το πέλαγο είναι βαθύ',
+      titleHe: 'הים עמוק',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Em',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Em', null, null, null], lyrics: 'Το πέλαγο είναι βαθύ' },
+            { chords: ['Am', null, 'B7', null], lyrics: 'Και η αγάπη μακριά' },
+            { chords: ['Em', null, null, null], lyrics: 'Και δεν ξέρω πού να πάω' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Μακριά απ\' τη ζωή μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Em', null, 'Am', null], lyrics: 'Το πέλαγο είναι βαθύ' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Και η αγάπη μακριά' },
+            { chords: ['Am', null, 'B7', null], lyrics: 'Και δεν ξέρω πού να πάω' },
+            { chords: ['B7', null, 'Em', null], lyrics: 'Μακριά απ\' τη ζωή μου' },
+          ]
+        }
+      ]
+    },
+    /* 71 — Το θολωμένο μου μυαλό */
+    {
+      id: 'to-tholomeno-mou-myalo',
+      title: 'To Tholomeno Mou Myalo',
+      titleGr: 'Το θολωμένο μου μυαλό',
+      titleHe: 'המוח המעורפל שלי',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 64,
+      timeSignature: '4/4',
+      difficulty: 3,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Στο θολωμένο μου μυαλό' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ο κόσμος είναι μια σταλιά' },
+            { chords: ['Dm', null, null, null], lyrics: 'Κάτι σκιές απ\' τα παλιά' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Και κάποιο πάθος μου τρελό' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Το θολωμένο μου μυαλό' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μ\' έχει προδώσει προ πολλού' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Του λέω αλλού και τρέχει αλλού' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Με κάνει και παραμιλώ' },
+          ]
+        }
+      ]
+    },
+    /* 72 — Όποια και να 'σαι */
+    {
+      id: 'opoiia-kai-na-eisai',
+      title: 'Opoia kai na eisai',
+      titleGr: 'Όποια και να \'σαι',
+      titleHe: 'מי שאת',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Όποια και να \'σαι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ό,τι κι αν κάνεις' },
+            { chords: ['Dm', null, null, null], lyrics: 'Εγώ θα σ\' αγαπώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να πεθάνω' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Όποια και να \'σαι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Ό,τι κι αν κάνεις' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Εγώ θα σ\' αγαπώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέχρι να πεθάνω' },
+          ]
+        }
+      ]
+    },
+    /* 73 — Για μας ποτέ μην ξημερώσει */
+    {
+      id: 'gia-mas-pote-min-ximerosei',
+      title: 'Gia mas Pote min Ximerosei',
+      titleGr: 'Για μας ποτέ μην ξημερώσει',
+      titleHe: 'שלא יבוקר לנו לעולם',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Για μας ποτέ μην ξημερώσει' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Μέσα στη νύχτα αυτή' },
+            { chords: ['Dm', null, null, null], lyrics: 'Να χαθούμε μαζί' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στην αγκαλιά μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Για μας ποτέ μην ξημερώσει' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Μέσα στη νύχτα αυτή' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Να χαθούμε μαζί' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Στην αγκαλιά μου' },
+          ]
+        }
+      ]
+    },
+    /* 74 — Γι' αυτό σε φιλώ */
+    {
+      id: 'gi-afto-se-filo',
+      title: 'Gi\' afto se Filo',
+      titleGr: 'Γι\' αυτό σε φιλώ',
+      titleHe: 'לכן אני אוהב אותך',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 70,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Γι\' αυτό σε φιλώ' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Γιατί είσαι η ζωή μου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Γι\' αυτό σε φιλώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Γιατί είσαι η καρδιά μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Γι\' αυτό σε φιλώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Γιατί είσαι η ζωή μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Γι\' αυτό σε φιλώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Γιατί είσαι η καρδιά μου' },
+          ]
+        }
+      ]
+    },
+    /* 75 — Ένα σπίτι δεν είναι σπίτι */
+    {
+      id: 'ena-spiti-den-einai-spiti',
+      title: 'Ena Spiti den einai Spiti',
+      titleGr: 'Ένα σπίτι δεν είναι σπίτι',
+      titleHe: 'בית בלי אהבה',
+      artist: 'Στέλιος Καζαντζίδης',
+      artistHe: 'סטליος קזנצידיס',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Ένα σπίτι δεν είναι σπίτι' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Χωρίς αγάπη και στοργή' },
+            { chords: ['Dm', null, null, null], lyrics: 'Ένα σπίτι δεν είναι σπίτι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Χωρίς εσένα κοντά μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Ένα σπίτι δεν είναι σπίτι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Χωρίς αγάπη και στοργή' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Ένα σπίτι δεν είναι σπίτι' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Χωρίς εσένα κοντά μου' },
+          ]
+        }
+      ]
+    },
+    /* 76 — Είσαι η ζωή μου */
+    {
+      id: 'eisai-i-zoi-mou',
+      title: 'Eisai i Zoi Mou',
+      titleGr: 'Είσαι η ζωή μου',
+      titleHe: 'אתה החיים שלי',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 72,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Είσαι η ζωή μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Είσαι η καρδιά μου' },
+            { chords: ['Dm', null, null, null], lyrics: 'Είσαι η αγάπη μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Είσαι η ψυχή μου' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Είσαι η ζωή μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Είσαι η καρδιά μου' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Είσαι η αγάπη μου' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Είσαι η ψυχή μου' },
+          ]
+        }
+      ]
+    },
+    /* 77 — Αν μ' αγαπούσες όσο σ' αγαπώ */
+    {
+      id: 'an-m-agapouses-oso-s-agapo',
+      title: 'An m\' Agapouses Oso s\' Agapo',
+      titleGr: 'Αν μ\' αγαπούσες όσο σ\' αγαπώ',
+      titleHe: 'אם היית אוהב אותי כמו שאני אוהב אותך',
+      artist: 'Στέλιος Καζαντζίδης & Μαρινέλλα',
+      artistHe: 'סטליος קזנצידיס ומרינלה',
+      dromos: 'Minore',
+      tags: ['kazantzidis', 'famous'],
+      key: 'Dm',
+      bpm: 68,
+      timeSignature: '4/4',
+      difficulty: 2,
+      sections: [
+        {
+          name: 'Verse',
+          lines: [
+            { chords: ['Dm', null, null, null], lyrics: 'Αν μ\' αγαπούσες όσο σ\' αγαπώ' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Δεν θα \'χαμε ποτέ χωρίσει' },
+            { chords: ['Dm', null, null, null], lyrics: 'Αν μ\' αγαπούσες όσο σ\' αγαπώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Θα \'μαστε ακόμα μαζί' },
+          ]
+        },
+        {
+          name: 'Chorus',
+          lines: [
+            { chords: ['Dm', null, 'Gm', null], lyrics: 'Αν μ\' αγαπούσες όσο σ\' αγαπώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Δεν θα \'χαμε ποτέ χωρίσει' },
+            { chords: ['Gm', null, 'A7', null], lyrics: 'Αν μ\' αγαπούσες όσο σ\' αγαπώ' },
+            { chords: ['A7', null, 'Dm', null], lyrics: 'Θα \'μαστε ακόμα μαζί' },
           ]
         }
       ]
