@@ -39,7 +39,9 @@ function stopAllPlayback() {
   if (typeof Game !== 'undefined') Game.stop();
   if (typeof MasterModes !== 'undefined') MasterModes.stop();
   if (typeof MasterChords !== 'undefined') MasterChords.stop();
+  if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof MicEngine !== 'undefined') MicEngine.stop();
+  if (typeof BouzoukiTuner !== 'undefined') BouzoukiTuner.stop();
   $('#dr-drone').classList.remove('playing');
 }
 

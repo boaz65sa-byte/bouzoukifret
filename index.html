@@ -57,6 +57,9 @@
       <button class="nav-btn" data-screen="master-chords">
         <span class="nav-ico">🎸</span> מאסטר אקורדים
       </button>
+      <button class="nav-btn" data-screen="tuner">
+        <span class="nav-ico">🎵</span> מכוון כרומטי
+      </button>
       <button class="nav-btn" data-screen="listen">
         <span class="nav-ico">🎤</span> מאמן מאזין
       </button>
@@ -65,6 +68,9 @@
       </button>
       <button class="nav-btn" data-screen="course">
         <span class="nav-ico">🎓</span> קורס מקצועי
+      </button>
+      <button class="nav-btn" data-screen="songs">
+        <span class="nav-ico">🎵</span> ספריית שירים
       </button>
       <button class="nav-btn" data-screen="glossary">
         <span class="nav-ico">📜</span> מילון רבטיקו
@@ -541,6 +547,15 @@
       <div class="ls-results" id="mc-results"></div>
     </section>
 
+    <!-- ========== מסך: מכוון כרומטי ========== -->
+    <section class="screen" id="screen-tuner">
+      <header class="screen-head">
+        <h1>מכוון כרומטי לבוזוקי</h1>
+        <p class="lead">מכוון מקצועי עם זיהוי גובה צליל בזמן אמת, מד סטייה מדויק, וצליל ייחוס לכל קורס</p>
+      </header>
+      <div id="tuner-app"></div>
+    </section>
+
     <!-- ========== מסך: מאמן מאזין ========== -->
     <section class="screen" id="screen-listen">
       <header class="screen-head">
@@ -695,6 +710,15 @@
       </div>
     </section>
 
+    <!-- ========== מסך: ספריית שירים ========== -->
+    <section class="screen" id="screen-songs">
+      <header class="screen-head">
+        <h1>ספריית שירים</h1>
+        <p class="lead">שירי רבטיקו ולאיקו עם אקורדים, גלילה אוטומטית ונגינה על הבוזוקי</p>
+      </header>
+      <div id="songs-app"></div>
+    </section>
+
     <!-- ========== מסך: מילון ========== -->
     <section class="screen" id="screen-glossary">
       <header class="screen-head">
@@ -715,6 +739,9 @@
 <script src="js/exercises.js"></script>
 <script src="js/listen.js"></script>
 <script src="js/game.js"></script>
+<script src="js/songs.js"></script>
 <script src="js/master.js"></script>
+<script src="js/tuner.js"></script>
+<script>BouzoukiTuner.init(); SongLibrary.init();</script>
 </body>
 </html>
