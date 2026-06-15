@@ -850,6 +850,14 @@ select {
   .grid-2, .grid-3 { gap: 14px; }
   .card { margin-bottom: 16px; }
 
+  /* --- קורס מקצועי: מובייל --- */
+  .course-levels { grid-template-columns: 1fr; gap: 12px; }
+  .course-level-card { padding: 16px; }
+  .course-level-num { font-size: 32px; }
+  .course-level-title { font-size: 16px; }
+  .course-header { flex-direction: column; align-items: flex-start; }
+  .course-ex-item { padding: 12px 14px; }
+
   /* --- מאסטר מודוסים + אקורדים: מובייל --- */
   .mm-control-row { flex-direction: column; gap: 8px; }
   .mm-control-row > div { min-width: 100%; }
@@ -899,6 +907,45 @@ select {
   .mm-feedback { font-size: 16px; }
   #mm-hero-canvas { height: 160px !important; }
 }
+
+/* ===================== קורס מקצועי ===================== */
+.course-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.course-level-card {
+  background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+}
+.course-level-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(227,179,65,0.12); }
+.course-level-card::before {
+  content: ''; position: absolute; top: 0; right: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--aegean));
+}
+.course-level-num { font-size: 42px; font-weight: 900; color: var(--gold); opacity: 0.3; position: absolute; top: 8px; left: 14px; line-height: 1; }
+.course-level-title { font-size: 18px; font-weight: 700; color: var(--gold-soft); margin-bottom: 6px; }
+.course-level-sub { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+.course-level-meta { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.course-level-meta .badge { font-size: 11px; }
+
+.course-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.course-greek { color: var(--text-dim); font-size: 14px; font-style: italic; }
+.course-subtitle { color: var(--text-dim); font-size: 15px; line-height: 1.7; margin-bottom: 18px; }
+.course-goals { padding-right: 18px; list-style: '✓ '; }
+.course-goals li { color: #cdd9e5; line-height: 1.8; font-size: 14px; margin-bottom: 4px; }
+.course-goals li::marker { color: var(--ok); font-weight: bold; }
+.course-theory-text { color: var(--text-dim); font-size: 14px; line-height: 1.85; }
+
+.course-ex-list { display: flex; flex-direction: column; gap: 8px; }
+.course-ex-item {
+  background: var(--bg-elev); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 12px;
+}
+.course-ex-item:hover { border-color: var(--aegean); background: rgba(79,179,217,0.06); }
+.course-ex-item .ex-idx { font-size: 20px; font-weight: 900; color: var(--gold); opacity: 0.6; min-width: 28px; }
+.course-ex-item .ex-info { flex: 1; }
+.course-ex-item .ex-info h4 { font-size: 15px; color: var(--text); margin-bottom: 2px; }
+.course-ex-item .ex-info p { font-size: 12px; color: var(--text-dim); }
+
+.course-ex-detail { margin-top: 16px; }
 
 /* ===================== מאסטר מודוסים + אקורדים ===================== */
 .mm-controls { display: flex; flex-direction: column; gap: 14px; }

@@ -955,6 +955,176 @@ function initGlossary() {
   });
 }
 
+/* ===================== קורס מקצועי ===================== */
+let courseScheduler = null;
+let courseItem = null;
+let courseBpm = 70;
+
+function initCourse() {
+  if (typeof COURSE_DATA === 'undefined') return;
+  const wrap = $('#course-levels');
+  if (!wrap) return;
+
+  COURSE_DATA.forEach((level, i) => {
+    const card = document.createElement('div');
+    card.className = 'course-level-card';
+    card.innerHTML = `
+      <div class="course-level-num">${i + 1}</div>
+      <div class="course-level-title">${level.title}</div>
+      <div class="course-level-sub">${level.subtitle}</div>
+      <div class="course-level-meta">
+        <span class="badge">${level.exercises.length} תרגילים</span>
+        ${level.chords.length ? `<span class="badge alt">${level.chords.length} אקורדים</span>` : ''}
+      </div>`;
+    card.addEventListener('click', () => openCourseLevel(i));
+    wrap.appendChild(card);
+  });
+
+  $('#course-back').addEventListener('click', closeCourseLevel);
+  $('#course-play').addEventListener('click', toggleCoursePlay);
+  $('#course-bpm-down').addEventListener('click', () => setCourseBpm(courseBpm - 5));
+  $('#course-bpm-up').addEventListener('click', () => setCourseBpm(courseBpm + 5));
+}
+
+function openCourseLevel(idx) {
+  const level = COURSE_DATA[idx];
+  $('#course-levels').style.display = 'none';
+  const detail = $('#course-detail');
+  detail.style.display = '';
+
+  $('#course-title').textContent = `שלב ${idx + 1}: ${level.title}`;
+  $('#course-greek').textContent = level.titleGr;
+  $('#course-badge').textContent = `${level.exercises.length} תרגילים`;
+  $('#course-subtitle').textContent = level.subtitle;
+  $('#course-theory').textContent = level.theory;
+
+  // מטרות
+  const goalsList = $('#course-goals');
+  goalsList.innerHTML = '';
+  level.goals.forEach(g => {
+    const li = document.createElement('li');
+    li.textContent = g;
+    goalsList.appendChild(li);
+  });
+
+  // אקורדים
+  const chordsSection = $('#course-chords-section');
+  const chordsWrap = $('#course-chords');
+  chordsWrap.innerHTML = '';
+  if (level.chords.length > 0) {
+    chordsSection.style.display = '';
+    level.chords.forEach(chordName => {
+      const chord = CHORDS[chordName];
+      if (!chord) return;
+      const div = document.createElement('div');
+      div.className = 'chord-card';
+      const shape = chord.shape.map(f => f === 'x' ? 'x' : f).join('-');
+      div.innerHTML = `<div class="chord-name">${chordName}</div><div class="chord-he">${chord.he}</div><div class="chord-shape">${shape}</div>`;
+      div.addEventListener('click', () => {
+        AudioEngine.ensureCtx();
+        AudioEngine.strumChord(chord.shape.map(f => f === 'x' ? 'x' : f), 'd');
+      });
+      chordsWrap.appendChild(div);
+    });
+  } else {
+    chordsSection.style.display = 'none';
+  }
+
+  // תרגילים
+  const exList = $('#course-ex-list');
+  exList.innerHTML = '';
+  level.exercises.forEach((ex, i) => {
+    const item = document.createElement('div');
+    item.className = 'course-ex-item';
+    item.innerHTML = `
+      <div class="ex-idx">${i + 1}</div>
+      <div class="ex-info">
+        <h4>${ex.name}</h4>
+        <p>${ex.bpm} BPM · ${ex.sub === 3 ? 'טריולים' : ex.sub === 4 ? 'שש-עשריות' : 'שמיניות'}</p>
+      </div>`;
+    item.addEventListener('click', () => openCourseExercise(ex));
+    exList.appendChild(item);
+  });
+
+  $('#course-ex-detail').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function closeCourseLevel() {
+  stopCoursePlay();
+  $('#course-levels').style.display = '';
+  $('#course-detail').style.display = 'none';
+}
+
+function openCourseExercise(ex) {
+  courseItem = ex;
+  courseBpm = ex.bpm;
+  const detail = $('#course-ex-detail');
+  detail.style.display = '';
+
+  $('#course-ex-name').textContent = ex.name;
+  $('#course-ex-num').textContent = `${ex.bpm} BPM`;
+  $('#course-ex-desc').textContent = ex.desc;
+  setCourseBpm(ex.bpm);
+
+  // ציור TAB
+  if (typeof drawTab === 'function') {
+    drawTab($('#course-tab'), ex);
+  }
+
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setCourseBpm(v) {
+  courseBpm = Math.max(30, Math.min(240, v));
+  $('#course-bpm').textContent = courseBpm;
+  if (courseScheduler && courseScheduler.running) {
+    courseScheduler.stepDur = 60 / courseBpm / (courseItem?.sub || 2);
+  }
+}
+
+function toggleCoursePlay() {
+  const btn = $('#course-play');
+  if (courseScheduler && courseScheduler.running) { stopCoursePlay(); return; }
+  if (!courseItem) return;
+  AudioEngine.ensureCtx();
+
+  const events = courseItem.type === 'tab' ? courseItem.notes : [];
+  const evMap = new Map();
+  let step = 0;
+  events.forEach((ev, idx) => { evMap.set(step, { idx, ev }); step += (ev.len || 1); });
+  const totalSteps = step;
+
+  courseScheduler = new AudioEngine.Scheduler(
+    (s, time) => {
+      const entry = evMap.get(s);
+      if (!entry || entry.ev.rest) return;
+      const ev = entry.ev;
+      AudioEngine.pluckCourse(ev.c, ev.f, time, ev.d === 'D' || ev.d === 'U' ? 0.6 : 0.4);
+      if ($('#course-click').checked) AudioEngine.click(time, s % (courseItem.sub * 2) === 0);
+    },
+    () => {}
+  );
+  courseScheduler.numSteps = totalSteps;
+  courseScheduler.stepDur = 60 / courseBpm / (courseItem.sub || 2);
+  if (!$('#course-loop').checked) {
+    const origStop = courseScheduler.stop.bind(courseScheduler);
+    let played = 0;
+    const origTick = courseScheduler._tick.bind(courseScheduler);
+    // Will loop by default via Scheduler
+  }
+  courseScheduler.start();
+  activeSchedulers.push(courseScheduler);
+  btn.classList.add('playing');
+  btn.textContent = '⏹ עצור';
+}
+
+function stopCoursePlay() {
+  if (courseScheduler) courseScheduler.stop();
+  $('#course-play').classList.remove('playing');
+  $('#course-play').textContent = '▶ נגן';
+}
+
 /* ===================== אתחול ===================== */
 initHome();
 initDromoi();
@@ -962,3 +1132,4 @@ initPenia();
 initRhythms();
 initPractice();
 initGlossary();
+initCourse();

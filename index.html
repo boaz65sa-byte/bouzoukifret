@@ -63,6 +63,9 @@
       <button class="nav-btn" data-screen="practice">
         <span class="nav-ico">⏱️</span> חדר תרגול
       </button>
+      <button class="nav-btn" data-screen="course">
+        <span class="nav-ico">🎓</span> קורס מקצועי
+      </button>
       <button class="nav-btn" data-screen="glossary">
         <span class="nav-ico">📜</span> מילון רבטיקו
       </button>
@@ -628,6 +631,70 @@
       </div>
     </section>
 
+    <!-- ========== מסך: קורס מקצועי ========== -->
+    <section class="screen" id="screen-course">
+      <header class="screen-head">
+        <h1>קורס בוזוקי אקדמי</h1>
+        <p class="lead">מהיסודות ועד לאלתור חופשי — 10 שלבים מובנים עם תרגילים, אקורדים אותנטיים ומודוסים על כל הצוואר</p>
+      </header>
+
+      <div class="course-levels" id="course-levels"></div>
+
+      <div class="card course-detail" id="course-detail" style="display:none">
+        <div class="course-header">
+          <button class="btn small" id="course-back">← חזרה לשלבים</button>
+          <div>
+            <h2 id="course-title"></h2>
+            <div class="course-greek" id="course-greek"></div>
+          </div>
+          <span class="badge" id="course-badge"></span>
+        </div>
+
+        <p class="course-subtitle" id="course-subtitle"></p>
+
+        <div class="grid-2">
+          <div class="info-block">
+            <h3>🎯 מטרות</h3>
+            <ul class="course-goals" id="course-goals"></ul>
+          </div>
+          <div class="info-block">
+            <h3>📖 תיאוריה</h3>
+            <p id="course-theory" class="course-theory-text"></p>
+          </div>
+        </div>
+
+        <div class="info-block" id="course-chords-section">
+          <h3>🎸 אקורדים לשלב זה</h3>
+          <div class="chord-diagrams" id="course-chords" dir="ltr"></div>
+        </div>
+
+        <div class="info-block">
+          <h3>🎼 תרגילים</h3>
+          <div class="course-ex-list" id="course-ex-list"></div>
+        </div>
+
+        <div class="card course-ex-detail" id="course-ex-detail" style="display:none">
+          <div class="ex-head">
+            <h2 id="course-ex-name"></h2>
+            <span class="badge alt" id="course-ex-num"></span>
+          </div>
+          <p id="course-ex-desc"></p>
+          <div class="ex-controls">
+            <div class="tempo-ctl">
+              <button class="btn small" id="course-bpm-down">−</button>
+              <div class="bpm-display"><span id="course-bpm">70</span><small>BPM</small></div>
+              <button class="btn small" id="course-bpm-up">+</button>
+            </div>
+            <button class="btn gold" id="course-play">▶ נגן</button>
+            <label class="chk"><input type="checkbox" id="course-loop" checked> לולאה</label>
+            <label class="chk"><input type="checkbox" id="course-click" checked> מטרונום</label>
+          </div>
+          <div class="tab-wrap" dir="ltr"><svg id="course-tab"></svg></div>
+          <p class="hint">↓ = פריטה למטה · ↑ = פריטה למעלה · זהוב = מודגש. לחיצה על תו משמיעה אותו.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ========== מסך: מילון ========== -->
     <section class="screen" id="screen-glossary">
       <header class="screen-head">
@@ -643,6 +710,7 @@
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/chord-library.js"></script>
+<script src="js/course.js"></script>
 <script src="js/app.js"></script>
 <script src="js/exercises.js"></script>
 <script src="js/listen.js"></script>
