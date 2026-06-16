@@ -42,6 +42,13 @@ function stopAllPlayback() {
   if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof MicEngine !== 'undefined') MicEngine.stop();
   if (typeof BouzoukiTuner !== 'undefined') BouzoukiTuner.stop();
+  if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
+  if (typeof BackingTracks !== 'undefined') BackingTracks.stop();
+  if (typeof JamSimulator !== 'undefined') JamSimulator.stop();
+  if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
+  if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.stop();
+  if (typeof SightReading !== 'undefined') SightReading.stop();
+  if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
