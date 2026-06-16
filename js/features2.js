@@ -166,6 +166,7 @@ const ExerciseGenerator = (() => {
     scheduler.stepDur = stepDur;
     scheduler.numSteps = total;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
     $('#exgen-play').disabled = true;
     $('#exgen-stop').disabled = false;
   }
@@ -412,6 +413,7 @@ const MelodyGenerator = (() => {
     scheduler.stepDur = stepDur;
     scheduler.numSteps = total;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
     $('#mg-play').disabled = true;
     $('#mg-stop').disabled = false;
   }
@@ -1087,6 +1089,7 @@ const DrumMachine = (() => {
     scheduler.stepDur = stepDur;
     scheduler.numSteps = steps;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
     $('#dm-play').disabled = true;
     $('#dm-stop').disabled = false;
   }

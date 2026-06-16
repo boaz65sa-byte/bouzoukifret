@@ -691,7 +691,7 @@ const BackingTracks = (() => {
         if (t.drums[i] === 'D') AudioEngine.dum(time, volumes.drums);
         else if (t.drums[i] === 't') AudioEngine.tek(time, volumes.drums * 0.7);
         // bass
-        if (t.bass[i] >= 0) AudioEngine.pluckMidi(t.root + t.bass[i], time, volumes.bass * 0.55);
+        if (t.bass[i] >= 0) AudioEngine.pluckBassFromMidi(t.root + t.bass[i], time, volumes.bass * 0.55);
         // chords
         if (t.chordPat[i] && CHORDS[t.chord]) {
           AudioEngine.strumChord(CHORDS[t.chord].shape, 'd', time, volumes.chords * 0.4);
@@ -706,6 +706,7 @@ const BackingTracks = (() => {
     scheduler.stepDur = stepDur;
     scheduler.numSteps = t.cells;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
   }
 
   function stop() {
@@ -844,8 +845,7 @@ const JamSimulator = (() => {
 
         // bass on beat 1 of each bar
         if (i === 0) {
-          const bassMidi = preset.root;
-          AudioEngine.pluckMidi(bassMidi, time, volumes.bass * 0.5);
+          AudioEngine.pluckBassFromMidi(preset.root, time, volumes.bass * 0.5);
         }
 
         // chord strum on beat 1
@@ -863,6 +863,7 @@ const JamSimulator = (() => {
     scheduler.stepDur = 60 / bpm / 2;
     scheduler.numSteps = rhythm.cells;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
   }
 
   function stop() {

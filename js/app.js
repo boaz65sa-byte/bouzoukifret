@@ -21,6 +21,9 @@ $$('.nav-btn').forEach(btn => {
     btn.classList.add('active');
     $$('.screen').forEach(s => s.classList.remove('active'));
     $('#screen-' + btn.dataset.screen).classList.add('active');
+    if (btn.dataset.screen === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
+      SongLibrary.resetMobileView();
+    }
     stopAllPlayback();
   });
 });
@@ -45,6 +48,12 @@ function stopAllPlayback() {
   if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof BackingTracks !== 'undefined') BackingTracks.stop();
   if (typeof JamSimulator !== 'undefined') JamSimulator.stop();
+  if (typeof ExerciseGenerator !== 'undefined') ExerciseGenerator.stop();
+  if (typeof MelodyGenerator !== 'undefined') MelodyGenerator.stop();
+  if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.stop();
+  if (typeof SightReading !== 'undefined') SightReading.stop();
+  if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
+  if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
   if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
   if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.stop();
   if (typeof SightReading !== 'undefined') SightReading.stop();
