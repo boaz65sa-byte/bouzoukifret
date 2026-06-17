@@ -15,92 +15,18 @@ function svgEl(tag, attrs = {}, parent = null) {
 }
 
 /* ===================== ניווט ===================== */
-function navigateToScreen(screenId) {
-  $$('.nav-btn[data-screen]').forEach(b => {
-    b.classList.toggle('active', b.dataset.screen === screenId);
+$$('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    $('#screen-' + btn.dataset.screen).classList.add('active');
+    if (btn.dataset.screen === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
+      SongLibrary.resetMobileView();
+    }
+    stopAllPlayback();
   });
-  $$('.screen').forEach(s => s.classList.remove('active'));
-  const screen = $('#screen-' + screenId);
-  if (screen) screen.classList.add('active');
-  if (screenId === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
-    SongLibrary.resetMobileView();
-  }
-  stopAllPlayback();
-  closeNavSheet();
-}
-
-function closeNavSheet() {
-  const sheet = $('#nav-sheet');
-  const toggle = $('.nav-more-toggle');
-  if (!sheet) return;
-  sheet.classList.remove('open');
-  sheet.setAttribute('aria-hidden', 'true');
-  if (toggle) toggle.setAttribute('aria-expanded', 'false');
-  document.body.classList.remove('nav-sheet-open');
-}
-
-function openNavSheet() {
-  initNavSheet();
-  const sheet = $('#nav-sheet');
-  const toggle = $('.nav-more-toggle');
-  if (!sheet) return;
-  sheet.classList.add('open');
-  sheet.setAttribute('aria-hidden', 'false');
-  if (toggle) toggle.setAttribute('aria-expanded', 'true');
-  document.body.classList.add('nav-sheet-open');
-}
-
-function initNavSheet() {
-  const sheet = $('#nav-sheet');
-  const body = sheet?.querySelector('.nav-sheet-body');
-  const source = $('.nav-scroll');
-  if (!sheet || !body || !source) return;
-  if (body.dataset.ready) return;
-  body.appendChild(source.cloneNode(true));
-  body.dataset.ready = '1';
-}
-
-function toggleNavSheet() {
-  const sheet = $('#nav-sheet');
-  if (!sheet) return;
-  initNavSheet();
-  if (sheet.classList.contains('open')) closeNavSheet();
-  else openNavSheet();
-}
-
-document.querySelector('.nav')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('.nav-btn[data-screen]');
-  if (btn) {
-    navigateToScreen(btn.dataset.screen);
-    return;
-  }
-  if (e.target.closest('.nav-more-toggle')) {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleNavSheet();
-  }
 });
-
-document.querySelector('.nav-more-toggle')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  toggleNavSheet();
-});
-
-$('#nav-sheet')?.addEventListener('click', (e) => {
-  if (e.target.closest('.nav-sheet-close') || e.target.closest('.nav-sheet-backdrop')) {
-    closeNavSheet();
-    return;
-  }
-  const btn = e.target.closest('.nav-btn[data-screen]');
-  if (btn) navigateToScreen(btn.dataset.screen);
-});
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initNavSheet);
-} else {
-  initNavSheet();
-}
 
 let activeSchedulers = [];
 

@@ -33,105 +33,86 @@
     </div>
 
     <nav class="nav" aria-label="ניווט ראשי">
-      <div class="nav-scroll">
-        <div class="nav-section">
-          <div class="nav-section-title">לימוד</div>
-          <button class="nav-btn nav-primary active" data-screen="home">
-            <span class="nav-ico">🏛️</span> הכלי והכיוונון
-          </button>
-          <button class="nav-btn" data-screen="course">
-            <span class="nav-ico">🎓</span> קורס מקצועי
-          </button>
-          <button class="nav-btn nav-primary" data-screen="dromoi">
-            <span class="nav-ico">🛤️</span> דרומוסים
-          </button>
-          <button class="nav-btn" data-screen="penia">
-            <span class="nav-ico">🤘</span> פנייה — יד ימין
-          </button>
-          <button class="nav-btn nav-primary" data-screen="exercises">
-            <span class="nav-ico">🎼</span> ספריית תרגילים
-          </button>
-          <button class="nav-btn" data-screen="rhythms">
-            <span class="nav-ico">🥁</span> מקצבים יווניים
-          </button>
-          <button class="nav-btn nav-primary" data-screen="songs">
-            <span class="nav-ico">🎵</span> ספריית שירים
-          </button>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">משחקים ואימון</div>
-          <button class="nav-btn nav-primary" data-screen="master-modes">
-            <span class="nav-ico">🛤️</span> מאסטר מודוסים
-          </button>
-          <button class="nav-btn" data-screen="master-chords">
-            <span class="nav-ico">🎸</span> מאסטר אקורדים
-          </button>
-          <button class="nav-btn" data-screen="game">
-            <span class="nav-ico">🎮</span> מאסטר הפנייה
-          </button>
-          <button class="nav-btn" data-screen="listen">
-            <span class="nav-ico">🎤</span> מאמן מאזין
-          </button>
-          <button class="nav-btn" data-screen="practice">
-            <span class="nav-ico">⏱️</span> חדר תרגול
-          </button>
-        </div>
-
-        <details class="nav-more">
-          <summary class="nav-more-summary">עוד כלים</summary>
-          <div class="nav-more-inner">
-            <button class="nav-btn" data-screen="tuner">
-              <span class="nav-ico">🎵</span> מכוון כרומטי
-            </button>
-            <button class="nav-btn" data-screen="intervals">
-              <span class="nav-ico">🎵</span> אימון אינטרוולים
-            </button>
-            <button class="nav-btn" data-screen="modequiz">
-              <span class="nav-ico">🎧</span> בוחן מודוסים
-            </button>
-            <button class="nav-btn" data-screen="explorer">
-              <span class="nav-ico">🔍</span> חיפוש סולמות
-            </button>
-            <button class="nav-btn" data-screen="scalechords">
-              <span class="nav-ico">🎹</span> אקורדים לפי דרומוס
-            </button>
-            <button class="nav-btn" data-screen="backing">
-              <span class="nav-ico">🎶</span> רצועות ליווי
-            </button>
-            <button class="nav-btn" data-screen="jam">
-              <span class="nav-ico">🎷</span> ג'אם סימולטור
-            </button>
-            <button class="nav-btn" data-screen="exgen">
-              <span class="nav-ico">🎲</span> מחולל תרגילים
-            </button>
-            <button class="nav-btn" data-screen="melodygen">
-              <span class="nav-ico">🪄</span> מחולל מנגינות
-            </button>
-            <button class="nav-btn" data-screen="recorder">
-              <span class="nav-ico">⏺️</span> מקליט מנגינות
-            </button>
-            <button class="nav-btn" data-screen="sightread">
-              <span class="nav-ico">📖</span> קריאה מראש
-            </button>
-            <button class="nav-btn" data-screen="drums">
-              <span class="nav-ico">🥁</span> מכונת תופים
-            </button>
-            <button class="nav-btn" data-screen="analyzer">
-              <span class="nav-ico">📊</span> מנתח מוזיקלי
-            </button>
-            <button class="nav-btn" data-screen="maqam">
-              <span class="nav-ico">🕌</span> מדריך מאקאמים
-            </button>
-            <button class="nav-btn" data-screen="glossary">
-              <span class="nav-ico">📜</span> מילון רבטיקו
-            </button>
-          </div>
-        </details>
-      </div>
-
-      <button type="button" class="nav-more-toggle" aria-expanded="false" aria-controls="nav-sheet">
-        <span class="nav-ico">⋯</span> עוד
+      <button class="nav-btn active" data-screen="home">
+        <span class="nav-ico">🏛️</span> הכלי והכיוונון
+      </button>
+      <button class="nav-btn" data-screen="dromoi">
+        <span class="nav-ico">🛤️</span> דרומוסים (סולמות)
+      </button>
+      <button class="nav-btn" data-screen="penia">
+        <span class="nav-ico">🤘</span> פנייה — יד ימין
+      </button>
+      <button class="nav-btn" data-screen="exercises">
+        <span class="nav-ico">🎼</span> ספריית תרגילים
+      </button>
+      <button class="nav-btn" data-screen="rhythms">
+        <span class="nav-ico">🥁</span> מקצבים יווניים
+      </button>
+      <button class="nav-btn" data-screen="game">
+        <span class="nav-ico">🎮</span> מאסטר הפנייה
+      </button>
+      <button class="nav-btn" data-screen="master-modes">
+        <span class="nav-ico">🛤️</span> מאסטר מודוסים
+      </button>
+      <button class="nav-btn" data-screen="master-chords">
+        <span class="nav-ico">🎸</span> מאסטר אקורדים
+      </button>
+      <button class="nav-btn" data-screen="tuner">
+        <span class="nav-ico">🎵</span> מכוון כרומטי
+      </button>
+      <button class="nav-btn" data-screen="listen">
+        <span class="nav-ico">🎤</span> מאמן מאזין
+      </button>
+      <button class="nav-btn" data-screen="practice">
+        <span class="nav-ico">⏱️</span> חדר תרגול
+      </button>
+      <button class="nav-btn" data-screen="course">
+        <span class="nav-ico">🎓</span> קורס מקצועי
+      </button>
+      <button class="nav-btn" data-screen="songs">
+        <span class="nav-ico">🎵</span> ספריית שירים
+      </button>
+      <button class="nav-btn" data-screen="intervals">
+        <span class="nav-ico">🎵</span> אימון אינטרוולים
+      </button>
+      <button class="nav-btn" data-screen="modequiz">
+        <span class="nav-ico">🎧</span> בוחן מודוסים
+      </button>
+      <button class="nav-btn" data-screen="explorer">
+        <span class="nav-ico">🔍</span> חיפוש סולמות
+      </button>
+      <button class="nav-btn" data-screen="scalechords">
+        <span class="nav-ico">🎹</span> אקורדים לפי דרומוס
+      </button>
+      <button class="nav-btn" data-screen="backing">
+        <span class="nav-ico">🎶</span> רצועות ליווי
+      </button>
+      <button class="nav-btn" data-screen="jam">
+        <span class="nav-ico">🎷</span> ג'אם סימולטור
+      </button>
+      <button class="nav-btn" data-screen="exgen">
+        <span class="nav-ico">🎲</span> מחולל תרגילים
+      </button>
+      <button class="nav-btn" data-screen="melodygen">
+        <span class="nav-ico">🪄</span> מחולל מנגינות
+      </button>
+      <button class="nav-btn" data-screen="recorder">
+        <span class="nav-ico">⏺️</span> מקליט מנגינות
+      </button>
+      <button class="nav-btn" data-screen="sightread">
+        <span class="nav-ico">📖</span> קריאה מראש
+      </button>
+      <button class="nav-btn" data-screen="drums">
+        <span class="nav-ico">🥁</span> מכונת תופים
+      </button>
+      <button class="nav-btn" data-screen="analyzer">
+        <span class="nav-ico">📊</span> מנתח מוזיקלי
+      </button>
+      <button class="nav-btn" data-screen="maqam">
+        <span class="nav-ico">🕌</span> מדריך מאקאמים
+      </button>
+      <button class="nav-btn" data-screen="glossary">
+        <span class="nav-ico">📜</span> מילון רבטיקו
       </button>
     </nav>
 
@@ -905,17 +886,6 @@
     </section>
 
   </main>
-
-  <div class="nav-sheet" id="nav-sheet" aria-hidden="true">
-    <div class="nav-sheet-backdrop"></div>
-    <div class="nav-sheet-panel" role="dialog" aria-label="כל הכלים">
-      <div class="nav-sheet-head">
-        <span>כל הכלים</span>
-        <button type="button" class="nav-sheet-close" aria-label="סגור">×</button>
-      </div>
-      <div class="nav-sheet-body"></div>
-    </div>
-  </div>
 </div>
 
 <script src="js/data.js"></script>
