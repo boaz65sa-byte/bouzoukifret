@@ -40,6 +40,7 @@ function closeNavSheet() {
 }
 
 function openNavSheet() {
+  initNavSheet();
   const sheet = $('#nav-sheet');
   const toggle = $('.nav-more-toggle');
   if (!sheet) return;
@@ -53,9 +54,18 @@ function initNavSheet() {
   const sheet = $('#nav-sheet');
   const body = sheet?.querySelector('.nav-sheet-body');
   const source = $('.nav-scroll');
-  if (!sheet || !body || !source || body.dataset.ready) return;
+  if (!sheet || !body || !source) return;
+  if (body.dataset.ready) return;
   body.appendChild(source.cloneNode(true));
   body.dataset.ready = '1';
+}
+
+function toggleNavSheet() {
+  const sheet = $('#nav-sheet');
+  if (!sheet) return;
+  initNavSheet();
+  if (sheet.classList.contains('open')) closeNavSheet();
+  else openNavSheet();
 }
 
 document.querySelector('.nav')?.addEventListener('click', (e) => {
@@ -66,10 +76,15 @@ document.querySelector('.nav')?.addEventListener('click', (e) => {
   }
   if (e.target.closest('.nav-more-toggle')) {
     e.preventDefault();
-    const sheet = $('#nav-sheet');
-    if (sheet?.classList.contains('open')) closeNavSheet();
-    else openNavSheet();
+    e.stopPropagation();
+    toggleNavSheet();
   }
+});
+
+document.querySelector('.nav-more-toggle')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  toggleNavSheet();
 });
 
 $('#nav-sheet')?.addEventListener('click', (e) => {
@@ -81,7 +96,11 @@ $('#nav-sheet')?.addEventListener('click', (e) => {
   if (btn) navigateToScreen(btn.dataset.screen);
 });
 
-initNavSheet();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNavSheet);
+} else {
+  initNavSheet();
+}
 
 let activeSchedulers = [];
 
