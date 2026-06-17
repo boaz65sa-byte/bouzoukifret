@@ -129,8 +129,10 @@ const Engine = (() => {
     addPopup(label, color);
     spawnParticles(hp.x, hp.y, color);
     laneFlash = performance.now();
-    if (gameType === 'pick') AudioEngine.strum(0, sfxDir, best.accent);
-    else AudioEngine.strum(0, 'd', false);
+    const tSfx = now();
+    if (gameType === 'pick') AudioEngine.strum(tSfx, sfxDir, best.accent);
+    else if (gameType === 'note' && best.midi != null) AudioEngine.pluckFromMidi(best.midi, tSfx, 0.52, 0);
+    else AudioEngine.strum(tSfx, 'd', false);
     onHud({ score, combo, maxCombo });
   }
 
