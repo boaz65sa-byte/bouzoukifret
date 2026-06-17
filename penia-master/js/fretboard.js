@@ -41,17 +41,20 @@ const Fretboard = (() => {
   }
 
   function layout(compact) {
-    const frW = compact ? 26 : 32;
-    const courseStep = compact ? 18 : 24;
+    const frW = compact ? 30 : 38;
+    const courseStep = compact ? 20 : 26;
     const pairGap = compact ? 4 : 5;
-    const padL = compact ? 32 : 40;
-    const padT = compact ? 20 : 26;
-    const nutX = padL + 4;
-    const w = padL + frW * NUM_FRETS + 20;
-    const h = padT + courseStep * 3 + 10;
+    const padL = compact ? 34 : 44;
+    const padT = compact ? 22 : 28;
+    const nutX = padL + 6;
+    const gridTop = padT + 2;
+    const gridH = courseStep * 3;
+    const gridBot = gridTop + gridH;
+    const w = padL + frW * (NUM_FRETS + 1) + 24;
+    const h = gridBot + 18;
 
     function stringCenterY(course) {
-      return padT + course * courseStep + courseStep * 0.42;
+      return gridTop + course * (gridH / 3);
     }
 
     function stringY(course, side) {
@@ -60,15 +63,20 @@ const Fretboard = (() => {
     }
 
     function columnX(fret, posStart) {
-      if (fret === 0) return nutX - frW * 0.12;
+      if (fret === 0) return nutX - frW * 0.22;
       return nutX + (fret - posStart - 0.5) * frW;
     }
 
     function fretWireX(fi) { return nutX + fi * frW; }
 
+    function fretSpaceX(fret, posStart) {
+      if (fret === 0) return nutX - frW * 0.55;
+      return nutX + (fret - posStart - 1) * frW;
+    }
+
     return {
-      frW, courseStep, pairGap, padL, padT, nutX, w, h,
-      stringCenterY, stringY, columnX, fretWireX,
+      frW, courseStep, pairGap, padL, padT, nutX, gridTop, gridBot, gridH, w, h,
+      stringCenterY, stringY, columnX, fretWireX, fretSpaceX,
     };
   }
 
@@ -80,11 +88,13 @@ const Fretboard = (() => {
     const L = layout(compact);
     const onCellClick = opts.onCellClick;
     const activeCourse = opts.activeCourseIdx != null ? opts.activeCourseIdx : opts.activeStringIdx;
-    const gridBot = L.padT + L.courseStep * 3 + 4;
+    const gridBot = L.gridBot;
+    const gridTop = L.gridTop;
 
     const svg = el('svg', {
       viewBox: `0 0 ${L.w} ${L.h}`,
       class: 'fb-svg real-fretboard fb-8str fb-landscape' + (compact ? ' fb-compact' : ''),
+      preserveAspectRatio: 'xMidYMid meet',
     }, container);
 
     const defs = el('defs', {}, svg);
@@ -102,40 +112,65 @@ const Fretboard = (() => {
     el('stop', { offset: '100%', 'stop-color': '#606870' }, fretG);
 
     el('rect', {
-      x: L.nutX - 6, y: L.padT - 4,
-      width: L.frW * NUM_FRETS + 14, height: gridBot - L.padT + 8,
+      x: L.nutX - 8, y: gridTop - 6,
+      width: L.frW * NUM_FRETS + 18, height: gridBot - gridTop + 12,
       fill: 'url(#fb-wood)', rx: 4,
       stroke: 'rgba(40,28,18,0.55)', 'stroke-width': 1.5,
     }, svg);
 
+    /* תאי סריג — רקע לכל תיבה */
+    for (let f = 0; f <= NUM_FRETS; f++) {
+      if (f > 0 && (f - posStart < 1 || f - posStart > NUM_FRETS)) continue;
+      const x0 = f === 0 ? L.nutX - L.frW * 0.55 : L.fretSpaceX(f, posStart);
+      const fw = f === 0 ? L.frW * 0.5 : L.frW;
+      el('rect', {
+        x: x0, y: gridTop - 2, width: fw, height: gridBot - gridTop + 4,
+        fill: f % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)',
+        rx: 1,
+      }, svg);
+    }
+
     el('rect', {
-      x: L.nutX - 2, y: L.padT - 2, width: 4, height: gridBot - L.padT + 4,
+      x: L.nutX - 3, y: gridTop - 3, width: 5, height: gridBot - gridTop + 6,
       fill: posStart > 0 ? '#c8d4e0' : '#f5ead8', rx: 1,
     }, svg);
 
     for (let f = 1; f <= NUM_FRETS; f++) {
       const x = L.fretWireX(f);
       el('line', {
-        x1: x, y1: L.padT, x2: x, y2: gridBot,
-        stroke: 'url(#fb-fret)', 'stroke-width': 2.2,
+        x1: x, y1: gridTop - 2, x2: x, y2: gridBot + 2,
+        stroke: 'url(#fb-fret)', 'stroke-width': compact ? 2.8 : 3.2,
       }, svg);
       const label = posStart + f;
       el('text', {
-        x: x - L.frW * 0.5, y: L.padT - 4,
-        fill: '#9aabb8', 'font-size': compact ? 9 : 10, 'font-weight': 700,
+        x: x - L.frW * 0.5, y: gridTop - 8,
+        fill: '#d8e4f0', 'font-size': compact ? 10 : 11, 'font-weight': 800,
         'text-anchor': 'middle', 'font-family': 'Heebo',
       }, svg).textContent = String(label);
     }
 
+    el('text', {
+      x: L.nutX - L.frW * 0.22, y: gridTop - 8,
+      fill: '#5fc88f', 'font-size': compact ? 10 : 11, 'font-weight': 800,
+      'text-anchor': 'middle', 'font-family': 'Heebo',
+    }, svg).textContent = '0';
+
     for (let c = 0; c < PAIRS; c++) {
       const isActive = activeCourse === c;
       const x2 = L.nutX + L.frW * NUM_FRETS;
+      if (isActive) {
+        el('rect', {
+          x: L.nutX - 6, y: L.stringY(c, 0) - 5,
+          width: x2 - L.nutX + 10, height: L.pairGap + 10,
+          fill: 'rgba(95,200,143,0.12)', rx: 3,
+        }, svg);
+      }
       for (let side = 0; side < 2; side++) {
         const y = L.stringY(c, side);
         el('line', {
-          x1: L.nutX, y1: y, x2: x2, y2: y,
-          stroke: isActive ? '#ffe8a0' : '#c8d4de',
-          'stroke-width': isActive ? (1.6 + c * 0.25) : (0.9 + c * 0.15),
+          x1: L.nutX - 4, y1: y, x2: x2, y2: y,
+          stroke: isActive ? '#ffe8a0' : '#d0dce8',
+          'stroke-width': isActive ? (2 + c * 0.2) : (1.1 + c * 0.12),
         }, svg);
       }
       const cy = L.stringCenterY(c);
@@ -171,32 +206,42 @@ const Fretboard = (() => {
     }
 
     const markerEls = new Map();
+    const dotR = compact ? 7 : 8;
     markers.forEach(m => {
       const cy = L.stringCenterY(m.courseIdx);
       const g = el('g', { class: 'fb-marker', 'data-id': m.id }, svg);
 
       if (m.fret === 'x') {
         el('text', {
-          x: L.nutX - 8, y: cy, fill: '#d96459',
+          x: L.nutX - 10, y: cy, fill: '#d96459',
           'font-size': compact ? 13 : 15, 'font-weight': 900,
           'text-anchor': 'end', 'dominant-baseline': 'middle', 'font-family': 'Heebo',
         }, g).textContent = '×';
       } else if (m.fret === 0) {
+        const cx = L.columnX(0, posStart);
         el('circle', {
-          cx: L.nutX - 4, cy, r: compact ? 4 : 5,
-          fill: 'none', stroke: '#5fc88f', 'stroke-width': 2,
+          cx, cy, r: dotR,
+          fill: 'rgba(95,200,143,0.35)', stroke: '#5fc88f', 'stroke-width': 2.5,
+          class: 'fb-dot',
         }, g);
+        if (m.label) {
+          el('text', {
+            x: cx, y: cy + 1, fill: '#fff',
+            'font-size': compact ? 8 : 9, 'font-weight': 900,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-family': 'Heebo',
+          }, g).textContent = m.label;
+        }
       } else {
         const cx = L.columnX(m.fret, posStart);
-        if (cx < L.nutX || cx > L.nutX + L.frW * NUM_FRETS) return;
-        el('ellipse', {
-          cx, cy, rx: L.pairGap + 2, ry: compact ? 8 : 9,
-          fill: 'url(#fb-pearl)', stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1.5,
+        if (cx < L.nutX - L.frW * 0.3 || cx > L.nutX + L.frW * NUM_FRETS + 4) return;
+        el('circle', {
+          cx, cy, r: dotR,
+          fill: 'url(#fb-pearl)', stroke: 'rgba(255,255,255,0.7)', 'stroke-width': 2,
           class: 'fb-dot',
         }, g);
         el('text', {
           x: cx, y: cy + 1, fill: '#1a1408',
-          'font-size': compact ? 9 : 10, 'font-weight': 900,
+          'font-size': compact ? 8 : 9, 'font-weight': 900,
           'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-family': 'Heebo',
         }, g).textContent = m.label || String(m.fret);
       }
@@ -229,7 +274,7 @@ const Fretboard = (() => {
       seen.add(n.fret);
       return true;
     }).map(n => ({
-      courseIdx: 3, stringIdx: 3, fret: n.fret,
+      courseIdx: 3, stringIdx: 3, string: 4, fret: n.fret,
       label: n.label || n.solfege, id: `scale-f${n.fret}`,
     }));
   }
