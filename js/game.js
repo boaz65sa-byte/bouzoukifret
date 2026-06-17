@@ -157,7 +157,7 @@ const Game = (() => {
       addPopup(bestDt < 0 ? 'מוקדם' : 'מאוחר', '#4fb3d9');
     }
     maxCombo = Math.max(maxCombo, combo);
-    AudioEngine.strum(0, dir, best.accent);
+    AudioEngine.strum(now(), dir, best.accent);
     updateHud();
   }
 

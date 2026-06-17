@@ -218,21 +218,17 @@ const AudioEngine = (() => {
      למעלה: רק שני הגבוהים, קליל ובהיר — כמו ביד אמיתית. */
   function strum(when, dir = 'd', accent = false) {
     ensureCtx();
-    if (dir === 'd') {
+    const t = when != null && when > 0 ? when : ctx.currentTime + 0.02;
+    const isUp = dir === 'u' || dir === 'U';
+    if (!isUp) {
       const base = accent ? 0.55 : 0.38;
       [3, 2, 1, 0].forEach((ci, i) => {
-        const c = TUNING[ci];
-        const freq = 440 * Math.pow(2, (c.midi - 69) / 12);
-        const buf = ksBuffer(freq, 0.55, 0.6);
-        playBuffer(buf, when + i * 0.014, base * (ci === 3 ? 1.15 : 1));
+        pluckCourse(ci, 0, t + i * 0.014, base * (ci === 3 ? 1.15 : 1));
       });
     } else {
       const base = accent ? 0.4 : 0.26;
       [0, 1].forEach((ci, i) => {
-        const c = TUNING[ci];
-        const freq = 440 * Math.pow(2, (c.midi - 69) / 12);
-        const buf = ksBuffer(freq, 0.4, 0.85);
-        playBuffer(buf, when + i * 0.007, base);
+        pluckCourse(ci, 0, t + i * 0.007, base);
       });
     }
   }
