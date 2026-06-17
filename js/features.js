@@ -59,16 +59,16 @@ const IntervalTrainer = (() => {
     document.querySelector('#it-diff').addEventListener('change', e => {
       difficulty = e.target.value;
       resetStats();
-      next();
+      prepareQuestion();
     });
-    document.querySelector('#it-play').addEventListener('click', () => next());
+    document.querySelector('#it-play').addEventListener('click', () => next(true));
     document.querySelector('#it-repeat').addEventListener('click', () => playCurrent());
     document.querySelector('#it-ref').addEventListener('click', () => {
       AudioEngine.ensureCtx();
-      AudioEngine.pluckMidi(baseMidi, 0, 0.5);
+      AudioEngine.pluckFromMidi(baseMidi, 0, 0.5);
     });
     resetStats();
-    next();
+    prepareQuestion();
   }
 
   function resetStats() {
@@ -95,13 +95,20 @@ const IntervalTrainer = (() => {
     if (!current) return;
     AudioEngine.ensureCtx();
     const now = AudioEngine.ctx.currentTime + 0.05;
-    AudioEngine.pluckMidi(baseMidi, now, 0.55);
-    AudioEngine.pluckMidi(baseMidi + current.semitones, now + 0.65, 0.55);
+    AudioEngine.pluckFromMidi(baseMidi, now, 0.55);
+    AudioEngine.pluckFromMidi(baseMidi + current.semitones, now + 0.65, 0.55);
   }
 
-  function next() {
+  function prepareQuestion() {
     pick();
-    playCurrent();
+    renderOptions();
+    const fb = document.querySelector('#it-feedback');
+    if (fb) fb.innerHTML = '';
+  }
+
+  function next(playAudio = false) {
+    pick();
+    if (playAudio) playCurrent();
     renderOptions();
     const fb = document.querySelector('#it-feedback');
     if (fb) fb.innerHTML = '';
@@ -119,6 +126,8 @@ const IntervalTrainer = (() => {
       el.appendChild(btn);
     });
   }
+
+  let _itTimer = null;
 
   function answer(iv) {
     if (answered) return;
@@ -142,10 +151,21 @@ const IntervalTrainer = (() => {
       if (b.textContent === current.he) b.classList.add('correct');
       else if (b.textContent === iv.he && !correct) b.classList.add('wrong');
     });
-    setTimeout(() => next(), 1800);
+    if (_itTimer) clearTimeout(_itTimer);
+    _itTimer = setTimeout(() => {
+      _itTimer = null;
+      if (typeof isScreenActive === 'function' && isScreenActive('intervals')) {
+        next(true);
+      } else {
+        prepareQuestion();
+      }
+    }, 1800);
   }
 
-  function stop() { /* no timers */ }
+  function stop() {
+    if (_itTimer) { clearTimeout(_itTimer); _itTimer = null; }
+    AudioEngine.stopModeScale();
+  }
 
   return { init, stop };
 })();
@@ -164,6 +184,7 @@ const ModeQuiz = (() => {
   let difficulty = 'easy', current = null, answered = false;
   let stats = { correct: 0, wrong: 0, streak: 0, total: 0 };
   let rootMidi = 62; // D
+  let _mqTimer = null;
 
   function init() {
     const el = document.querySelector('#modequiz-app');
@@ -189,13 +210,16 @@ const ModeQuiz = (() => {
     document.querySelector('#mq-diff').addEventListener('change', e => {
       difficulty = e.target.value;
       resetStats();
-      nextQuestion();
+      prepareQuestion();
     });
-    document.querySelector('#mq-play').addEventListener('click', () => nextQuestion());
+    document.querySelector('#mq-play').addEventListener('click', () => {
+      prepareQuestion();
+      playScale();
+    });
     document.querySelector('#mq-repeat').addEventListener('click', () => playScale());
     document.querySelector('#mq-hint').addEventListener('click', () => showHint());
     resetStats();
-    nextQuestion();
+    prepareQuestion();
   }
 
   function resetStats() {
@@ -209,16 +233,14 @@ const ModeQuiz = (() => {
     if (el) el.innerHTML = `<span class="stat">&#10004; ${stats.correct}</span> <span class="stat err">&#10008; ${stats.wrong}</span> <span class="stat streak">&#128293; ${stats.streak}</span> <span class="stat">${pct}%</span>`;
   }
 
-  function nextQuestion() {
+  function prepareQuestion() {
     const d = DIFF[difficulty];
     const shuffled = [...DROMOI].sort(() => Math.random() - 0.5);
     const pool = shuffled.slice(0, d.poolSize);
     current = { dromos: pool[Math.floor(Math.random() * pool.length)], pool };
     rootMidi = 57 + Math.floor(Math.random() * 8);
     answered = false;
-    playScale();
     renderOptions(pool.sort(() => Math.random() - 0.5).slice(0, d.options));
-    // make sure correct is included
     const opts = document.querySelector('#mq-options');
     const btns = opts ? opts.querySelectorAll('button') : [];
     const hasCorrect = Array.from(btns).some(b => b.dataset.id === current.dromos.id);
@@ -229,6 +251,18 @@ const ModeQuiz = (() => {
     }
     const fb = document.querySelector('#mq-feedback');
     if (fb) fb.innerHTML = '';
+  }
+
+  function nextQuestion() {
+    prepareQuestion();
+    playScale();
+  }
+
+  function nextQuestionAfterAnswer() {
+    prepareQuestion();
+    if (typeof isScreenActive === 'function' && isScreenActive('modequiz')) {
+      playScale();
+    }
   }
 
   function playScale() {
@@ -272,7 +306,11 @@ const ModeQuiz = (() => {
       if (b.dataset.id === current.dromos.id) b.classList.add('correct');
       else if (b.dataset.id === dr.id && !correct) b.classList.add('wrong');
     });
-    setTimeout(() => nextQuestion(), 2000);
+    if (_mqTimer) clearTimeout(_mqTimer);
+    _mqTimer = setTimeout(() => {
+      _mqTimer = null;
+      nextQuestionAfterAnswer();
+    }, 2000);
   }
 
   function showHint() {
@@ -281,7 +319,10 @@ const ModeQuiz = (() => {
     if (fb) fb.innerHTML = `<small>מרווחים: ${current.dromos.intervals.join('-')}</small>`;
   }
 
-  function stop() { AudioEngine.stopModeScale(); }
+  function stop() {
+    if (_mqTimer) { clearTimeout(_mqTimer); _mqTimer = null; }
+    AudioEngine.stopModeScale();
+  }
 
   return { init, stop };
 })();
@@ -961,21 +1002,17 @@ const XpSystem = (() => {
   }
 
   function renderBadge() {
-    let badge = document.querySelector('#xp-badge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'xp-badge';
-      badge.className = 'xp-badge';
-      document.body.appendChild(badge);
-    }
+    document.querySelector('#xp-badge')?.remove();
+    const el = document.querySelector('#sidebar-xp');
+    if (!el) return;
     const info = getLevelInfo();
-    badge.innerHTML = `
-      <div class="xp-level">Lv.${info.level} ${info.label}</div>
-      <div class="xp-bar-wrap">
-        <div class="xp-bar-fill" style="width:${Math.round(info.progress * 100)}%"></div>
-      </div>
-      <div class="xp-points">${info.xp} XP</div>
-    `;
+    if (info.xp <= 0 && data.exerciseCount <= 0) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = `רמה ${info.level} · ${info.label} · ${info.xp} XP`;
+    el.hidden = false;
   }
 
   function getXp() { return data.xp; }
@@ -989,19 +1026,6 @@ const XpSystem = (() => {
       const style = document.createElement('style');
       style.id = 'xp-styles';
       style.textContent = `
-        .xp-badge {
-          position: fixed; bottom: 16px; left: 16px; z-index: 9999;
-          background: var(--bg-card, #1a1a2e); border: 1px solid var(--gold, #e3b341);
-          border-radius: 12px; padding: 8px 14px; min-width: 120px;
-          font-size: 13px; color: var(--text, #eee); box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-          cursor: default; direction: ltr; text-align: center;
-        }
-        .xp-level { font-weight: 700; color: var(--gold, #e3b341); margin-bottom: 4px; }
-        .xp-bar-wrap {
-          height: 6px; background: var(--line, #333); border-radius: 3px; overflow: hidden; margin: 4px 0;
-        }
-        .xp-bar-fill { height: 100%; background: var(--gold, #e3b341); border-radius: 3px; transition: width 0.4s; }
-        .xp-points { font-size: 11px; color: var(--text-dim, #999); }
         .xp-achievement-popup {
           position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-60px);
           background: var(--bg-card, #1a1a2e); border: 2px solid var(--gold, #e3b341);

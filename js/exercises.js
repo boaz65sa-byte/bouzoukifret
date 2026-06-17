@@ -283,6 +283,7 @@ function setExBpm(v) {
 
 function toggleExercise() {
   if (exScheduler && exScheduler.running) { stopExercise(); return; }
+  if (typeof stopAllPlayback === 'function') stopAllPlayback();
   AudioEngine.ensureCtx();
   const item = exItem;
   const evMap = exEventsAtSteps(item);
