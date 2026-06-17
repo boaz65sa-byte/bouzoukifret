@@ -1514,7 +1514,7 @@ const MaqamGuide = (() => {
             ${phrase.map(iv => {
               const midi = rootMidi + iv;
               const name = NOTE_NAMES[midi % 12];
-              return `<span style="background:var(--bg-elev);color:var(--gold);padding:4px 8px;border-radius:4px;font-weight:700;font-size:14px;cursor:pointer;" onclick="AudioEngine.pluckMidi(${midi},0,0.5)">${name}</span>`;
+              return `<span style="background:var(--bg-elev);color:var(--gold);padding:4px 8px;border-radius:4px;font-weight:700;font-size:14px;cursor:pointer;" onclick="AudioEngine.pluckFromMidi(${midi},0,0.5)">${name}</span>`;
             }).join('')}
             <button class="btn-sm" onclick="MaqamGuide.playPhrase('${id}')">נגן פראזה</button>
           </div>
@@ -1542,24 +1542,13 @@ const MaqamGuide = (() => {
     const id = $('#mq-select').value;
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
-    AudioEngine.ensureCtx();
-    const rootMidi = 62;
-    const scale = [...d.intervals, 12, ...d.intervals.slice().reverse()];
-    const t0 = AudioEngine.ctx.currentTime + 0.05;
-    scale.forEach((iv, i) => {
-      AudioEngine.pluckMidi(rootMidi + iv, t0 + i * 0.35, 0.45);
-    });
+    AudioEngine.playModeScale(d.intervals, 2, { gapMs: 350, gain: 0.48 });
   }
 
   function playPhrase(id) {
     const phrase = CHARACTERISTIC_PHRASES[id];
     if (!phrase) return;
-    AudioEngine.ensureCtx();
-    const rootMidi = 62;
-    const t0 = AudioEngine.ctx.currentTime + 0.05;
-    phrase.forEach((iv, i) => {
-      AudioEngine.pluckMidi(rootMidi + iv, t0 + i * 0.3, 0.5);
-    });
+    AudioEngine.playModeIntervals(phrase, 2, 0.3, 0.5);
   }
 
   function doCompare() {
@@ -1640,16 +1629,12 @@ const MaqamGuide = (() => {
   function playCompareScale(id) {
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
-    AudioEngine.ensureCtx();
-    const rootMidi = 62;
-    const scale = [...d.intervals, 12];
-    const t0 = AudioEngine.ctx.currentTime + 0.05;
-    scale.forEach((iv, i) => {
-      AudioEngine.pluckMidi(rootMidi + iv, t0 + i * 0.35, 0.45);
-    });
+    AudioEngine.playModeScale(d.intervals, 2, { gapMs: 350, gain: 0.48, descending: false });
   }
 
-  function stop() { /* nothing to stop */ }
+  function stop() {
+    AudioEngine.stopModeScale();
+  }
 
   return { init, stop, playPhrase, playCompareScale };
 })();

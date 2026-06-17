@@ -84,6 +84,65 @@ const AudioEngine = (() => {
     return pluckCourse(ci, fret, when, gain);
   }
 
+  /** נגינת תו לפי MIDI — תמיד דרך מיתר בוזוקי (לא צליל סינתטי נפרד) */
+  function pluckFromMidi(midi, when = 0, gain = 0.5, preferCourse = 0) {
+    ensureCtx();
+    const t = when || ctx.currentTime + 0.02;
+    const prefFret = midi - TUNING[preferCourse].midi;
+    if (prefFret >= 0 && prefFret <= NUM_FRETS) {
+      return pluckCourse(preferCourse, prefFret, t, gain);
+    }
+    const { ci, fret } = midiToCourseFret(midi);
+    return pluckCourse(ci, fret, t, gain);
+  }
+
+  /** סריגים על מיתר D (קורס 0) — עקבי עם מאסטר מודוסים */
+  function modeScaleFrets(intervals, rootPc, includeOctave = true) {
+    const openPc = TUNING[0].midi % 12;
+    const ivs = includeOctave ? [...intervals, 12] : [...intervals];
+    return ivs.map(iv => ((rootPc - openPc + iv) % 12 + 12) % 12);
+  }
+
+  let _modeScaleTimer = null;
+
+  function stopModeScale() {
+    if (_modeScaleTimer) { clearTimeout(_modeScaleTimer); _modeScaleTimer = null; }
+  }
+
+  /** סולם דרומוס — תמיד pluckCourse על מיתר D, אותו צליל בוזוקי בכל המסכים */
+  function playModeScale(intervals, rootPc, opts = {}) {
+    stopModeScale();
+    ensureCtx();
+    const gapMs = opts.gapMs ?? 320;
+    const gain = opts.gain ?? 0.5;
+    const descending = opts.descending !== false;
+    const frets = modeScaleFrets(intervals, rootPc, opts.includeOctave !== false);
+    let seq = [...frets];
+    if (descending) seq = [...frets, ...[...frets].reverse().slice(1)];
+
+    let i = 0;
+    function step() {
+      if (i >= seq.length) { _modeScaleTimer = null; return; }
+      pluckCourse(0, seq[i], 0, gain);
+      if (opts.onStep) opts.onStep(seq[i], i);
+      i++;
+      _modeScaleTimer = setTimeout(step, gapMs);
+    }
+    step();
+    return seq;
+  }
+
+  /** מרווחים יחסיים (ג'ינס / ביטוי) על מיתר D */
+  function playModeIntervals(intervals, rootPc, gapSec = 0.32, gain = 0.5) {
+    ensureCtx();
+    const openPc = TUNING[0].midi % 12;
+    const t0 = ctx.currentTime + 0.04;
+    intervals.forEach((iv, i) => {
+      const fret = ((rootPc - openPc + iv) % 12 + 12) % 12;
+      pluckCourse(0, fret, t0 + i * gapSec, gain);
+    });
+  }
+
   /* צליל בודד לפי MIDI */
   function pluckMidi(midi, when = 0, gain = 0.5) {
     ensureCtx();
@@ -429,7 +488,9 @@ const AudioEngine = (() => {
 
   function isEnsembleActive() { return !!ensemble; }
 
-  return { ensureCtx, pluckMidi, pluckCourse, pluckBassFromMidi, dum, tek, click, strum, strumChord, bassOfChord, Scheduler,
+  return { ensureCtx, pluckMidi, pluckFromMidi, pluckCourse, pluckBassFromMidi,
+    modeScaleFrets, playModeScale, playModeIntervals, stopModeScale,
+    dum, tek, click, strum, strumChord, bassOfChord, Scheduler,
     startEnsemble, stopEnsemble, isEnsembleActive, rhythmForDromos,
     get ctx() { return ctx; } };
 })();

@@ -233,16 +233,7 @@ const ModeQuiz = (() => {
 
   function playScale() {
     if (!current) return;
-    AudioEngine.ensureCtx();
-    const ivs = current.dromos.intervals;
-    const now = AudioEngine.ctx.currentTime + 0.05;
-    const gap = 0.35;
-    // ascending
-    ivs.forEach((iv, i) => AudioEngine.pluckMidi(rootMidi + iv, now + i * gap, 0.45));
-    // descending
-    const desc = [...ivs].reverse();
-    const offset = ivs.length * gap + 0.2;
-    desc.forEach((iv, i) => AudioEngine.pluckMidi(rootMidi + iv, now + offset + i * gap, 0.4));
+    AudioEngine.playModeScale(current.dromos.intervals, rootMidi % 12, { gapMs: 350, gain: 0.48 });
   }
 
   function renderOptions(opts) {
@@ -290,7 +281,7 @@ const ModeQuiz = (() => {
     if (fb) fb.innerHTML = `<small>מרווחים: ${current.dromos.intervals.join('-')}</small>`;
   }
 
-  function stop() { /* no timers */ }
+  function stop() { AudioEngine.stopModeScale(); }
 
   return { init, stop };
 })();
@@ -390,17 +381,16 @@ const ScaleExplorer = (() => {
     const dr = DROMOI[selDromos];
     if (!dr) return;
     AudioEngine.ensureCtx();
-    const base = rootPc + 48;
-    let seq = dr.intervals.map(iv => base + iv);
-    if (dir === 'down') seq = [...seq, base + 12].reverse();
-    else seq = [...seq, base + 12];
-    const now = AudioEngine.ctx.currentTime + 0.05;
-    seq.forEach((m, i) => AudioEngine.pluckMidi(m, now + i * 0.35, 0.45));
+    const frets = AudioEngine.modeScaleFrets(dr.intervals, rootPc);
+    const seq = dir === 'down' ? [...frets].reverse() : frets;
+    const t0 = AudioEngine.ctx.currentTime + 0.05;
+    seq.forEach((f, i) => AudioEngine.pluckCourse(0, f, t0 + i * 0.35, 0.48));
     playTimer = setTimeout(() => { playTimer = null; }, seq.length * 350 + 200);
   }
 
   function stop() {
     if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+    AudioEngine.stopModeScale();
   }
 
   return { init, stop };
@@ -506,7 +496,7 @@ const ScaleChords = (() => {
           AudioEngine.strumChord(ch.shape, 'd', 0, 0.5);
         } else {
           AudioEngine.ensureCtx();
-          AudioEngine.pluckMidi(+card.dataset.midi, 0, 0.5);
+          AudioEngine.pluckFromMidi(+card.dataset.midi, 0, 0.5);
         }
       });
     });

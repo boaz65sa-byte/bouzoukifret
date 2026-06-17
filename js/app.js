@@ -33,6 +33,8 @@ function stopAllPlayback() {
   activeSchedulers.forEach(s => s.stop());
   activeSchedulers = [];
   clearTimeout(scaleTimer);
+  scaleTimer = null;
+  if (typeof AudioEngine !== 'undefined') AudioEngine.stopModeScale();
   stopPenia();
   stopRhythm();
   stopMet();
@@ -54,10 +56,9 @@ function stopAllPlayback() {
   if (typeof SightReading !== 'undefined') SightReading.stop();
   if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
   if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
-  if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
-  if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.stop();
-  if (typeof SightReading !== 'undefined') SightReading.stop();
-  if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
+  if (typeof ScaleExplorer !== 'undefined') ScaleExplorer.stop();
+  if (typeof ModeQuiz !== 'undefined') ModeQuiz.stop();
+  if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
@@ -377,6 +378,9 @@ function initDromoi() {
       $$('.dromos-item').forEach(x => x.classList.remove('active'));
       item.classList.add('active');
       currentDromos = d;
+      clearTimeout(scaleTimer);
+      scaleTimer = null;
+      AudioEngine.stopModeScale();
       refreshEnsembleIfActive();
       renderDromos();
     });
@@ -393,6 +397,9 @@ function initDromoi() {
   });
   rootSel.addEventListener('change', () => {
     currentRoot = parseInt(rootSel.value, 10);
+    clearTimeout(scaleTimer);
+    scaleTimer = null;
+    AudioEngine.stopModeScale();
     refreshEnsembleIfActive();
     renderDromos();
   });
@@ -425,10 +432,7 @@ function renderAjnas() {
       ${bar}
       <p>${jins.desc}</p>`;
     card.addEventListener('click', () => {
-      AudioEngine.ensureCtx();
-      jins.intervals.forEach((iv, i) => {
-        AudioEngine.pluckMidi(62 + iv, AudioEngine.ctx.currentTime + 0.05 + i * 0.32, 0.5);
-      });
+      AudioEngine.playModeIntervals(jins.intervals, currentRoot, 0.32, 0.5);
     });
     grid.appendChild(card);
   });
@@ -513,18 +517,13 @@ let scaleTimer = null;
 function playScale(msPerNote) {
   AudioEngine.ensureCtx();
   clearTimeout(scaleTimer);
-  const midis = scaleMidisFromRoot();
-  const seq = [...midis, ...[...midis].reverse().slice(1)];
+  scaleTimer = null;
   const svg = $('#fb-dromos');
-  let i = 0;
-  function step() {
-    if (i >= seq.length) return;
-    AudioEngine.pluckMidi(seq[i], 0, 0.5);
-    flashMidiOnBoard(svg, seq[i]);
-    i++;
-    scaleTimer = setTimeout(step, msPerNote);
-  }
-  step();
+  AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
+    gapMs: msPerNote,
+    gain: 0.52,
+    onStep(fret) { flashDot(svg, 0, fret); },
+  });
 }
 
 function playSingleString() {
