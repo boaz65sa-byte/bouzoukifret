@@ -93,19 +93,22 @@ const DailyStreak = (() => {
   }
 
   function render() {
-    const el = document.getElementById('sidebar-streak');
-    if (!el) return;
-    if (data.streak <= 0 && !data.todayDone) {
-      el.hidden = true;
-      return;
-    }
-    el.hidden = false;
-    const fire = data.todayDone ? '🔥' : '⏳';
-    el.innerHTML = `${fire} <b>${data.streak}</b> ימים ברצף` +
-      (data.longest > data.streak ? ` · שיא ${data.longest}` : '');
-    el.title = data.todayDone
+    const html = (data.streak <= 0 && !data.todayDone) ? null : (() => {
+      const fire = data.todayDone ? '🔥' : '⏳';
+      return `${fire} <b>${data.streak}</b> ימים ברצף` +
+        (data.longest > data.streak ? ` · שיא ${data.longest}` : '');
+    })();
+    const title = data.todayDone
       ? 'תרגלתם היום — חזרו מחר לשמור על הרצף!'
       : 'תרגלו היום לשמור על הרצף!';
+    ['sidebar-streak', 'sidebar-streak-mobile'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!html) { el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = html;
+      el.title = title;
+    });
   }
 
   function getStreak() { return data.streak; }

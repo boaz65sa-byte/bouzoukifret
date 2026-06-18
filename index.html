@@ -29,11 +29,27 @@
       <div>
         <div class="logo-title">בוזוקי אקדמי</div>
         <div class="logo-sub">Μπουζούκι · בית ספר דיגיטלי</div>
+        <p id="sidebar-streak-mobile" class="sidebar-streak-mobile" hidden></p>
       </div>
     </div>
 
     <nav class="nav" aria-label="ניווט ראשי">
-      <button class="nav-btn active" data-screen="home">
+      <p class="nav-section-label">למידה · חדש</p>
+      <button class="nav-btn nav-featured" data-screen="learn" data-nav-priority="1">
+        <span class="nav-ico">▶️</span> למד מהשיר (YouTube)
+      </button>
+      <button class="nav-btn nav-featured" data-screen="progress" data-nav-priority="2">
+        <span class="nav-ico">📊</span> התקדמות
+      </button>
+      <button class="nav-btn" data-screen="songs" data-nav-priority="3">
+        <span class="nav-ico">🎵</span> ספריית שירים
+      </button>
+      <button class="nav-btn" data-screen="listen" data-nav-priority="4">
+        <span class="nav-ico">🎤</span> מאמן מאזין
+      </button>
+
+      <p class="nav-section-label">יסודות</p>
+      <button class="nav-btn active" data-screen="home" data-nav-priority="0">
         <span class="nav-ico">🏛️</span> הכלי והכיוונון
       </button>
       <button class="nav-btn" data-screen="dromoi">
@@ -48,6 +64,14 @@
       <button class="nav-btn" data-screen="rhythms">
         <span class="nav-ico">🥁</span> מקצבים יווניים
       </button>
+      <button class="nav-btn" data-screen="practice">
+        <span class="nav-ico">⏱️</span> חדר תרגול
+      </button>
+      <button class="nav-btn" data-screen="course">
+        <span class="nav-ico">🎓</span> קורס מקצועי
+      </button>
+
+      <p class="nav-section-label">מאסטר וכלים</p>
       <button class="nav-btn" data-screen="game">
         <span class="nav-ico">🎮</span> מאסטר הפנייה
       </button>
@@ -59,24 +83,6 @@
       </button>
       <button class="nav-btn" data-screen="tuner">
         <span class="nav-ico">🎵</span> מכוון כרומטי
-      </button>
-      <button class="nav-btn" data-screen="listen">
-        <span class="nav-ico">🎤</span> מאמן מאזין
-      </button>
-      <button class="nav-btn" data-screen="practice">
-        <span class="nav-ico">⏱️</span> חדר תרגול
-      </button>
-      <button class="nav-btn" data-screen="progress">
-        <span class="nav-ico">📊</span> התקדמות
-      </button>
-      <button class="nav-btn" data-screen="course">
-        <span class="nav-ico">🎓</span> קורס מקצועי
-      </button>
-      <button class="nav-btn" data-screen="songs">
-        <span class="nav-ico">🎵</span> ספריית שירים
-      </button>
-      <button class="nav-btn" data-screen="learn">
-        <span class="nav-ico">▶️</span> למד מהשיר (YouTube)
       </button>
       <button class="nav-btn" data-screen="intervals">
         <span class="nav-ico">🎵</span> אימון אינטרוולים
