@@ -148,6 +148,7 @@ const LearnHub = (() => {
       alert('הדביקו קישור YouTube או טענו סרטון לפני הניתוח');
       return;
     }
+    _pauseYoutube();
     _activeTab = 'analyze';
     _renderTabs();
     if (typeof SongAnalyzer !== 'undefined') {
@@ -172,11 +173,31 @@ const LearnHub = (() => {
     });
   }
 
+  function _pauseYoutube() {
+    if (!_ytPlayer) return;
+    try {
+      if (typeof _ytPlayer.pauseVideo === 'function') _ytPlayer.pauseVideo();
+      else if (typeof _ytPlayer.stopVideo === 'function') _ytPlayer.stopVideo();
+    } catch (_) { /* noop */ }
+  }
+
+  function _pauseTabPlayback(tab) {
+    if (tab === 'youtube') _pauseYoutube();
+    if (tab === 'analyze' && typeof SongAnalyzer !== 'undefined' && SongAnalyzer.pausePlayback) {
+      SongAnalyzer.pausePlayback();
+    }
+  }
+
   function stop() {
     _destroyPlayer();
     _currentSong = null;
     _currentVideoId = null;
     if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
+  }
+
+  function pausePlayback() {
+    _pauseYoutube();
+    if (typeof SongAnalyzer !== 'undefined' && SongAnalyzer.pausePlayback) SongAnalyzer.pausePlayback();
   }
 
   /* ---------- רינדור פאנל לימוד ---------- */
@@ -545,7 +566,9 @@ const LearnHub = (() => {
 
     document.querySelectorAll('.learn-tab').forEach(tab => {
       tab.addEventListener('click', () => {
+        const prev = _activeTab;
         _activeTab = tab.dataset.tab;
+        if (prev !== _activeTab) _pauseTabPlayback(prev);
         _renderTabs();
         if (_activeTab === 'paths') _renderPathsTab();
         if (_activeTab === 'resources') _renderResourcesTab();
@@ -586,5 +609,5 @@ const LearnHub = (() => {
     _renderResourcesTab();
   }
 
-  return { init, stop, loadVideo: _loadVideo };
+  return { init, stop, pausePlayback, pauseTabPlayback: _pauseTabPlayback, loadVideo: _loadVideo };
 })();

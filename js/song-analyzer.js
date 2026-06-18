@@ -68,6 +68,17 @@ const SongAnalyzer = (() => {
     _releaseMic();
   }
 
+  /** עצירת נגינה בלבד — שומר ניתוח (מעבר טאבים ב-Learn Hub) */
+  function pausePlayback() {
+    if (typeof PitchPreservingPlayer !== 'undefined' && PitchPreservingPlayer.isPlaying()) {
+      PitchPreservingPlayer.pause();
+    }
+    const btn = document.getElementById('sa-play');
+    if (btn) btn.textContent = '▶ נגן';
+    if (typeof LiveChord !== 'undefined') LiveChord.stop();
+    _releaseMic();
+  }
+
   function _setProgress(msg, pct) {
     const bar = document.getElementById('sa-progress-fill');
     const txt = document.getElementById('sa-progress-text');
@@ -894,5 +905,5 @@ const SongAnalyzer = (() => {
     });
   }
 
-  return { render, stop, runPipeline, loadFromExport };
+  return { render, stop, pausePlayback, runPipeline, loadFromExport };
 })();

@@ -30,6 +30,17 @@ $$('.nav-btn').forEach(btn => {
 
 let activeSchedulers = [];
 
+/** מנועי נגינה רשומים — כל מודול שנכנס לרשימה ייעצר במעבר מסך */
+const PLAYBACK_STOPPERS = new Map();
+
+function registerPlayback(id, stopFn) {
+  if (id && typeof stopFn === 'function') PLAYBACK_STOPPERS.set(id, stopFn);
+}
+
+function unregisterPlayback(id) {
+  PLAYBACK_STOPPERS.delete(id);
+}
+
 /** האם מסך מסוים פעיל (למניעת נגינה ברקע) */
 function isScreenActive(screenId) {
   const el = document.getElementById('screen-' + screenId);
@@ -54,7 +65,6 @@ function stopAllPlayback() {
   if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof MicEngine !== 'undefined') MicEngine.stop();
   if (typeof BouzoukiTuner !== 'undefined') BouzoukiTuner.stop();
-  if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof BackingTracks !== 'undefined') BackingTracks.stop();
   if (typeof JamSimulator !== 'undefined') JamSimulator.stop();
   if (typeof ExerciseGenerator !== 'undefined') ExerciseGenerator.stop();
@@ -70,6 +80,10 @@ function stopAllPlayback() {
   if (typeof LearnHub !== 'undefined') LearnHub.stop();
   if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
   if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
+  if (typeof PitchPreservingPlayer !== 'undefined' && PitchPreservingPlayer.isPlaying()) {
+    PitchPreservingPlayer.pause();
+  }
+  PLAYBACK_STOPPERS.forEach(fn => { try { fn(); } catch (_) { /* noop */ } });
   $('#dr-drone').classList.remove('playing');
 }
 
