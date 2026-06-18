@@ -446,6 +446,19 @@ const SongAnalyzer = (() => {
 
     if (_compareOn && note) _checkMicNote(note);
     if (_liveChordOn) _updateLiveChordUI();
+    _highlightActiveChord(t);
+  }
+
+  function _highlightActiveChord(t) {
+    const chords = _displayChords();
+    const marks = document.querySelectorAll('.sa-chord-mark');
+    if (!chords.length || !marks.length) return;
+    let idx = 0;
+    for (let i = 0; i < chords.length; i++) {
+      if (chords[i].time <= t) idx = i;
+      else break;
+    }
+    marks.forEach((m, i) => m.classList.toggle('active', i === idx));
   }
 
   function _highlightFretboard(note) {

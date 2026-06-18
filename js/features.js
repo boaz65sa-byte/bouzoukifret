@@ -843,8 +843,9 @@ const JamSimulator = (() => {
     const el = document.querySelector('#jam-prog');
     if (!el || !preset) return;
     el.innerHTML = '<strong>תהלוכה:</strong> ' + preset.chords.map((c, i) =>
-      `<span class="jam-chord${i === chordIdx ? ' active' : ''}" data-i="${i}">${CHORDS[c]?.he || c}</span>`
+      `<span class="jam-chord${i === chordIdx ? ' active' : ''}" data-i="${i}" data-chord="${c}" tabindex="0">${CHORDS[c]?.he || c}</span>`
     ).join(' → ');
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(el);
   }
 
   function startJam() {
@@ -1094,6 +1095,7 @@ const XpSystem = (() => {
 
         .jam-prog { margin: 10px 0; font-size: 15px; text-align: center; }
         .jam-chord { padding: 4px 10px; border-radius: 6px; background: var(--bg-elev, #222);
+          cursor: help; font-size: 13px; transition: background 0.15s; }
           display: inline-block; margin: 2px; }
         .jam-chord.active { background: var(--gold, #e3b341); color: #111; font-weight: 700; }
         .jam-btns { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }

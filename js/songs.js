@@ -461,13 +461,16 @@ const SongLibrary = (() => {
         cell.innerHTML = '<div class="sc-top">·</div><div class="sc-bottom">שקט</div>';
       } else if (ev.kind === 'bass') {
         cell.className = 'strum-cell bass';
+        cell.dataset.chord = ev.chord;
         cell.innerHTML = `<div class="sc-top">↓</div><div class="sc-bottom">בס ${ev.chord}</div>`;
       } else {
         cell.className = 'strum-cell';
+        cell.dataset.chord = ev.chord;
         cell.innerHTML = `<div class="sc-top">${ev.dir === 'd' ? '↓' : '↑'}</div><div class="sc-bottom">${ev.chord}</div>`;
       }
       container.appendChild(cell);
     });
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
   }
 
   function _renderBouzoukiPart(song) {
@@ -5403,7 +5406,21 @@ const SongLibrary = (() => {
       }
     }
     svg += '</svg>';
-    return svg;
+    return `<div class="chord-mini-wrap" data-chord="${chordName}" tabindex="0">${svg}</div>`;
+  }
+
+  function _bindSongChordTooltips(detail) {
+    if (typeof ChordTooltip === 'undefined' || !detail) return;
+    ChordTooltip.bindContainer(detail.querySelector('.song-chord-diagrams'));
+    ChordTooltip.bindContainer(detail.querySelector('#song-strum-strip'));
+    ChordTooltip.bindContainer(detail.querySelector('#song-scroll-area'));
+    detail.querySelectorAll('.fret-chord-name').forEach(th => {
+      if (th.dataset.chordBound) return;
+      th.dataset.chord = th.textContent.trim();
+      th.dataset.chordBound = '1';
+      th.style.cursor = 'help';
+      ChordTooltip.bindHover(th, () => th.dataset.chord);
+    });
   }
 
   /* ===================== UI — רינדור ===================== */
@@ -5671,6 +5688,7 @@ const SongLibrary = (() => {
     if (previewDromos) previewDromos.onclick = () => _previewDromos(displaySong);
 
     _bindBouzoukiPartEvents(detail, displaySong);
+    _bindSongChordTooltips(detail);
   }
 
   function _refreshSongView(song, detail) {
@@ -5702,12 +5720,15 @@ const SongLibrary = (() => {
       tmp.innerHTML = bouzHtml;
       bouzPart.replaceWith(tmp.firstElementChild);
       _bindBouzoukiPartEvents(detail, song);
+      _bindSongChordTooltips(detail);
     } else if (bouzEmpty) {
       const tmp = document.createElement('div');
       tmp.innerHTML = bouzHtml;
       bouzEmpty.replaceWith(tmp.firstElementChild);
       _bindBouzoukiPartEvents(detail, song);
+      _bindSongChordTooltips(detail);
     }
+    _bindSongChordTooltips(detail);
   }
 
   function _renderSections(song) {

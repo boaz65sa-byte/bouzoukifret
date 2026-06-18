@@ -186,13 +186,16 @@ function drawStrumStrip(container, item) {
       cell.innerHTML = `<div class="sc-top">·</div><div class="sc-bottom">שקט</div>`;
     } else if (ev.kind === 'bass') {
       cell.className = 'strum-cell bass';
+      cell.dataset.chord = ev.chord;
       cell.innerHTML = `<div class="sc-top">↓</div><div class="sc-bottom">בס ${ev.chord}</div>`;
     } else {
       cell.className = 'strum-cell';
+      cell.dataset.chord = ev.chord;
       cell.innerHTML = `<div class="sc-top">${ev.dir === 'd' ? '↓' : '↑'}</div><div class="sc-bottom">${ev.chord}</div>`;
     }
     container.appendChild(cell);
   });
+  if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
 }
 
 /* ---------- ניהול מסך ---------- */

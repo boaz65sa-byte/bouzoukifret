@@ -448,6 +448,18 @@ const LearnHub = (() => {
     const root = document.getElementById('learn-hub-app');
     if (!root) return;
     root.innerHTML = `
+      <details class="learn-setup card">
+        <summary>⚙️ מדריך התקנה — YouTube, stems, ניתוח AI</summary>
+        <ol>
+          <li><strong>ניתוח בסיסי</strong> — העלאת MP3/WAV עובדת בדפדפן בלבד (Essentia.js).</li>
+          <li><strong>config.js</strong> — העתיקו <code>config.example.js</code> ל-<code>config.js</code> והגדירו <code>stemProxyUrl: 'http://localhost:3456'</code>.</li>
+          <li><strong>Stem proxy</strong> — בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code></li>
+          <li><strong>YouTube</strong> — התקינו yt-dlp: <code>pip install yt-dlp</code> או <code>winget install yt-dlp</code></li>
+          <li><strong>LALAL / Moises</strong> — הוסיפו מפתחות ב-<code>tools/stem-proxy/.env</code> (ראו <code>.env.example</code>).</li>
+          <li>ריחוף על אקורד בכל האפליקציה → דיאגרמת fingering. בניתוח שיר: האטה עם שמירת pitch + זיהוי אקורד חי (Meyda).</li>
+        </ol>
+      </details>
+
       <div class="learn-tabs">
         <button type="button" class="learn-tab active" data-tab="youtube">▶ YouTube</button>
         <button type="button" class="learn-tab" data-tab="analyze">🔬 ניתוח AI</button>

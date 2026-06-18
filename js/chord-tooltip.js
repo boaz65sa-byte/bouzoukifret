@@ -143,5 +143,16 @@ const ChordTooltip = (() => {
     el.addEventListener('blur', hide);
   }
 
-  return { show, hide, bindHover, resolveKey };
+  /** כל האלמנטים עם data-chord בתוך root */
+  function bindContainer(root) {
+    const el = typeof root === 'string' ? document.querySelector(root) : root;
+    if (!el) return;
+    el.querySelectorAll('[data-chord]').forEach(node => {
+      if (node.dataset.chordBound) return;
+      node.dataset.chordBound = '1';
+      bindHover(node, () => node.dataset.chord);
+    });
+  }
+
+  return { show, hide, bindHover, bindContainer, resolveKey };
 })();
