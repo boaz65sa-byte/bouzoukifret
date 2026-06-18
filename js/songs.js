@@ -6241,6 +6241,23 @@ More lyrics here</pre>
     document.head.appendChild(style);
   }
 
+  function openSongById(songId) {
+    const song = getAllSongs().find(s => s.id === songId);
+    if (!song) return false;
+    const navBtn = document.querySelector('.nav-btn[data-screen="songs"]');
+    if (navBtn) navBtn.click();
+    setTimeout(() => {
+      const entry = document.querySelector(`.songs-entry[data-id="${songId}"]`);
+      if (entry) {
+        document.querySelectorAll('.songs-entry').forEach(e => e.classList.remove('selected'));
+        entry.classList.add('selected');
+        stopSong();
+        _showSong(song);
+      }
+    }, 80);
+    return true;
+  }
+
   /* ===================== API ===================== */
 
   return {
@@ -6252,6 +6269,8 @@ More lyrics here</pre>
     saveSong,
     deleteSong,
     getAllSongs,
+    getSongReference,
+    openSongById,
     resetMobileView: _closeMobileDetail,
     BUILTIN_SONGS,
   };

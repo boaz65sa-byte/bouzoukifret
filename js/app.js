@@ -67,6 +67,9 @@ function stopAllPlayback() {
   if (typeof ModeQuiz !== 'undefined') ModeQuiz.stop();
   if (typeof IntervalTrainer !== 'undefined') IntervalTrainer.stop();
   if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
+  if (typeof LearnHub !== 'undefined') LearnHub.stop();
+  if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
+  if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
   $('#dr-drone').classList.remove('playing');
 }
 
@@ -905,6 +908,10 @@ function updateStreak() {
   const el = $('#streak');
   if (done === total) {
     el.textContent = '🏆 כל הכבוד! סיימתם את השגרה של היום — Γεια σου, μάστορα!';
+    if (typeof DailyStreak !== 'undefined') DailyStreak.touch('routine');
+    if (typeof ProgressLog !== 'undefined') {
+      ProgressLog.log('routine', 'שגרה יומית הושלמה', { durationSec: 25 * 60 });
+    }
   } else if (done > 0) {
     el.textContent = `${done} מתוך ${total} — ממשיכים!`;
   } else {

@@ -3,3 +3,4 @@ package.json
 package-lock.json
 *.log
 penia-master/config.js
+config.js

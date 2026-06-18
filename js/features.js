@@ -964,7 +964,7 @@ const XpSystem = (() => {
     return { level: lvl + 1, label: cur.label, xp: data.xp, progress: Math.min(1, progress), nextMin: next.min };
   }
 
-  function award(amount, reason) {
+  function award(amount, reason, opts = {}) {
     if (!amount || amount <= 0) return;
     data.xp += amount;
     data.exerciseCount++;
@@ -973,6 +973,12 @@ const XpSystem = (() => {
     checkAchievements();
     save();
     renderBadge();
+    if (!opts.skipStreakTouch && typeof DailyStreak !== 'undefined') {
+      DailyStreak.touch('xp');
+    }
+    if (typeof ProgressLog !== 'undefined') {
+      ProgressLog.log('xp', reason || 'תרגול', { meta: { amount } });
+    }
   }
 
   function checkAchievements() {

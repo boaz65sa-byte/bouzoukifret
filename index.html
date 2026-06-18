@@ -66,11 +66,17 @@
       <button class="nav-btn" data-screen="practice">
         <span class="nav-ico">⏱️</span> חדר תרגול
       </button>
+      <button class="nav-btn" data-screen="progress">
+        <span class="nav-ico">📊</span> התקדמות
+      </button>
       <button class="nav-btn" data-screen="course">
         <span class="nav-ico">🎓</span> קורס מקצועי
       </button>
       <button class="nav-btn" data-screen="songs">
         <span class="nav-ico">🎵</span> ספריית שירים
+      </button>
+      <button class="nav-btn" data-screen="learn">
+        <span class="nav-ico">▶️</span> למד מהשיר (YouTube)
       </button>
       <button class="nav-btn" data-screen="intervals">
         <span class="nav-ico">🎵</span> אימון אינטרוולים
@@ -118,6 +124,7 @@
 
     <div class="sidebar-foot">
       <div class="meander"></div>
+      <p id="sidebar-streak" class="sidebar-streak" hidden></p>
       <p id="sidebar-xp" class="sidebar-xp" hidden></p>
       <p>כיוונון טטראחורדו<br><b>C · F · A · D</b></p>
     </div>
@@ -759,6 +766,24 @@
       <div id="songs-app"></div>
     </section>
 
+    <!-- ========== מסך: למד מהשיר (YouTube) ========== -->
+    <section class="screen" id="screen-learn">
+      <header class="screen-head">
+        <h1>למד מהשיר — YouTube + ניתוח AI</h1>
+        <p class="lead">העלאת קובץ / YouTube → הפרדת מיתרים (LALAL/Moises) → Essentia.js → TAB + אקורדים + השוואת נגינה</p>
+      </header>
+      <div id="learn-hub-app"></div>
+    </section>
+
+    <!-- ========== מסך: Dashboard התקדמות ========== -->
+    <section class="screen" id="screen-progress">
+      <header class="screen-head">
+        <h1>התקדמות</h1>
+        <p class="lead">גרף פעילות, שירים, תרגילים וזמן תרגול — נשמר מקומית ב-IndexedDB</p>
+      </header>
+      <div id="progress-app"></div>
+    </section>
+
     <!-- ========== מסך: אימון אינטרוולים ========== -->
     <section class="screen" id="screen-intervals">
       <header class="screen-head">
@@ -888,6 +913,8 @@
   </main>
 </div>
 
+<script src="config.example.js"></script>
+<script src="config.js" onerror="void 0"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/chord-library.js"></script>
@@ -897,9 +924,21 @@
 <script src="js/listen.js"></script>
 <script src="js/game.js"></script>
 <script src="js/songs.js"></script>
+<script src="js/learning-resources.js"></script>
+<script src="js/dromos-paths.js"></script>
+<script src="js/learn-youtube.js"></script>
+<script src="js/stem-api.js"></script>
+<script src="js/pitch-player.js"></script>
+<script src="js/chord-tooltip.js"></script>
+<script src="js/live-chord.js"></script>
+<script src="js/essentia-analyzer.js"></script>
+<script src="js/song-analyzer.js"></script>
 <script src="js/master.js"></script>
 <script src="js/tuner.js"></script>
+<script src="js/daily-streak.js"></script>
+<script src="js/progress-db.js"></script>
 <script src="js/features.js"></script>
+<script src="js/progress-dashboard.js"></script>
 <script src="js/features2.js"></script>
 <script>
 BouzoukiTuner.init();
@@ -911,6 +950,8 @@ if (typeof ScaleChords !== 'undefined') ScaleChords.init();
 if (typeof BackingTracks !== 'undefined') BackingTracks.init();
 if (typeof JamSimulator !== 'undefined') JamSimulator.init();
 if (typeof XpSystem !== 'undefined') XpSystem.init();
+if (typeof DailyStreak !== 'undefined') DailyStreak.init();
+if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.init();
 if (typeof ExerciseGenerator !== 'undefined') ExerciseGenerator.init();
 if (typeof MelodyGenerator !== 'undefined') MelodyGenerator.init();
 if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.init();
@@ -918,6 +959,7 @@ if (typeof SightReading !== 'undefined') SightReading.init();
 if (typeof DrumMachine !== 'undefined') DrumMachine.init();
 if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.init();
 if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
+if (typeof LearnHub !== 'undefined') LearnHub.init();
 </script>
 </body>
 </html>

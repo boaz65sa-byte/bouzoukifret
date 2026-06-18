@@ -235,7 +235,22 @@ const Listen = (() => {
 
     const res = $('#ls-results');
     res.className = 'ls-results show ' + gradeCls;
+    const stars = score >= 95 ? 3 : score >= 75 ? 2 : score >= 50 ? 1 : 0;
+    const starsHtml = '⭐'.repeat(stars) + (stars < 3 ? '☆'.repeat(3 - stars) : '');
+
+    if (typeof XpSystem !== 'undefined') {
+      const xp = Math.max(5, Math.round(score / 4));
+      XpSystem.award(xp, `Play-along ${score}%`);
+    }
+    if (typeof ProgressLog !== 'undefined') {
+      ProgressLog.log('play_along', `ציון ${score}%`, {
+        durationSec: Math.round(targets.length * 4),
+        meta: { score, notes: targets.length, misses },
+      });
+    }
+
     res.innerHTML = `
+      <div class="ls-stars">${starsHtml}</div>
       <div class="ls-score">${score}%</div>
       <div class="ls-grade">${grade}</div>
       <div class="ls-stats">
@@ -339,6 +354,40 @@ const Listen = (() => {
     chipEl(idx).classList.add('current');
   }
 
+  /** טעינת רצף תווים מותאם (למשל מניתוח שיר) */
+  function loadCustomTargets(list, title) {
+    stopPractice();
+    targets = list.map(t => ({
+      label: NOTE_NAMES[((t.midi % 12) + 12) % 12],
+      midi: t.midi,
+      hint: t.hint || '',
+    }));
+    started = false;
+    idx = 0;
+    attempts = 0;
+    misses = 0;
+    hitTimes = [];
+    const sel = $('#ls-target');
+    if (sel && title) {
+      let opt = sel.querySelector('option[data-custom="1"]');
+      if (!opt) {
+        opt = document.createElement('option');
+        opt.dataset.custom = '1';
+        sel.insertBefore(opt, sel.firstChild);
+      }
+      opt.value = 'custom:loaded';
+      opt.textContent = '🎵 ' + title;
+      sel.value = 'custom:loaded';
+    }
+    renderChips();
+    $('#ls-results')?.classList.remove('show');
+  }
+
+  function loadAndGo(list, title) {
+    loadCustomTargets(list, title);
+    document.querySelector('.nav-btn[data-screen="listen"]')?.click();
+  }
+
   /* ---------- אתחול ---------- */
   function init() {
     const sel = $('#ls-target');
@@ -368,7 +417,7 @@ const Listen = (() => {
     renderChips();
   }
 
-  return { init, stopAll, detectPitch };
+  return { init, stopAll, detectPitch, loadCustomTargets, loadAndGo };
 })();
 
 Listen.init();
