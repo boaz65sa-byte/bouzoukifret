@@ -1,5 +1,5 @@
 /* ============================================================
-   PitchPreservingPlayer — האטה בלי שינוי pitch (Web Audio)
+   PitchPreservingPlayer — OLA time-stretch (איכות משופרת)
    ============================================================ */
 'use strict';
 
@@ -13,8 +13,11 @@ const PitchPreservingPlayer = (() => {
   let _stretchCache = new Map();
   let _playing = false;
   let _startedCtxTime = 0;
-  let _sourceOffsetSec = 0; /* offset in playback buffer */
-  let _pausedSourceTime = 0; /* timeline in original song seconds */
+  let _sourceOffsetSec = 0;
+  let _pausedSourceTime = 0;
+
+  const GRAIN = 2048;
+  const OVERLAP = 1024;
 
   function _ensureCtx() {
     if (!_ctx) {
@@ -26,35 +29,60 @@ const PitchPreservingPlayer = (() => {
     return _ctx;
   }
 
-  function _stretch(buffer, tempo) {
+  function _hannWindow(size) {
+    const w = new Float32Array(size);
+    for (let i = 0; i < size; i++) {
+      w[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (size - 1)));
+    }
+    return w;
+  }
+
+  /** Overlap-add time stretch — טוב יותר מ-linear interpolation */
+  function _stretchOla(buffer, tempo) {
     if (!buffer || tempo >= 0.999) return buffer;
-    const key = `${buffer.length}:${tempo}`;
+    const key = `ola:${buffer.length}:${tempo.toFixed(3)}`;
     if (_stretchCache.has(key)) return _stretchCache.get(key);
 
     const ch = buffer.numberOfChannels;
     const sr = buffer.sampleRate;
-    const newLen = Math.ceil(buffer.length / tempo);
+    const synHop = GRAIN - OVERLAP;
+    const anaHop = Math.max(64, Math.round(synHop * tempo));
+    const outLen = Math.ceil(buffer.length / tempo) + GRAIN;
     const ctx = _ensureCtx();
-    const out = ctx.createBuffer(ch, newLen, sr);
+    const out = ctx.createBuffer(ch, outLen, sr);
+    const win = _hannWindow(GRAIN);
+    const norm = new Float32Array(outLen);
 
     for (let c = 0; c < ch; c++) {
       const inp = buffer.getChannelData(c);
       const o = out.getChannelData(c);
-      for (let i = 0; i < newLen; i++) {
-        const src = i * tempo;
-        const i0 = Math.floor(src);
-        const f = src - i0;
-        const s0 = inp[i0] || 0;
-        const s1 = inp[Math.min(i0 + 1, inp.length - 1)] || 0;
-        o[i] = s0 * (1 - f) + s1 * f;
+      let inPos = 0;
+      let outPos = 0;
+
+      while (outPos + GRAIN <= outLen && inPos + GRAIN <= inp.length) {
+        for (let i = 0; i < GRAIN; i++) {
+          const oi = outPos + i;
+          const ii = inPos + i;
+          if (oi < outLen && ii < inp.length) {
+            o[oi] += inp[ii] * win[i];
+            norm[oi] += win[i];
+          }
+        }
+        inPos += anaHop;
+        outPos += synHop;
+      }
+
+      for (let i = 0; i < outLen; i++) {
+        if (norm[i] > 0.001) o[i] /= norm[i];
       }
     }
+
     _stretchCache.set(key, out);
     return out;
   }
 
   function _playbackBuffer() {
-    if (_preserve && _tempo < 0.999) return _stretch(_original, _tempo);
+    if (_preserve && _tempo < 0.999) return _stretchOla(_original, _tempo);
     return _original;
   }
 

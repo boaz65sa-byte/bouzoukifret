@@ -134,6 +134,7 @@
     <div class="sidebar-foot">
       <div class="meander"></div>
       <p id="sidebar-streak" class="sidebar-streak" hidden></p>
+      <p id="offline-badge" class="offline-badge" hidden></p>
       <p id="sidebar-xp" class="sidebar-xp" hidden></p>
       <p>כיוונון טטראחורדו<br><b>C · F · A · D</b></p>
     </div>
@@ -971,7 +972,18 @@ if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(() => {
+    const el = document.getElementById('offline-badge');
+    if (!el) return;
+    const upd = () => {
+      el.hidden = false;
+      el.textContent = navigator.onLine ? '● מוכן offline' : '● offline';
+      el.classList.toggle('offline-active', !navigator.onLine);
+    };
+    upd();
+    window.addEventListener('online', upd);
+    window.addEventListener('offline', upd);
+  }).catch(() => {});
 }
 </script>
 </body>

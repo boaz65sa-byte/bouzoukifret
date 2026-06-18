@@ -255,6 +255,69 @@ const SongAnalyzer = (() => {
     _startSyncLoop();
   }
 
+  function _silentBuffer(durationSec) {
+    const sr = 44100;
+    const len = Math.ceil(Math.max(1, durationSec) * sr);
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx.createBuffer(1, len, sr);
+  }
+
+  async function loadFromExport(data, audioBlob) {
+    if (!data?.chords) throw new Error('קובץ JSON לא תקין');
+    stop();
+    _setProgress('טוען ניתוח שמור…', 50);
+
+    _analysis = {
+      bpm: data.bpm || 120,
+      chords: data.chords,
+      tabNotes: data.tabNotes || [],
+      engine: data.engine || 'imported',
+    };
+    _transposeSemi = data.transpose || 0;
+    const trVal = document.getElementById('sa-transpose-val');
+    if (trVal) trVal.textContent = _transposeSemi > 0 ? `+${_transposeSemi}` : String(_transposeSemi);
+
+    if (data.dromos?.id && typeof DROMOI !== 'undefined') {
+      const d = DROMOI.find(x => x.id === data.dromos.id);
+      if (d) {
+        _analysis.dromosMatch = {
+          dromos: d,
+          rootName: data.dromos.root || 'A',
+          confidence: data.dromos.confidence || 50,
+        };
+      }
+    }
+    if (!_analysis.dromosMatch) {
+      _analysis.dromosMatch = AudioAnalyzer.detectDromos(_analysis.chords, _analysis.tabNotes);
+    }
+
+    if (audioBlob) {
+      _audioBuffer = await AudioAnalyzer.decodeBlob(audioBlob);
+      _wavePeaks = AudioAnalyzer.computeWavePeaks(_audioBuffer);
+      if (typeof PitchPreservingPlayer !== 'undefined') {
+        PitchPreservingPlayer.load(_audioBuffer);
+        _applyTempoFromUI();
+      }
+      const hint = document.getElementById('sa-import-hint');
+      if (hint) { hint.textContent = ''; hint.hidden = true; }
+    } else {
+      const dur = data.durationSec || Math.max(30, (_analysis.chords.at(-1)?.time || 60) + 4);
+      _audioBuffer = _silentBuffer(dur);
+      _wavePeaks = new Array(400).fill(0.08);
+      const hint = document.getElementById('sa-import-hint');
+      if (hint) {
+        hint.hidden = false;
+        hint.textContent = 'מצב תצוגה בלי אודיו — העלו MP3/WAV לאותו שיר לנגינה ו-A/B loop';
+      }
+    }
+
+    _setProgress('נטען', 100);
+    _renderResults();
+    document.getElementById('sa-results').style.display = '';
+    document.getElementById('sa-progress-wrap').style.display = '';
+    _startSyncLoop();
+  }
+
   function _renderResults() {
     const a = _analysis;
     if (!a) return;
@@ -335,7 +398,8 @@ const SongAnalyzer = (() => {
       const x = padL + step * stepW + stepW / 2;
       const y = padT + n.course * lineGap;
       const g = svgEl('g', { class: 'sa-tab-note', 'data-idx': idx, 'data-time': n.time }, svg);
-      svgEl('circle', { cx: x, cy: y, r: 10, fill: '#1d3349', stroke: '#4fb3d9', 'stroke-width': 1.4, class: 'sa-tn-dot' }, g);
+      const stroke = n.poly ? '#e3b341' : '#4fb3d9';
+      svgEl('circle', { cx: x, cy: y, r: 10, fill: '#1d3349', stroke, 'stroke-width': n.poly ? 2.2 : 1.4, class: 'sa-tn-dot' }, g);
       svgEl('text', { x, y: y + 4, fill: '#e8eef5', 'font-size': 11, 'font-weight': 800, 'text-anchor': 'middle' }, g).textContent = n.fret;
       g.style.cursor = 'pointer';
       g.addEventListener('click', () => { if (_audioBuffer) _seek(n.time); });
@@ -564,7 +628,7 @@ const SongAnalyzer = (() => {
       ...chords.map(c => `${_fmtTime(c.time)}  ${c.chord}`),
       '',
       '## TAB',
-      ...notes.map(n => `${_fmtTime(n.time)}  ${COURSE[n.course] || '?'}  סריג ${n.fret}`),
+      ...notes.map(n => `${_fmtTime(n.time)}  ${COURSE[n.course] || '?'}  סריג ${n.fret}${n.poly ? ' (poly)' : ''}`),
     ].filter(Boolean);
     _downloadBlob(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }), `${base}.txt`);
   }
@@ -620,6 +684,15 @@ const SongAnalyzer = (() => {
           </label>
           <input type="url" id="sa-youtube" class="sa-yt-input" placeholder="או קישור YouTube" dir="ltr" />
           <button type="button" class="btn primary" id="sa-analyze">נתח</button>
+        </div>
+        <div class="sa-import-row">
+          <button type="button" class="btn secondary" id="sa-import-btn">📂 טען ניתוח שמור (JSON)</button>
+          <input type="file" id="sa-import-json" accept="application/json,.json" hidden />
+          <label class="sa-upload-btn btn secondary">
+            🔗 + קובץ אודיו
+            <input type="file" id="sa-import-audio" accept="audio/*" hidden />
+          </label>
+          <span id="sa-import-hint" class="hint sa-import-hint" hidden></span>
         </div>
 
         <div class="sa-stem-opts">
@@ -679,7 +752,7 @@ const SongAnalyzer = (() => {
 
         <div class="sa-learn-grid">
           <div class="card sa-tab-card">
-            <h4>TAB (מסונכרן)</h4>
+            <h4>TAB (מסונכרן) <span class="hint sa-poly-legend">● זהב = polyphonic hint</span></h4>
             <div class="sa-tab-scroll"><svg id="sa-tab"></svg></div>
           </div>
           <div class="card sa-fb-card">
@@ -779,6 +852,32 @@ const SongAnalyzer = (() => {
     document.getElementById('sa-export-json')?.addEventListener('click', () => _exportAnalysis('json'));
     document.getElementById('sa-export-txt')?.addEventListener('click', () => _exportAnalysis('txt'));
 
+    let _pendingImport = null;
+    document.getElementById('sa-import-btn')?.addEventListener('click', () => {
+      document.getElementById('sa-import-json')?.click();
+    });
+    document.getElementById('sa-import-json')?.addEventListener('change', async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      try {
+        _pendingImport = JSON.parse(await f.text());
+        const audio = document.getElementById('sa-import-audio')?.files?.[0];
+        await loadFromExport(_pendingImport, audio || null);
+      } catch (err) {
+        alert(err.message || 'שגיאה בטעינת JSON');
+      }
+      e.target.value = '';
+    });
+    document.getElementById('sa-import-audio')?.addEventListener('change', async (e) => {
+      const audio = e.target.files?.[0];
+      if (!audio || !_pendingImport) return;
+      try {
+        await loadFromExport(_pendingImport, audio);
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+
     document.getElementById('sa-playalong')?.addEventListener('click', () => {
       const notes = _displayTabNotes().filter(n => n.course != null).slice(0, 48);
       if (!notes.length) { alert('אין תווים ב-TAB — נסו קובץ אחר'); return; }
@@ -795,5 +894,5 @@ const SongAnalyzer = (() => {
     });
   }
 
-  return { render, stop, runPipeline };
+  return { render, stop, runPipeline, loadFromExport };
 })();

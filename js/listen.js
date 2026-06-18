@@ -50,6 +50,31 @@ const Listen = (() => {
     return { freq: sampleRate / T0, rms };
   }
 
+  /** עד 3 צלילים בו-זמנית (הסרת יסודית ביטולית) */
+  function detectPitches(buf, sampleRate, maxNotes = 3) {
+    const midis = [];
+    let work = new Float32Array(buf);
+    for (let n = 0; n < maxNotes; n++) {
+      const { freq, rms } = detectPitch(work, sampleRate);
+      if (!freq || rms < 0.012) break;
+      const midi = Math.round(69 + 12 * Math.log2(freq / 440));
+      if (midis.some(m => Math.abs(m - midi) <= 1)) {
+        _attenuateFundamental(work, sampleRate, freq);
+        continue;
+      }
+      midis.push(midi);
+      _attenuateFundamental(work, sampleRate, freq);
+    }
+    return midis;
+  }
+
+  function _attenuateFundamental(buf, sampleRate, freq) {
+    const period = sampleRate / freq;
+    for (let i = 0; i < buf.length; i++) {
+      buf[i] -= 0.55 * Math.sin((2 * Math.PI * i) / period);
+    }
+  }
+
   function freqToMidiFloat(f) { return 69 + 12 * Math.log2(f / 440); }
 
   /* ---------- מצב ---------- */
@@ -417,7 +442,7 @@ const Listen = (() => {
     renderChips();
   }
 
-  return { init, stopAll, detectPitch, loadCustomTargets, loadAndGo };
+  return { init, stopAll, detectPitch, detectPitches, loadCustomTargets, loadAndGo };
 })();
 
 Listen.init();

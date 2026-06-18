@@ -483,7 +483,9 @@ const LearnHub = (() => {
           <li><strong>YouTube</strong> — התקינו yt-dlp: <code>pip install yt-dlp</code> או <code>winget install yt-dlp</code></li>
           <li><strong>LALAL / Moises</strong> — הוסיפו מפתחות ב-<code>tools/stem-proxy/.env</code> (ראו <code>.env.example</code>).</li>
           <li>ריחוף על אקורד בכל האפליקציה → דיאגרמת fingering. בניתוח שיר: האטה עם שמירת pitch + זיהוי אקורד חי (Meyda).</li>
-          <li><strong>Offline:</strong> לאחר ביקור אחד ב-HTTPS, האפליקציה + Essentia/Meyda נשמרים ב-cache (PWA).</li>
+          <li><strong>ייצוא / ייבוא:</strong> אחרי ניתוח — JSON או TXT. אפשר לטעון JSON שמור (עם או בלי קובץ אודיו) בלי לרוץ שוב Essentia.</li>
+          <li><strong>TAB poly:</strong> נקודות זהב ב-TAB = רמז polyphonic (עד 3 צלילים ב-onset).</li>
+          <li><strong>Offline:</strong> לאחר ביקור אחד ב-HTTPS, האפליקציה + Essentia/Meyda נשמרים ב-cache (PWA). תג ● בסרגל = מוכן offline.</li>
         </ol>
       </details>
 

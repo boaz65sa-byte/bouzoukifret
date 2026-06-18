@@ -155,19 +155,20 @@ const AudioAnalyzer = (() => {
       if (n) chords.push({ time: t, chord: _chordFromChroma(acc) });
     }
 
-    const tabNotes = _mergePitches(pitches);
+    const tabNotes = _supplementPolyTab(signal, sampleRate, onsets, _mergePitches(pitches));
     onProgress?.('ניתוח הושלם', 100);
     return { bpm, chords, tabNotes, beats: onsets, engine: 'fallback' };
   }
 
   function _mergePitches(pitches) {
     if (!pitches.length) return [];
-    const sorted = [...pitches].sort((a, b) => a.time - b.time);
+    const sorted = [...pitches].sort((a, b) => a.time - b.time || (a.course - b.course));
     const out = [];
     let cur = { ...sorted[0], duration: 0.15 };
     for (let i = 1; i < sorted.length; i++) {
       const p = sorted[i];
-      if (p.course === cur.course && p.fret === cur.fret && p.time - cur.time < 0.2) {
+      const same = p.course === cur.course && p.fret === cur.fret && p.time - cur.time < 0.2;
+      if (same) {
         cur.duration = p.time - cur.time + 0.15;
       } else {
         out.push(cur);
@@ -176,6 +177,35 @@ const AudioAnalyzer = (() => {
     }
     out.push(cur);
     return out;
+  }
+
+  /** תווים נוספים ב-onsets — עד 3 צלילים (polyphonic hint) */
+  function _supplementPolyTab(signal, sampleRate, beats, existingNotes) {
+    if (typeof Listen === 'undefined' || !Listen.detectPitches) return existingNotes;
+    const frameSize = 4096;
+    const extra = [];
+    const times = beats?.length ? beats : [];
+
+    if (!times.length) {
+      for (let t = 0; t < signal.length / sampleRate; t += 0.35) times.push(t);
+    }
+
+    times.forEach(t => {
+      const start = Math.floor(t * sampleRate);
+      if (start + frameSize >= signal.length) return;
+      const frame = signal.subarray(start, start + frameSize);
+      let rms = 0;
+      for (let i = 0; i < frame.length; i++) rms += frame[i] * frame[i];
+      if (Math.sqrt(rms / frame.length) < 0.018) return;
+
+      Listen.detectPitches(frame, sampleRate, 3).forEach(midi => {
+        const pos = _midiToPosition(midi);
+        if (pos) extra.push({ time: t, ...pos, midi, poly: true });
+      });
+    });
+
+    if (!extra.length) return existingNotes;
+    return _mergePitches([...(existingNotes || []), ...extra]);
   }
 
   async function _essentiaAnalyze(signal, sampleRate, onProgress) {
@@ -247,7 +277,8 @@ const AudioAnalyzer = (() => {
       return _fallbackAnalyze(signal, sampleRate, onProgress);
     }
 
-    const tabNotes = _mergePitches(pitches);
+    let tabNotes = _mergePitches(pitches);
+    tabNotes = _supplementPolyTab(signal, sampleRate, beats, tabNotes);
     onProgress?.('Essentia — הושלם', 100);
     return { bpm, chords, tabNotes, beats, engine: 'essentia' };
   }
