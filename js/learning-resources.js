@@ -77,6 +77,24 @@ const LEARNING_RESOURCES = [
     desc: 'מקור המקצב 9/4 והריקוד הבודד — חיוני ללימוד ליווי וטקסימי במינורה/חיג׳אזκיאר.',
     level: 'בינוני',
   },
+  {
+    id: 'evdokias-listen',
+    title: 'Zeibekiko tis Evdokias — Manos Loizos',
+    titleHe: 'Ζεϊμπέκικο της Ευδοκίας — מאנוס לויזוס',
+    url: 'https://www.youtube.com/watch?v=FFC5pMixoi8',
+    category: 'culture',
+    desc: 'השיר שכל נגן בוזוקי חייב להכיר — 9/4, Am, טקסימי מינורה. השוו לתרגיל zb9 באפליקציה.',
+    level: 'בינוני',
+  },
+  {
+    id: '9-4-counting',
+    title: 'Understanding 9/8 and 9/4',
+    titleHe: 'ספירת 9/4 — 2+2+2+3',
+    url: 'https://en.wikipedia.org/wiki/9/8',
+    category: 'rhythm',
+    desc: 'חלוקת הפעמות 2+2+2+3 — הבסיס לליווי ζεϊμπέκικο. תרגלו עם zb1.',
+    level: 'מתחילים',
+  },
 ];
 
 const RESOURCE_CATEGORIES = {

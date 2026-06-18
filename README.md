@@ -69,7 +69,13 @@
 
 - **ייצוא JSON / TXT** — אחרי ניתוח, כפתורי הורדה בתוצאות
 - **נתח מ-YouTube** — כפתור "נתח ב-AI" בטאב YouTube
-- **PWA** — `manifest.json` + service worker לשימוש offline (CSS/JS מקומי; Essentia/Meyda עדיין מה-CDN)
+- **PWA** — `manifest.json` + service worker; cache לכל JS/CSS + **Essentia.js** ו-**Meyda** מה-CDN (offline חלקי אחרי ביקור ראשון)
+
+### תוכן ζεϊμπέκικο
+
+- תרגילים **zb1–zb10** (9/4, טקסימי, Am–Dm–E7, סגנון Ευδοκία)
+- **נתיב ζεϊμπέκικο** מורחב — 9 שלבים + 7 שירים עם YouTube
+- משאבי רשת: Ευδοκία, ספירת 9/4
 
 ## עוד מסכים
 

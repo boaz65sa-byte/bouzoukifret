@@ -1,7 +1,9 @@
-/* Service worker — cache בסיסי לשימוש offline (HTML/CSS/JS מקומי) */
+/* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE = 'bouzouki-academy-v1';
+const CACHE_STATIC = 'bouzouki-static-v2';
+const CACHE_CDN = 'bouzouki-cdn-v1';
+
 const PRECACHE = [
   './',
   './index.html',
@@ -13,47 +15,101 @@ const PRECACHE = [
   './js/audio.js',
   './js/chord-library.js',
   './js/chord-tooltip.js',
+  './js/course.js',
   './js/app.js',
   './js/exercises.js',
   './js/listen.js',
+  './js/game.js',
+  './js/songs.js',
+  './js/learning-resources.js',
+  './js/dromos-paths.js',
   './js/learn-youtube.js',
-  './js/song-analyzer.js',
-  './js/essentia-analyzer.js',
+  './js/stem-api.js',
   './js/pitch-player.js',
+  './js/live-chord.js',
+  './js/essentia-analyzer.js',
+  './js/song-analyzer.js',
+  './js/master.js',
+  './js/tuner.js',
   './js/daily-streak.js',
   './js/progress-db.js',
+  './js/features.js',
   './js/progress-dashboard.js',
+  './js/features2.js',
 ];
+
+const CDN_ASSETS = [
+  'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.web.js',
+  'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.js',
+  'https://unpkg.com/meyda@5.6.2/dist/web/meyda.min.js',
+];
+
+const CDN_HOSTS = new Set(['cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com']);
+
+async function cacheCdnAssets() {
+  const cache = await caches.open(CACHE_CDN);
+  await Promise.allSettled(
+    CDN_ASSETS.map(async (url) => {
+      const resp = await fetch(url, { mode: 'cors' });
+      if (resp.ok) await cache.put(url, resp);
+    })
+  );
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE_STATIC)
+      .then((cache) => cache.addAll(PRECACHE))
+      .then(() => cacheCdnAssets())
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(
+        keys.filter((k) => k !== CACHE_STATIC && k !== CACHE_CDN).map((k) => caches.delete(k))
+      )
     ).then(() => self.clients.claim())
   );
 });
 
+function cacheableResponse(resp) {
+  return resp && resp.status === 200 && (resp.type === 'basic' || resp.type === 'cors');
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
+
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const net = fetch(req).then((resp) => {
+          if (cacheableResponse(resp)) {
+            const copy = resp.clone();
+            caches.open(CACHE_STATIC).then((c) => c.put(req, copy));
+          }
+          return resp;
+        }).catch(() => cached);
+        return cached || net;
+      })
+    );
+    return;
+  }
+
+  if (!CDN_HOSTS.has(url.hostname)) return;
 
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((resp) => {
-        if (!resp || resp.status !== 200 || resp.type !== 'basic') return resp;
+    fetch(req).then((resp) => {
+      if (cacheableResponse(resp)) {
         const copy = resp.clone();
-        caches.open(CACHE).then((cache) => cache.put(req, copy));
-        return resp;
-      }).catch(() => cached);
-    })
+        caches.open(CACHE_CDN).then((c) => c.put(req, copy));
+      }
+      return resp;
+    }).catch(() => caches.match(req))
   );
 });

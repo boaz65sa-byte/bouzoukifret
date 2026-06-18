@@ -39,21 +39,40 @@ const DROMOS_PATHS = [
       {
         kind: 'exercises',
         title: 'שלב 4 — טקסימי איטי',
-        exerciseIds: ['zb2', 'zb4', 'zb6'],
+        exerciseIds: ['zb2', 'zb4', 'zb6', 'zb7'],
+      },
+      {
+        kind: 'exercises',
+        title: 'שלב 5 — מלודיה + קדנצה',
+        exerciseIds: ['zb8', 'zb9'],
       },
       {
         kind: 'chords',
         exerciseId: 'ch6',
-        title: 'שלב 5 — אקורדי מינורה (Dm–Gm–A7)',
+        title: 'שלב 6 — אקורדי מינורה (Dm–Gm–A7)',
+      },
+      {
+        kind: 'exercises',
+        title: 'שלב 7 — מהלך Am–Dm–E7',
+        exerciseIds: ['zb10', 'zb5'],
+      },
+      {
+        kind: 'dromos',
+        dromosId: 'hitzazkiar',
+        exerciseId: 'dr7',
+        title: 'שלב 8 — חיג׳אזκιαר (זεϊμπέκικο כבד)',
       },
       {
         kind: 'songs',
-        title: 'שלב 6 — למד מהשיר (YouTube)',
+        title: 'שלב 9 — למד מהשיר (YouTube)',
         songIds: [
           'zeibekiko-tis-evdokias',
           'minore-tou-teke',
           'to-mystiko-zeibekiko',
           'minore-tis-avgis',
+          'i-atakti',
+          'den-tha-klapso-kanenas',
+          'roza',
         ],
       },
     ],

@@ -1408,6 +1408,32 @@ const EXERCISES = [
           _n(0, 1, 'D', 2), _n(0, 0, 'U', 4),
         ]
       },
+      {
+        id: 'zb9', name: 'ζεϊμπέκικο — פתיחה בסגנון Ευδοκία (Am)', bpm: 60, sub: 4, type: 'tab',
+        desc: 'מוטיב פתיחה דמוי "Ζεϊμπέκικο της Ευδοκίας": Am עם מעבר ל-E7. נגנו רך — הרבה שקט, בס על D (סריג 2).',
+        notes: [
+          _n(0, 0, 'D', 2), _rest(2), _n(0, 2, 'd', 2), _rest(1),
+          _n(3, 2, 'D', 1), _n(0, 0, 'd', 1), _n(0, 3, 'u', 1),
+          _n(0, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 2),
+          _n(0, 2, 'd', 1), _n(0, 3, 'd', 1), _n(0, 2, 'U', 2),
+          _n(0, 0, 'D', 2), _n(0, 4, 'd', 2), _rest(1), _n(0, 5, 'd', 2), _n(0, 4, 'U', 2),
+          _n(0, 2, 'd', 1), _n(0, 0, 'U', 4),
+        ]
+      },
+      {
+        id: 'zb10', name: 'ζεϊμπέκικο — Am→Dm→E7 (9/4)', bpm: 58, sub: 2, type: 'strum',
+        chords: ['Am', 'Dm', 'E7'],
+        desc: 'מעברי האקורדים הקלאסיים בזεϊμπέκικο. כל מחזור 9/4 = אקורד — בס על 1 ו-5, פריטה רכה.',
+        events: ['Am', 'Dm', 'E7', 'Am'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 1 },
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'u', len: 2 },
+          { kind: 'rest', len: 2 },
+        ])
+      },
     ]
   },
   {
