@@ -213,6 +213,24 @@ const SongLibrary = (() => {
   let _playMode = 'bouzouki'; /* 'bouzouki' | 'simple' */
   let _bouzoukiMeta = null;   /* מטא-נתונים של ליווי נוכחי */
 
+  function _isMobileSongs() {
+    return window.matchMedia('(max-width: 860px)').matches;
+  }
+
+  function _setMobileDetailOpen(open) {
+    const layout = document.querySelector('.songs-layout');
+    if (!layout || !_isMobileSongs()) return;
+    layout.classList.toggle('detail-open', open);
+    if (open) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function _closeMobileDetail() {
+    stopSong();
+    _setMobileDetailOpen(false);
+    const entries = document.getElementById('songs-entries');
+    if (entries) entries.querySelectorAll('.songs-entry').forEach(e => e.classList.remove('selected'));
+  }
+
   /* ===================== תבניות ליווי בוזוקי ===================== */
   const COURSE_LABELS = ['D', 'A', 'F', 'C']; /* רה, לה, פה, דו — מיתר עליון → תחתון */
 
@@ -5317,6 +5335,9 @@ const SongLibrary = (() => {
     app.innerHTML = `
       <div class="songs-layout">
         <div class="songs-sidebar" id="songs-list">
+          <div class="songs-list-head">
+            <span class="songs-list-count" id="songs-count"></span>
+          </div>
           <div class="songs-search-box">
             <input type="text" id="songs-search" placeholder="חיפוש שיר..." class="songs-input" />
           </div>
@@ -5349,6 +5370,11 @@ const SongLibrary = (() => {
     _injectStyles();
     _renderList();
     _bindEvents();
+    window.addEventListener('resize', () => {
+      if (!_isMobileSongs()) {
+        document.querySelector('.songs-layout')?.classList.remove('detail-open');
+      }
+    });
   }
 
   function _isZeibekikoSong(s) {
@@ -5415,11 +5441,20 @@ const SongLibrary = (() => {
         ${_isIsraeliHitSong(s) ? '<span class="songs-entry-badge israeli-hit-badge">🇮🇱 להיט</span>' : ''}
       </div>`;
     }).join('');
+
+    const countEl = document.getElementById('songs-count');
+    if (countEl) {
+      countEl.textContent = songs.length
+        ? `${songs.length} שירים`
+        : 'אין שירים במסנן זה';
+    }
   }
 
   function _showSong(song) {
     const detail = document.getElementById('songs-detail');
     if (!detail) return;
+
+    _setMobileDetailOpen(true);
 
     const dromosInfo = (typeof DROMOI !== 'undefined')
       ? DROMOI.find(d => d.nameEn === song.dromos || d.id === song.dromos.toLowerCase())
@@ -5434,6 +5469,7 @@ const SongLibrary = (() => {
     );
 
     detail.innerHTML = `
+      <button type="button" class="btn btn-sm song-back-btn" id="song-back-list">← רשימת שירים</button>
       <div class="song-header">
         <div class="song-title-row">
           <h2 class="song-title">${song.titleGr || song.title}</h2>
@@ -5498,6 +5534,9 @@ const SongLibrary = (() => {
     const trUp = detail.querySelector('#song-tr-up');
     const trVal = detail.querySelector('#song-tr-val');
     const delBtn = detail.querySelector('#song-delete');
+    const backBtn = detail.querySelector('#song-back-list');
+
+    if (backBtn) backBtn.onclick = () => _closeMobileDetail();
 
     if (playBtn) playBtn.onclick = () => {
       playBtn.classList.add('playing');
@@ -5674,8 +5713,10 @@ const SongLibrary = (() => {
   function _showAddSongDialog() {
     const detail = document.getElementById('songs-detail');
     if (!detail) return;
+    _setMobileDetailOpen(true);
 
     detail.innerHTML = `
+      <button type="button" class="btn btn-sm song-back-btn" id="song-back-list">← רשימת שירים</button>
       <div class="song-header">
         <h2 class="song-title">הוספת שיר חדש</h2>
         <p>הדביקו טקסט עם אקורדים ומילים בפורמט הבא:</p>
@@ -5718,8 +5759,12 @@ More lyrics here</pre>
     };
 
     detail.querySelector('#song-cancel-btn').onclick = () => {
+      _closeMobileDetail();
       detail.innerHTML = '<div class="songs-empty-state"><div class="songs-empty-icon">🎵</div><h2>ספריית שירים</h2></div>';
     };
+
+    const backBtn = detail.querySelector('#song-back-list');
+    if (backBtn) backBtn.onclick = () => _closeMobileDetail();
   }
 
   /* ===================== סטיילינג ===================== */
@@ -5731,7 +5776,7 @@ More lyrics here</pre>
     style.textContent = `
       /* ====== Song Library Layout ====== */
       .songs-layout {
-        display: flex; gap: 0; height: 100%; min-height: 520px;
+        display: flex; gap: 0; min-height: 520px;
       }
       .songs-sidebar {
         width: 280px; min-width: 220px; max-width: 320px;
@@ -5760,12 +5805,15 @@ More lyrics here</pre>
         border-color: var(--aegean) !important;
       }
       .songs-entries {
-        flex: 1; overflow-y: auto; padding: 4px 8px;
+        flex: 1 1 auto; min-height: 120px; overflow-y: auto; padding: 4px 8px;
+        -webkit-overflow-scrolling: touch;
       }
       .songs-entry {
         padding: 10px 12px; border-radius: 8px; cursor: pointer;
         border: 1px solid transparent; margin-bottom: 4px;
         transition: background 0.15s, border-color 0.15s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
       .songs-entry:hover { background: rgba(79,179,217,0.07); }
       .songs-entry.selected {
@@ -5799,6 +5847,16 @@ More lyrics here</pre>
       }
       .songs-add-btn {
         margin: 8px 12px; flex-shrink: 0;
+      }
+      .songs-list-head {
+        padding: 8px 12px 0; display: none;
+      }
+      .songs-list-count {
+        font-size: 13px; font-weight: 700; color: var(--aegean);
+      }
+      .song-back-btn {
+        display: none;
+        margin-bottom: 12px;
       }
 
       /* ====== Song Detail ====== */
@@ -6006,11 +6064,68 @@ More lyrics here</pre>
       }
 
       /* Responsive */
-      @media (max-width: 768px) {
-        .songs-layout { flex-direction: column; }
-        .songs-sidebar { width: 100%; max-width: none; max-height: 240px; border-left: none; border-bottom: 1px solid rgba(79,179,217,0.12); }
-        .songs-main { padding: 14px; }
-        .song-scroll-area { max-height: 50vh; }
+      @media (max-width: 860px) {
+        .songs-layout {
+          flex-direction: column;
+          min-height: auto;
+          height: auto;
+        }
+        .songs-sidebar {
+          width: 100%;
+          max-width: none;
+          min-width: auto;
+          max-height: none;
+          border-left: none;
+          border-bottom: none;
+          overflow: visible;
+          flex: none;
+        }
+        .songs-list-head { display: block; }
+        .songs-entries {
+          flex: none;
+          min-height: calc(100dvh - 340px);
+          max-height: none;
+          overflow-y: auto;
+        }
+        .songs-main {
+          padding: 14px;
+          min-height: auto;
+          flex: none;
+        }
+        /* master/detail: רשימה מלאה או שיר — לא שניהם דחוסים */
+        .songs-layout:not(.detail-open) .songs-main {
+          display: none;
+        }
+        .songs-layout.detail-open .songs-sidebar {
+          display: none;
+        }
+        .songs-layout.detail-open .songs-main {
+          display: block;
+          min-height: calc(100dvh - 220px);
+        }
+        .song-back-btn { display: inline-flex; }
+        .songs-filter {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 8px;
+        }
+        .songs-filter::-webkit-scrollbar { display: none; }
+        .songs-filter-btn {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .song-scroll-area { max-height: none; }
+        .songs-entry-title { font-size: 13px; }
+        .songs-entry-sub { font-size: 11px; }
+        .songs-search-box { padding: 8px 8px 4px; }
+        .songs-add-btn { margin: 6px 8px 12px; font-size: 13px; }
+      }
+      @media (max-width: 400px) {
+        .songs-entries { min-height: calc(100dvh - 320px); }
+        .songs-entry { padding: 8px 10px; }
+        .songs-filter-btn { font-size: 11px !important; padding: 2px 6px !important; }
       }
     `;
     document.head.appendChild(style);
@@ -6027,6 +6142,7 @@ More lyrics here</pre>
     saveSong,
     deleteSong,
     getAllSongs,
+    resetMobileView: _closeMobileDetail,
     BUILTIN_SONGS,
   };
 

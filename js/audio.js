@@ -286,6 +286,7 @@ const AudioEngine = (() => {
       this.onVisual = onVisual;   // (step) => void        — עדכון UI
       this.stepDur = 0.25;
       this.numSteps = 8;
+      this.loop = true;
       this.running = false;
       this._timer = null;
       this._visualQueue = [];
@@ -306,10 +307,14 @@ const AudioEngine = (() => {
     }
     _tick() {
       while (this.nextTime < ctx.currentTime + 0.12) {
+        if (this.step >= this.numSteps) {
+          if (!this.loop) { this.stop(); return; }
+          this.step = 0;
+        }
         this.onStep(this.step, this.nextTime);
         this._visualQueue.push({ step: this.step, time: this.nextTime });
         this.nextTime += this.stepDur;
-        this.step = (this.step + 1) % this.numSteps;
+        this.step++;
       }
     }
     _raf() {

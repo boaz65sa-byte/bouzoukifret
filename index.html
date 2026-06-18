@@ -42,6 +42,12 @@
       <button class="nav-btn" data-screen="penia">
         <span class="nav-ico">🤘</span> פנייה — יד ימין
       </button>
+      <button class="nav-btn" data-screen="penia-learn">
+        <span class="nav-ico">🎓</span> מסלול לימוד פנייה
+      </button>
+      <button class="nav-btn" data-screen="dromos-learn">
+        <span class="nav-ico">🌟</span> מסלול לימוד מודוסים
+      </button>
       <button class="nav-btn" data-screen="exercises">
         <span class="nav-ico">🎼</span> ספריית תרגילים
       </button>
@@ -52,13 +58,13 @@
         <span class="nav-ico">🎮</span> מאסטר הפנייה
       </button>
       <button class="nav-btn" data-screen="master-modes">
-        <span class="nav-ico">🛤️</span> מאסטר מודוסים
+        <span class="nav-ico">🎯</span> מאסטר מודוסים
       </button>
       <button class="nav-btn" data-screen="master-chords">
         <span class="nav-ico">🎸</span> מאסטר אקורדים
       </button>
       <button class="nav-btn" data-screen="tuner">
-        <span class="nav-ico">🎵</span> מכוון כרומטי
+        <span class="nav-ico">🎚️</span> מכוון כרומטי
       </button>
       <button class="nav-btn" data-screen="listen">
         <span class="nav-ico">🎤</span> מאמן מאזין
@@ -73,7 +79,7 @@
         <span class="nav-ico">🎵</span> ספריית שירים
       </button>
       <button class="nav-btn" data-screen="intervals">
-        <span class="nav-ico">🎵</span> אימון אינטרוולים
+        <span class="nav-ico">🎻</span> אימון אינטרוולים
       </button>
       <button class="nav-btn" data-screen="modequiz">
         <span class="nav-ico">🎧</span> בוחן מודוסים
@@ -103,7 +109,7 @@
         <span class="nav-ico">📖</span> קריאה מראש
       </button>
       <button class="nav-btn" data-screen="drums">
-        <span class="nav-ico">🥁</span> מכונת תופים
+        <span class="nav-ico">🪘</span> מכונת תופים
       </button>
       <button class="nav-btn" data-screen="analyzer">
         <span class="nav-ico">📊</span> מנתח מוזיקלי
@@ -875,6 +881,24 @@
       <div id="maqam-app"></div>
     </section>
 
+    <!-- ========== מסך: מסלול לימוד פנייה ========== -->
+    <section class="screen" id="screen-penia-learn">
+      <header class="screen-head">
+        <h1>מסלול לימוד פנייה</h1>
+        <p class="lead">8 שלבים — מאחיזת המפרט ועד לאלתור חופשי. כל שלב עם תרגילים, טיפים ותזמון מוגדר</p>
+      </header>
+      <div id="penia-learn-app"></div>
+    </section>
+
+    <!-- ========== מסך: מסלול לימוד מודוסים ========== -->
+    <section class="screen" id="screen-dromos-learn">
+      <header class="screen-head">
+        <h1>מסלול לימוד מודוסים</h1>
+        <p class="lead">6 דרומוסים עיקריים — מחיג׳אז ועד ניאוונט. כל דרומוס עם שלבים, פראזות אופייניות ואקורדים</p>
+      </header>
+      <div id="dromos-learn-app"></div>
+    </section>
+
     <!-- ========== מסך: מילון ========== -->
     <section class="screen" id="screen-glossary">
       <header class="screen-head">
@@ -898,6 +922,8 @@
 <script src="js/songs.js"></script>
 <script src="js/master.js"></script>
 <script src="js/tuner.js"></script>
+<script src="js/education-content.js"></script>
+<script src="js/learn.js"></script>
 <script src="js/features.js"></script>
 <script src="js/features2.js"></script>
 <script>
@@ -917,6 +943,8 @@ if (typeof SightReading !== 'undefined') SightReading.init();
 if (typeof DrumMachine !== 'undefined') DrumMachine.init();
 if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.init();
 if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
+if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
+if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 </script>
 </body>
 </html>

@@ -21,6 +21,9 @@ $$('.nav-btn').forEach(btn => {
     btn.classList.add('active');
     $$('.screen').forEach(s => s.classList.remove('active'));
     $('#screen-' + btn.dataset.screen).classList.add('active');
+    if (btn.dataset.screen === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
+      SongLibrary.resetMobileView();
+    }
     stopAllPlayback();
   });
 });
@@ -34,6 +37,7 @@ function stopAllPlayback() {
   stopRhythm();
   stopMet();
   stopDrone();
+  stopCoursePlay();
   if (typeof stopExercise === 'function') stopExercise();
   if (typeof Listen !== 'undefined') Listen.stopAll();
   if (typeof Game !== 'undefined') Game.stop();
@@ -42,14 +46,19 @@ function stopAllPlayback() {
   if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof MicEngine !== 'undefined') MicEngine.stop();
   if (typeof BouzoukiTuner !== 'undefined') BouzoukiTuner.stop();
-  if (typeof SongLibrary !== 'undefined') SongLibrary.stopSong();
   if (typeof BackingTracks !== 'undefined') BackingTracks.stop();
   if (typeof JamSimulator !== 'undefined') JamSimulator.stop();
-  if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
+  if (typeof ExerciseGenerator !== 'undefined') ExerciseGenerator.stop();
+  if (typeof MelodyGenerator !== 'undefined') MelodyGenerator.stop();
   if (typeof MelodyRecorder !== 'undefined') MelodyRecorder.stop();
   if (typeof SightReading !== 'undefined') SightReading.stop();
+  if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
   if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
-  $('#dr-drone').classList.remove('playing');
+  if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
+  if (typeof PeniaLearn !== 'undefined') PeniaLearn.stop();
+  if (typeof DromosLearn !== 'undefined') DromosLearn.stop();
+  const droneBtn = $('#dr-drone');
+  if (droneBtn) droneBtn.classList.remove('playing');
 }
 
 /* ============================================================
@@ -1116,12 +1125,7 @@ function toggleCoursePlay() {
   );
   courseScheduler.numSteps = totalSteps;
   courseScheduler.stepDur = 60 / courseBpm / (courseItem.sub || 2);
-  if (!$('#course-loop').checked) {
-    const origStop = courseScheduler.stop.bind(courseScheduler);
-    let played = 0;
-    const origTick = courseScheduler._tick.bind(courseScheduler);
-    // Will loop by default via Scheduler
-  }
+  courseScheduler.loop = $('#course-loop').checked;
   courseScheduler.start();
   activeSchedulers.push(courseScheduler);
   btn.classList.add('playing');

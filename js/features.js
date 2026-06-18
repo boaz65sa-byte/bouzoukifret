@@ -59,7 +59,6 @@ const IntervalTrainer = (() => {
     document.querySelector('#it-diff').addEventListener('change', e => {
       difficulty = e.target.value;
       resetStats();
-      next();
     });
     document.querySelector('#it-play').addEventListener('click', () => next());
     document.querySelector('#it-repeat').addEventListener('click', () => playCurrent());
@@ -67,14 +66,14 @@ const IntervalTrainer = (() => {
       AudioEngine.ensureCtx();
       AudioEngine.pluckMidi(baseMidi, 0, 0.5);
     });
-    resetStats();
-    next();
+    resetStats(false);
   }
 
-  function resetStats() {
+  function resetStats(autoPlay = true) {
     stats = { correct: 0, wrong: 0, streak: 0 };
     pool = DIFF[difficulty].indices.map(i => INTERVALS[i]);
     updateScore();
+    if (autoPlay) next(); else { pick(); renderOptions(); }
   }
 
   function updateScore() {
@@ -195,7 +194,7 @@ const ModeQuiz = (() => {
     document.querySelector('#mq-repeat').addEventListener('click', () => playScale());
     document.querySelector('#mq-hint').addEventListener('click', () => showHint());
     resetStats();
-    nextQuestion();
+    prepareQuestion();
   }
 
   function resetStats() {
@@ -209,16 +208,14 @@ const ModeQuiz = (() => {
     if (el) el.innerHTML = `<span class="stat">&#10004; ${stats.correct}</span> <span class="stat err">&#10008; ${stats.wrong}</span> <span class="stat streak">&#128293; ${stats.streak}</span> <span class="stat">${pct}%</span>`;
   }
 
-  function nextQuestion() {
+  function prepareQuestion() {
     const d = DIFF[difficulty];
     const shuffled = [...DROMOI].sort(() => Math.random() - 0.5);
     const pool = shuffled.slice(0, d.poolSize);
     current = { dromos: pool[Math.floor(Math.random() * pool.length)], pool };
     rootMidi = 57 + Math.floor(Math.random() * 8);
     answered = false;
-    playScale();
     renderOptions(pool.sort(() => Math.random() - 0.5).slice(0, d.options));
-    // make sure correct is included
     const opts = document.querySelector('#mq-options');
     const btns = opts ? opts.querySelectorAll('button') : [];
     const hasCorrect = Array.from(btns).some(b => b.dataset.id === current.dromos.id);
@@ -229,6 +226,11 @@ const ModeQuiz = (() => {
     }
     const fb = document.querySelector('#mq-feedback');
     if (fb) fb.innerHTML = '';
+  }
+
+  function nextQuestion() {
+    prepareQuestion();
+    playScale();
   }
 
   function playScale() {
@@ -691,7 +693,7 @@ const BackingTracks = (() => {
         if (t.drums[i] === 'D') AudioEngine.dum(time, volumes.drums);
         else if (t.drums[i] === 't') AudioEngine.tek(time, volumes.drums * 0.7);
         // bass
-        if (t.bass[i] >= 0) AudioEngine.pluckMidi(t.root + t.bass[i], time, volumes.bass * 0.55);
+        if (t.bass[i] >= 0) AudioEngine.pluckBassFromMidi(t.root + t.bass[i], time, volumes.bass * 0.55);
         // chords
         if (t.chordPat[i] && CHORDS[t.chord]) {
           AudioEngine.strumChord(CHORDS[t.chord].shape, 'd', time, volumes.chords * 0.4);
@@ -706,6 +708,7 @@ const BackingTracks = (() => {
     scheduler.stepDur = stepDur;
     scheduler.numSteps = t.cells;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
   }
 
   function stop() {
@@ -844,8 +847,7 @@ const JamSimulator = (() => {
 
         // bass on beat 1 of each bar
         if (i === 0) {
-          const bassMidi = preset.root;
-          AudioEngine.pluckMidi(bassMidi, time, volumes.bass * 0.5);
+          AudioEngine.pluckBassFromMidi(preset.root, time, volumes.bass * 0.5);
         }
 
         // chord strum on beat 1
@@ -863,6 +865,7 @@ const JamSimulator = (() => {
     scheduler.stepDur = 60 / bpm / 2;
     scheduler.numSteps = rhythm.cells;
     scheduler.start();
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(scheduler);
   }
 
   function stop() {
@@ -969,23 +972,7 @@ const XpSystem = (() => {
     setTimeout(() => { popup.classList.remove('show'); setTimeout(() => popup.remove(), 400); }, 3000);
   }
 
-  function renderBadge() {
-    let badge = document.querySelector('#xp-badge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'xp-badge';
-      badge.className = 'xp-badge';
-      document.body.appendChild(badge);
-    }
-    const info = getLevelInfo();
-    badge.innerHTML = `
-      <div class="xp-level">Lv.${info.level} ${info.label}</div>
-      <div class="xp-bar-wrap">
-        <div class="xp-bar-fill" style="width:${Math.round(info.progress * 100)}%"></div>
-      </div>
-      <div class="xp-points">${info.xp} XP</div>
-    `;
-  }
+  function renderBadge() { /* badge hidden by user request */ }
 
   function getXp() { return data.xp; }
   function getAchievements() { return [...data.achievements]; }
