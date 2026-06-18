@@ -11,7 +11,9 @@
 <title>בוזוקי אקדמי — בית הספר לבוזוקי יווני</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
 </head>
 <body>
 
@@ -966,6 +968,10 @@ if (typeof DrumMachine !== 'undefined') DrumMachine.init();
 if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.init();
 if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>

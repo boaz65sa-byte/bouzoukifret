@@ -142,6 +142,27 @@ const LearnHub = (() => {
     });
   }
 
+  async function _goAnalyzeVideo() {
+    const id = _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
+    if (!id) {
+      alert('הדביקו קישור YouTube או טענו סרטון לפני הניתוח');
+      return;
+    }
+    _activeTab = 'analyze';
+    _renderTabs();
+    if (typeof SongAnalyzer !== 'undefined') {
+      if (!document.getElementById('sa-youtube')) SongAnalyzer.render('learn-analyze-app');
+      const ytIn = document.getElementById('sa-youtube');
+      if (ytIn) ytIn.value = `https://youtu.be/${id}`;
+      document.getElementById('sa-progress-wrap').style.display = '';
+      try {
+        await SongAnalyzer.runPipeline(`https://youtu.be/${id}`);
+      } catch (e) {
+        alert(e.message || String(e));
+      }
+    }
+  }
+
   function _setPlaybackRate(rate) {
     if (_ytPlayer && _ytPlayer.setPlaybackRate) {
       try { _ytPlayer.setPlaybackRate(rate); } catch (_) { /* noop */ }
@@ -231,13 +252,15 @@ const LearnHub = (() => {
 
       html += `
         <div class="learn-actions">
+          <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI (TAB + אקורדים)</button>
           <button type="button" class="btn primary learn-open-song" data-song="${song.id}">פתח בספריית שירים (אקורדים + גלילה)</button>
         </div>`;
     } else if (_currentVideoId) {
       html += `
         <div class="learn-card card">
           <h4>לא נמצא בספרייה</h4>
-          <p>הדבקת קישור YouTube — נגן למטה. בחרו דרומוס ידנית או הוסיפו שיר לספרייה.</p>
+          <p>הדביקו קישור YouTube — נגן למטה. ניתוח AI דורש stem-proxy + yt-dlp.</p>
+          <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
           <label class="learn-label">דרומוס משוער
             <select id="learn-manual-dromos" class="learn-select">
               ${DROMOI.map(d => `<option value="${d.id}">${d.nameHe}</option>`).join('')}
@@ -266,6 +289,9 @@ const LearnHub = (() => {
   function _bindPanelEvents() {
     const panel = document.getElementById('learn-panel');
     if (!panel) return;
+    panel.querySelectorAll('.learn-analyze-video').forEach(btn => {
+      btn.addEventListener('click', () => _goAnalyzeVideo());
+    });
     panel.querySelectorAll('.learn-go-ex').forEach(btn => {
       btn.addEventListener('click', () => _openExercise(btn.dataset.ex));
     });
@@ -487,6 +513,7 @@ const LearnHub = (() => {
               <button type="button" class="learn-speed-btn" data-rate="0.5">0.5×</button>
               <button type="button" class="learn-speed-btn active" data-rate="0.75">0.75×</button>
               <button type="button" class="learn-speed-btn" data-rate="1">1×</button>
+              <button type="button" class="btn gold" id="learn-analyze-video">🔬 נתח ב-AI</button>
             </div>
             <div id="learn-yt-host" class="learn-yt-host">
               <p class="hint learn-yt-placeholder">הדביקו קישור או בחרו שיר — הנגן יופיע כאן</p>
@@ -524,6 +551,8 @@ const LearnHub = (() => {
         }
       });
     });
+
+    document.getElementById('learn-analyze-video')?.addEventListener('click', () => _goAnalyzeVideo());
 
     document.getElementById('learn-url-load').addEventListener('click', () => {
       const id = _extractYoutubeId(document.getElementById('learn-url-input').value);

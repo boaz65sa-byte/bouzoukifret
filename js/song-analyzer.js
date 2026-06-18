@@ -524,6 +524,59 @@ const SongAnalyzer = (() => {
     }
   }
 
+  function _exportAnalysis(format) {
+    if (!_analysis) {
+      alert('אין ניתוח לייצוא — הריצו ניתוח קודם');
+      return;
+    }
+    const COURSE = ['D', 'A', 'F', 'C'];
+    const chords = _displayChords();
+    const notes = _displayTabNotes().filter(n => n.course != null);
+    const base = `bouzouki-${Date.now()}`;
+
+    if (format === 'json') {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        bpm: _analysis.bpm,
+        engine: _analysis.engine,
+        durationSec: _audioBuffer?.duration,
+        transpose: _transposeSemi,
+        dromos: _analysis.dromosMatch ? {
+          id: _analysis.dromosMatch.dromos?.id,
+          nameHe: _analysis.dromosMatch.dromos?.nameHe,
+          root: _analysis.dromosMatch.rootName,
+          confidence: _analysis.dromosMatch.confidence,
+        } : null,
+        chords,
+        tabNotes: notes,
+      };
+      _downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `${base}.json`);
+      return;
+    }
+
+    const lines = [
+      '# בוזוקי אקדמי — ניתוח שיר',
+      `BPM: ${_analysis.bpm} · מנוע: ${_analysis.engine || '?'}`,
+      _analysis.dromosMatch ? `דרומוס: ${_analysis.dromosMatch.dromos?.nameHe} (${_analysis.dromosMatch.confidence?.toFixed(0)}%)` : '',
+      '',
+      '## אקורדים',
+      ...chords.map(c => `${_fmtTime(c.time)}  ${c.chord}`),
+      '',
+      '## TAB',
+      ...notes.map(n => `${_fmtTime(n.time)}  ${COURSE[n.course] || '?'}  סריג ${n.fret}`),
+    ].filter(Boolean);
+    _downloadBlob(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }), `${base}.txt`);
+  }
+
+  function _downloadBlob(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
   function _applyTranspose(delta) {
     _transposeSemi += delta;
     const el = document.getElementById('sa-transpose-val');
@@ -590,6 +643,10 @@ const SongAnalyzer = (() => {
       <div id="sa-results" style="display:none">
         <div class="sa-player card">
           <div id="sa-meta" class="sa-meta"></div>
+          <div class="sa-export-row">
+            <button type="button" class="btn secondary" id="sa-export-json">⬇ ייצוא JSON</button>
+            <button type="button" class="btn secondary" id="sa-export-txt">⬇ ייצוא TAB/אקורדים</button>
+          </div>
           <div id="sa-dromos-hint" class="sa-dromos-hint hint"></div>
           <div class="sa-transport">
             <button type="button" class="btn secondary" id="sa-play">▶ נגן</button>
@@ -718,6 +775,9 @@ const SongAnalyzer = (() => {
     document.getElementById('sa-live-chord')?.addEventListener('change', e => {
       _toggleLiveChord(e.target.checked);
     });
+
+    document.getElementById('sa-export-json')?.addEventListener('click', () => _exportAnalysis('json'));
+    document.getElementById('sa-export-txt')?.addEventListener('click', () => _exportAnalysis('txt'));
 
     document.getElementById('sa-playalong')?.addEventListener('click', () => {
       const notes = _displayTabNotes().filter(n => n.course != null).slice(0, 48);
