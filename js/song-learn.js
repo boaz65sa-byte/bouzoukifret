@@ -413,40 +413,56 @@ const SongLearn = (() => {
     }, 200);
   }
 
-  /* --------- Player --------- */
-  let playerCtx = null, playerSource = null, playerBuffer = null;
-  let playerStartTime = 0, playerOffset = 0, playerPlaying = false;
+  /* --------- Player (מבוסס PitchPreservingPlayer — האטה בלי שינוי גובה) --------- */
+  let playerBuffer = null;
+  let playerOffset = 0, playerPlaying = false;
   let playerRate = 1.0;
   let rafPlayer = null;
   let analysisResult = null;
+  // לולאת A/B
+  let loopA = null, loopB = null;
+  const hasPPP = () => typeof PitchPreservingPlayer !== 'undefined';
+
+  // נגן גיבוי (אם PPP לא זמין)
+  let playerCtx = null, playerSource = null, playerStartTime = 0;
 
   function initPlayer(audioBuffer) {
     playerBuffer = audioBuffer;
-    if (playerCtx) playerCtx.close();
-    playerCtx = new (window.AudioContext || window.webkitAudioContext)();
+    loopA = loopB = null;
+    if (hasPPP()) { PitchPreservingPlayer.load(audioBuffer); }
+    else {
+      if (playerCtx) playerCtx.close();
+      playerCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
     renderPlayerUI();
   }
 
   function playFrom(offsetSec) {
-    if (!playerCtx || !playerBuffer) return;
-    if (playerSource) { try { playerSource.stop(); } catch(e) {} }
-    playerSource = playerCtx.createBufferSource();
-    playerSource.buffer = playerBuffer;
-    playerSource.playbackRate.value = playerRate;
-    playerSource.connect(playerCtx.destination);
-    playerSource.start(0, offsetSec);
-    playerStartTime = playerCtx.currentTime;
     playerOffset = offsetSec;
-    playerPlaying = true;
-    playerSource.onended = () => {
-      if (playerPlaying) { playerPlaying = false; updatePlayerBtn(); }
-    };
+    if (hasPPP()) {
+      PitchPreservingPlayer.setTempo(playerRate, true);
+      PitchPreservingPlayer.seek(offsetSec);
+      PitchPreservingPlayer.play();
+      playerPlaying = true;
+    } else {
+      if (!playerCtx || !playerBuffer) return;
+      if (playerSource) { try { playerSource.stop(); } catch(e) {} }
+      playerSource = playerCtx.createBufferSource();
+      playerSource.buffer = playerBuffer;
+      playerSource.playbackRate.value = playerRate;
+      playerSource.connect(playerCtx.destination);
+      playerSource.start(0, offsetSec);
+      playerStartTime = playerCtx.currentTime;
+      playerPlaying = true;
+      playerSource.onended = () => { if (playerPlaying) { playerPlaying = false; updatePlayerBtn(); } };
+    }
     updatePlayerBtn();
     schedulePlayerUpdate();
   }
 
   function stopPlayer() {
-    if (playerSource) { try { playerSource.stop(); } catch(e) {} playerSource = null; }
+    if (hasPPP()) { PitchPreservingPlayer.pause(); }
+    else if (playerSource) { try { playerSource.stop(); } catch(e) {} playerSource = null; }
     playerPlaying = false;
     updatePlayerBtn();
     cancelAnimationFrame(rafPlayer);
@@ -458,6 +474,7 @@ const SongLearn = (() => {
   }
 
   function currentTime() {
+    if (hasPPP()) return PitchPreservingPlayer.getCurrentTime();
     if (!playerPlaying) return playerOffset;
     return playerOffset + (playerCtx.currentTime - playerStartTime) * playerRate;
   }
@@ -467,6 +484,11 @@ const SongLearn = (() => {
     function loop() {
       if (!playerPlaying) return;
       const t = currentTime();
+      // לולאת A/B
+      if (loopA !== null && loopB !== null && t >= loopB) {
+        playFrom(loopA);
+        return;
+      }
       updateTimeline(t);
       rafPlayer = requestAnimationFrame(loop);
     }
@@ -496,6 +518,14 @@ const SongLearn = (() => {
   function fmtTime(s) {
     const m = Math.floor(s / 60), sec = Math.floor(s % 60);
     return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function updateLoopStatus() {
+    const el = document.getElementById('sl-loop-status');
+    if (!el) return;
+    if (loopA !== null && loopB !== null) el.textContent = `🔁 ${fmtTime(loopA)}–${fmtTime(loopB)}`;
+    else if (loopA !== null) el.textContent = `A=${fmtTime(loopA)} · קבעו B`;
+    else el.textContent = '';
   }
 
   function updatePlayerBtn() {
@@ -542,11 +572,19 @@ const SongLearn = (() => {
         <button class="btn gold" id="sl-play-btn">▶</button>
         <input type="range" id="sl-scrubber" min="0" max="1000" value="0" style="flex:1;accent-color:var(--gold)">
         <span id="sl-time" style="font-size:12px;color:var(--text-dim)">0:00</span>
-        <select id="sl-speed" class="ctrl-select" style="width:80px">
+        <select id="sl-speed" class="ctrl-select" style="width:92px">
           <option value="1">1× מהירות</option>
-          <option value="0.75">0.75×</option>
-          <option value="0.5">0.5× איטי</option>
+          <option value="0.85">0.85×</option>
+          <option value="0.7">0.7× איטי</option>
+          <option value="0.5">0.5× איטי מאוד</option>
         </select>
+      </div>
+      <div class="sl-loop-row">
+        <span class="sl-loop-lbl">🔁 לולאה לתרגול קטע:</span>
+        <button class="btn btn-sm" id="sl-loop-a">קבע A</button>
+        <button class="btn btn-sm" id="sl-loop-b">קבע B</button>
+        <button class="btn btn-sm" id="sl-loop-clear">✕ נקה</button>
+        <span class="sl-loop-status" id="sl-loop-status"></span>
       </div>`}
 
       <div class="sl-chord-timeline" id="sl-timeline">${chordsHtml}</div>
@@ -573,11 +611,21 @@ const SongLearn = (() => {
 
     document.getElementById('sl-speed').addEventListener('change', (e) => {
       playerRate = parseFloat(e.target.value);
-      if (playerPlaying) {
+      if (hasPPP()) {
+        PitchPreservingPlayer.setTempo(playerRate, true);
+      } else if (playerPlaying) {
         playerOffset = currentTime();
         playFrom(playerOffset);
       }
     });
+
+    // לולאת A/B
+    const loopA_btn = document.getElementById('sl-loop-a');
+    const loopB_btn = document.getElementById('sl-loop-b');
+    const loopClear = document.getElementById('sl-loop-clear');
+    if (loopA_btn) loopA_btn.addEventListener('click', () => { loopA = currentTime(); updateLoopStatus(); });
+    if (loopB_btn) loopB_btn.addEventListener('click', () => { loopB = currentTime(); if (loopA !== null && loopB < loopA) { const t = loopA; loopA = loopB; loopB = t; } updateLoopStatus(); });
+    if (loopClear) loopClear.addEventListener('click', () => { loopA = loopB = null; updateLoopStatus(); });
 
     document.getElementById('sl-timeline').addEventListener('click', (e) => {
       const block = e.target.closest('.sl-chord-block');
@@ -813,6 +861,9 @@ const SongLearn = (() => {
       .sl-meta-val { display:block; font-size:20px; font-weight:900; color:var(--gold,#e3b341); }
       .sl-meta-lbl { display:block; font-size:11px; color:var(--text-dim,#999); margin-top:2px; }
       .sl-player-row { display:flex; align-items:center; gap:10px; margin:12px 0; }
+      .sl-loop-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0 12px; }
+      .sl-loop-lbl { font-size:12px; color:var(--text-dim,#999); }
+      .sl-loop-status { font-size:12px; color:var(--gold,#e3b341); font-weight:600; margin-right:4px; }
       #sl-play-btn { width:44px; height:44px; border-radius:50%; font-size:18px; flex-shrink:0; }
       .sl-chord-timeline { display:flex; gap:6px; overflow-x:auto; padding:12px 4px; margin:8px 0; scroll-behavior:smooth; }
       .sl-chord-block { flex-shrink:0; border:2px solid; border-radius:10px; padding:8px 10px; cursor:pointer; transition:transform .1s,box-shadow .1s; text-align:center; }
