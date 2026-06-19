@@ -1418,8 +1418,21 @@ select {
 .learn-yt-host iframe, .learn-yt-host > div { width: 100% !important; height: 100% !important; }
 .learn-yt-placeholder { padding: 24px; text-align: center; }
 .learn-yt-toolbar {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--text-dim);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--text-dim);
 }
+.learn-download-status { margin: 0 0 8px; flex: 1 1 100%; }
+.learn-dl-ok { color: var(--ok); }
+.learn-dl-err { color: var(--bad); }
+.learn-offline { margin-top: 12px; }
+.learn-offline h4 { margin: 0 0 6px; font-size: 14px; color: var(--gold-soft); }
+.learn-offline-note { margin: 0 0 10px; font-size: 12px; }
+.learn-offline-item {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.learn-offline-item:last-child { border-bottom: none; }
+.learn-offline-meta strong { display: block; font-size: 14px; }
+.learn-offline-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .learn-speed-btn {
   padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);
   background: var(--bg-elev); color: var(--text); cursor: pointer; font: inherit;

@@ -113,5 +113,48 @@ const StemAPI = (() => {
     return resp.blob();
   }
 
-  return { separate, checkHealth, fetchYoutube };
+  function saveBlobAsFile(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename || 'audio.mp3';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+  }
+
+  /**
+   * הורדת MP3 מ-YouTube — שמירה במכשיר + IndexedDB (LearnOffline)
+   * @param {string} videoId
+   * @param {{ title?: string, titleHe?: string, songId?: string, onProgress?: Function, saveOffline?: boolean, saveToDisk?: boolean }} opts
+   */
+  async function downloadForLearning(videoId, opts = {}) {
+    const {
+      title = videoId,
+      titleHe = '',
+      songId = '',
+      onProgress,
+      saveOffline = true,
+      saveToDisk = true,
+    } = opts;
+
+    const health = await checkHealth();
+    if (!health.ok) throw new Error('stem-proxy לא פעיל — הרץ tools/stem-proxy והגדר config.js');
+    if (!health.ytdlp) throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
+
+    const blob = await fetchYoutube(videoId, onProgress);
+
+    if (saveOffline && typeof LearnOffline !== 'undefined') {
+      onProgress?.('שומר בספריית לימוד…', 98);
+      await LearnOffline.save(videoId, blob, { title, titleHe, songId });
+    }
+
+    if (saveToDisk) {
+      const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
+      saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
+    }
+
+    onProgress?.('מוכן ללימוד', 100);
+    return blob;
+  }
+
+  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning };
 })();

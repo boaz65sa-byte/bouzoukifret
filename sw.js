@@ -23,6 +23,7 @@ const PRECACHE = [
   './js/songs.js',
   './js/learning-resources.js',
   './js/dromos-paths.js',
+  './js/learn-offline.js',
   './js/learn-youtube.js',
   './js/stem-api.js',
   './js/pitch-player.js',
