@@ -67,6 +67,9 @@
       <button class="nav-btn" data-screen="dromos-learn">
         <span class="nav-ico">🌟</span> מסלול לימוד מודוסים
       </button>
+      <button class="nav-btn nav-featured" data-screen="modus-path">
+        <span class="nav-ico">🧭</span> נתיב המודוס
+      </button>
       <button class="nav-btn" data-screen="exercises">
         <span class="nav-ico">🎼</span> ספריית תרגילים
       </button>
@@ -943,6 +946,17 @@
       <div id="dromos-learn-app"></div>
     </section>
 
+    <!-- ========== מסך: נתיב המודוס ========== -->
+    <section class="screen" id="screen-modus-path">
+      <header class="screen-head">
+        <h1>נתיב המודוס 🧭</h1>
+        <p class="lead">השיטה המעשית: כל דרומוס ב-5 תחנות — סולם → פראזה → אקורדים → פריטה → שיר. עם בקרת מיקרופון בכל שלב</p>
+      </header>
+      <div class="card">
+        <div id="modus-path-app"></div>
+      </div>
+    </section>
+
     <!-- ========== מסך: למד מהשיר ========== -->
     <section class="screen" id="screen-song-learn">
       <header class="screen-head">
@@ -1000,6 +1014,7 @@
 <script src="js/education-content.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/song-learn.js"></script>
+<script src="js/modus-path.js"></script>
 <script src="js/skills.js"></script>
 <script src="js/daily-streak.js"></script>
 <script src="js/progress-db.js"></script>
@@ -1028,6 +1043,7 @@ if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
 if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
+if (typeof ModusPath !== 'undefined') ModusPath.init();
 if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 
