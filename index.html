@@ -76,6 +76,9 @@
       <button class="nav-btn nav-featured" data-screen="daily-workout">
         <span class="nav-ico">📅</span> אימון יומי
       </button>
+      <button class="nav-btn" data-screen="practice-lib">
+        <span class="nav-ico">📚</span> ספריית תרגילים מעשית
+      </button>
       <button class="nav-btn" data-screen="exercises">
         <span class="nav-ico">🎼</span> ספריית תרגילים
       </button>
@@ -952,6 +955,17 @@
       <div id="dromos-learn-app"></div>
     </section>
 
+    <!-- ========== מסך: ספריית תרגילים מעשית ========== -->
+    <section class="screen" id="screen-practice-lib">
+      <header class="screen-head">
+        <h1>ספריית תרגילים מעשית 📚</h1>
+        <p class="lead">10 מקצבים יווניים עם נגן מטרונום · 4 שלבי טרמולו · שירון של 10 קלאסיקות</p>
+      </header>
+      <div class="card">
+        <div id="practice-lib-app"></div>
+      </div>
+    </section>
+
     <!-- ========== מסך: אימון יומי ========== -->
     <section class="screen" id="screen-daily-workout">
       <header class="screen-head">
@@ -1044,6 +1058,7 @@
 <script src="js/song-learn.js"></script>
 <script src="js/adaptive.js"></script>
 <script src="js/daily-workout.js"></script>
+<script src="js/practice-library.js"></script>
 <script src="js/modus-path.js"></script>
 <script src="js/skills.js"></script>
 <script src="js/daily-streak.js"></script>
@@ -1076,6 +1091,7 @@ if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();
 if (typeof AdaptiveCoach !== 'undefined') AdaptiveCoach.init();
 if (typeof DailyWorkout !== 'undefined') DailyWorkout.init();
+if (typeof PracticeLibrary !== 'undefined') PracticeLibrary.init();
 if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 

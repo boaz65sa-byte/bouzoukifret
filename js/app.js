@@ -83,6 +83,7 @@ function stopAllPlayback() {
   if (typeof SkillsCoach !== 'undefined') SkillsCoach.stop();
   if (typeof SongLearn !== 'undefined') SongLearn.stop();
   if (typeof ModusPath !== 'undefined') ModusPath.stop();
+  if (typeof PracticeLibrary !== 'undefined') PracticeLibrary.stop();
   if (typeof LearnHub !== 'undefined') LearnHub.stop();
   if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
   if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
