@@ -38,6 +38,7 @@ const PRECACHE = [
   './js/progress-dashboard.js',
   './js/features2.js',
   './js/education-content.js',
+  './js/penia-visuals.js',
   './js/learn.js',
   './js/song-learn.js',
   './js/adaptive.js',

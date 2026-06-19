@@ -1308,7 +1308,72 @@ select {
 .rh-sec-points { padding-right: 16px; margin: 0; font-size: 13px; line-height: 1.9; color: var(--text-dim); }
 .ex-focus { color: var(--aegean); font-size: 12px; display: block; margin-top: 3px; }
 
-/* DromosLearn — תכנים עשירים */
+/* PeniaLearn — מסלול מעשי */
+.penia-learn-progress { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.penia-learn-progress .progress-bar-wrap { flex: 1; min-width: 120px; max-width: 280px; }
+.penia-pct { font-weight: 900; color: var(--gold); font-size: 1.4rem; }
+.penia-practical-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.penia-practical-card { border: 1px solid var(--line); }
+.penia-practical-card.current { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(227,179,65,0.25); }
+.penia-practical-card.done { opacity: 0.92; }
+.ppc-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.ppc-num {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(227,179,65,0.2); color: var(--gold-soft); font-weight: 900;
+}
+.ppc-title-wrap h3 { margin: 0 0 4px; font-size: 17px; color: var(--gold-soft); }
+.ppc-focus { margin: 0; font-size: 13px; color: var(--text-dim); }
+.ppc-bpm { font-size: 11px; color: var(--aegean); font-weight: 700; }
+.ppc-check {
+  margin-right: auto; width: 36px; height: 36px; border-radius: 8px; border: 2px solid var(--line);
+  background: var(--bg-elev); color: transparent; cursor: pointer; font-size: 18px; font-weight: 900;
+}
+.ppc-check.checked { background: var(--ok); border-color: var(--ok); color: #0b1623; }
+.penia-visual-box {
+  background: linear-gradient(180deg, #0f1a28, #0a121c);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 10px;
+}
+.penia-visual-svg { width: 100%; height: auto; display: block; max-height: 140px; }
+.ppc-caption {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(79,179,217,0.08); border-right: 3px solid var(--aegean);
+  font-size: 14px; line-height: 1.55;
+}
+.ppc-do h4 { margin: 0 0 8px; font-size: 14px; color: var(--gold-soft); }
+.ppc-steps { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 10px; }
+.ppc-steps li { display: flex; gap: 10px; align-items: flex-start; }
+.ppc-step-n {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elev); border: 1px solid var(--line); font-size: 16px;
+}
+.ppc-steps strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.ppc-steps p { margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.ppc-meta { font-size: 13px; margin: 0 0 10px; }
+.ppc-strip-wrap { margin-bottom: 10px; }
+.ppc-strip-label { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 6px; }
+.penia-strip-mini { display: flex; flex-wrap: wrap; gap: 4px; direction: ltr; }
+.psm-cell {
+  min-width: 28px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px; font-weight: 800; font-size: 14px; border: 1px solid var(--line);
+  background: var(--bg-elev);
+}
+.psm-cell.down { background: rgba(227,179,65,0.22); color: var(--gold-soft); border-color: var(--gold); }
+.psm-cell.up { background: rgba(79,179,217,0.15); color: var(--aegean); }
+.psm-cell.rest { opacity: 0.45; color: var(--text-dim); }
+.psm-cell.accent { box-shadow: 0 0 0 2px rgba(217,100,89,0.5); }
+.ppc-checklist { font-size: 13px; margin: 0 0 12px; padding: 8px 10px; background: rgba(95,200,143,0.08); border-radius: 8px; }
+.ppc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ppc-theory { font-size: 13px; color: var(--text-dim); }
+.ppc-theory summary { cursor: pointer; color: var(--aegean); font-weight: 700; margin-bottom: 6px; }
+.ppc-tip { margin-top: 8px; font-style: italic; }
+.penia-tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+.penia-tech-item { background: var(--bg-elev); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.penia-tech-item h4 { margin: 0 0 8px; font-size: 13px; color: var(--gold-soft); }
+.penia-tech-item ul { margin: 8px 0 0; padding-right: 16px; font-size: 12px; line-height: 1.6; color: var(--text-dim); }
+.penia-reset-wrap { text-align: center; margin: 16px 0; }
+
 .dlc-level-badge {
   display: inline-block; font-size: 11px; padding: 2px 10px;
   border-radius: 10px; background: rgba(227,179,65,0.15); color: var(--gold);
