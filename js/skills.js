@@ -550,6 +550,7 @@ const SkillsCoach = (() => {
       const total = ex.targets.length;
       const avg = session.results.length > 0 ? session.results.reduce((a, r) => a + Math.abs(r.cents), 0) / session.results.length : 0;
       const score = Math.round(ok / total * 100);
+      if (typeof SkillStats !== 'undefined') SkillStats.recordScore('tuning', 'main', score);
       html = buildResultBox(score, [
         `מיתרים מכוונים: ${ok} מתוך ${total}`,
         avg > 0 ? `סטייה ממוצעת: ${avg.toFixed(0)}¢` : '',
@@ -566,6 +567,12 @@ const SkillsCoach = (() => {
       else if (c.late > c.early + 2) advice = '⚠️ מאוחר מדי — שחררו את היד ואל תחשבו יותר מדי';
       else if (score >= 85) advice = '🏆 פריטה נקייה ומדויקת — שלב הבא!';
       else advice = '⭐ מצב טוב — עוד כמה סבבים ויהיה אוטומטי';
+      if (typeof SkillStats !== 'undefined') {
+        SkillStats.recordScore('picking', 'timing', score);
+        // כיוון: כל פספוס-כיוון נספר כ-fail, השאר כ-ok
+        for (let i = 0; i < c.ok; i++) SkillStats.record('picking-dir', 'd', true);
+        for (let i = 0; i < c.wrong; i++) SkillStats.record('picking-dir', 'u', false);
+      }
       html = buildResultBox(score, [
         `מוצלח: ${c.ok} מתוך ${total} · פספוס: ${c.miss} · כיוון הפוך: ${c.wrong}`,
         c.early + c.late > 0 ? `מוקדם: ${c.early} · מאוחר: ${c.late}` : '',
@@ -576,6 +583,7 @@ const SkillsCoach = (() => {
       const ok = session.results.filter(r => r.ok).length;
       const total = ex.targets.length;
       const score = session.attempts > 0 ? Math.round(ok / Math.max(session.attempts, total) * 100) : 0;
+      if (typeof SkillStats !== 'undefined') SkillStats.recordScore('scale', (ex.id||'').replace('-scale',''), score);
       const wrongNotes = session.results.filter(r => !r.ok);
       let advice = score >= 90 ? '🏆 סולם נקי מאוד!' : score >= 70 ? '⭐ טוב — שימו לב לתווים שטעיתם' : '💪 האיטו — נגנו צליל-צליל לאט מאוד';
       if (wrongNotes.length > 0) {
@@ -598,6 +606,7 @@ const SkillsCoach = (() => {
         maxRate = Math.max(maxRate, w.length / 2);
       }
       const score = Math.min(100, Math.round((avgRate / ex.targetRate) * 100));
+      if (typeof SkillStats !== 'undefined') SkillStats.recordScore('tremolo', 'main', score);
       html = buildResultBox(score, [
         `פריטות ממוצע: ${avgRate.toFixed(1)}/שניה · שיא: ${maxRate.toFixed(1)}/שניה`,
         avgRate < 3 ? '💪 עדיין לאט — זה נורמלי! תרגלו 5 דקות כל יום' :

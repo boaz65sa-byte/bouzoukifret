@@ -375,7 +375,8 @@ const ModusPath = (() => {
       (done, total, hit, name) => {
         if (hit) { const el = document.getElementById('mp-seq-' + (done-1)); if (el) el.classList.add('hit'); feedback(`✓ ${name}`, 'ok'); }
       },
-      () => { feedback('🏆 הסולם נוגן נקי!', 'ok'); markStageDone(currentPath.id, 'scale'); refreshSteps(); }
+      () => { feedback('🏆 הסולם נוגן נקי!', 'ok'); markStageDone(currentPath.id, 'scale'); refreshSteps();
+        if (typeof SkillStats !== 'undefined') SkillStats.record('scale', currentPath.id, true); }
     );
   }
 
@@ -506,10 +507,12 @@ const ModusPath = (() => {
         const el = document.getElementById('mp-stroke-' + pat.pattern.map((s,i)=>s!=='-'?i:-1).filter(i=>i>=0)[idx]);
         if (el) { el.classList.add(isOk ? 'ok' : 'wrong'); setTimeout(() => el.classList.remove('ok','wrong'), 400); }
         feedback(isOk ? `✓ ${dir==='d'?'↓':'↑'}` : `✗ כיוון`, isOk ? 'ok' : 'err');
+        if (typeof SkillStats !== 'undefined') SkillStats.record('picking-dir', dir, isOk);
       },
       (correct, total) => {
         const pct = Math.round(correct/total*100);
         feedback(`${pct}% נכון`, pct >= 70 ? 'ok' : 'err');
+        if (typeof SkillStats !== 'undefined') SkillStats.recordScore('picking', 'timing', pct);
         if (pct >= 70) { markStageDone(currentPath.id, 'picking'); refreshSteps(); }
       }
     );

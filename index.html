@@ -70,6 +70,9 @@
       <button class="nav-btn nav-featured" data-screen="modus-path">
         <span class="nav-ico">🧭</span> נתיב המודוס
       </button>
+      <button class="nav-btn nav-featured" data-screen="adaptive">
+        <span class="nav-ico">🧠</span> מאמן חכם
+      </button>
       <button class="nav-btn" data-screen="exercises">
         <span class="nav-ico">🎼</span> ספריית תרגילים
       </button>
@@ -946,6 +949,17 @@
       <div id="dromos-learn-app"></div>
     </section>
 
+    <!-- ========== מסך: מאמן חכם ========== -->
+    <section class="screen" id="screen-adaptive">
+      <header class="screen-head">
+        <h1>מאמן חכם 🧠</h1>
+        <p class="lead">המאמן עוקב אחרי הביצועים שלכם בכל התרגילים, מזהה את החולשות, ובונה תוכנית אימון אישית</p>
+      </header>
+      <div class="card">
+        <div id="adaptive-app"></div>
+      </div>
+    </section>
+
     <!-- ========== מסך: נתיב המודוס ========== -->
     <section class="screen" id="screen-modus-path">
       <header class="screen-head">
@@ -1014,6 +1028,7 @@
 <script src="js/education-content.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/song-learn.js"></script>
+<script src="js/adaptive.js"></script>
 <script src="js/modus-path.js"></script>
 <script src="js/skills.js"></script>
 <script src="js/daily-streak.js"></script>
@@ -1044,6 +1059,7 @@ if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
 if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();
+if (typeof AdaptiveCoach !== 'undefined') AdaptiveCoach.init();
 if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 
