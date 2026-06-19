@@ -74,6 +74,67 @@ const Game = (() => {
   // כיול
   let calibrating = false, calibClicks = [], calibTaps = [];
 
+  // מיקרופון
+  const mic = { stream: null, ctx: null, analyser: null, timer: null, prevRms: 0, lastHit: 0 };
+
+  function spectralDir(analyser, sampleRate) {
+    const freq = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(freq);
+    const bHz = sampleRate / (2 * analyser.frequencyBinCount);
+    // Low band: C4/F4 fundamentals (200-420 Hz)
+    const ll = Math.floor(200 / bHz), lh = Math.floor(420 / bHz);
+    // High band: A4/D5 fundamentals (440-700 Hz)
+    const hl = Math.floor(440 / bHz), hh = Math.floor(700 / bHz);
+    let ls = 0, hs = 0;
+    for (let i = ll; i <= lh; i++) ls += freq[i];
+    for (let i = hl; i <= hh; i++) hs += freq[i];
+    const r = (ls / (lh - ll + 1)) / ((hs / (hh - hl + 1)) + 0.1);
+    return r > 1.25 ? 'd' : r < 0.75 ? 'u' : 'd'; // default to 'd' when ambiguous
+  }
+
+  async function toggleMic() {
+    const btn = $('#game-mic'), st = $('#game-mic-status');
+    if (mic.stream) {
+      clearInterval(mic.timer); mic.timer = null;
+      mic.stream.getTracks().forEach(t => t.stop()); mic.stream = null;
+      if (mic.ctx) { mic.ctx.close(); mic.ctx = null; }
+      mic.analyser = null; mic.prevRms = 0;
+      btn.textContent = '🎤 מיק'; btn.classList.remove('active');
+      st.style.display = 'none';
+      return;
+    }
+    try {
+      mic.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      });
+      mic.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = mic.ctx.createMediaStreamSource(mic.stream);
+      mic.analyser = mic.ctx.createAnalyser();
+      mic.analyser.fftSize = 2048;
+      src.connect(mic.analyser);
+      const buf = new Float32Array(mic.analyser.fftSize);
+      mic.timer = setInterval(() => {
+        mic.analyser.getFloatTimeDomainData(buf);
+        let rms = 0;
+        for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+        rms = Math.sqrt(rms / buf.length);
+        const now2 = performance.now();
+        if (rms > 0.035 && rms > mic.prevRms * 1.65 && now2 - mic.lastHit > 110) {
+          const dir = spectralDir(mic.analyser, mic.ctx.sampleRate);
+          mic.lastHit = now2;
+          handleInput(dir);
+          st.textContent = dir === 'd' ? '↓ זוהה' : '↑ זוהה';
+        }
+        mic.prevRms = rms * 0.7 + mic.prevRms * 0.3; // exponential smoothing
+      }, 12);
+      btn.textContent = '🎤 פעיל'; btn.classList.add('active');
+      st.style.display = 'inline';
+      st.textContent = 'ממתין...';
+    } catch(e) {
+      alert('לא ניתן לגשת למיקרופון — אשרו את הבקשה בדפדפן.');
+    }
+  }
+
   let canvas, cctx, dpr = 1;
 
   function actx() { return AudioEngine.ctx; }
@@ -473,6 +534,7 @@ const Game = (() => {
     $('#game-bpm-down').addEventListener('click', () => setBpm(bpm - 5));
     $('#game-bpm-up').addEventListener('click', () => setBpm(bpm + 5));
     $('#game-calib').addEventListener('click', calibrate);
+    $('#game-mic').addEventListener('click', toggleMic);
 
     // מקלדת
     document.addEventListener('keydown', (e) => {
