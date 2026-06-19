@@ -58,9 +58,9 @@ const Highway = (() => {
 
     const gridBot = gridTop + gridH;
 
-    const courseStep = gridH / 3.1;
+    const courseStep = gridH / 3;
 
-    const pairGap = Math.min(6, courseStep * 0.2);
+    const pairGap = Math.min(6, courseStep * 0.18);
 
     const soundCX = bodyW * 0.52;
 
@@ -72,7 +72,7 @@ const Highway = (() => {
 
     function stringCenterY(course) {
 
-      return gridTop + course * courseStep + courseStep * 0.42;
+      return gridTop + course * (gridH / 3);
 
     }
 
@@ -518,9 +518,11 @@ const Highway = (() => {
 
       const lw = 0.8 + c * 0.35;
 
+      const bright = on || c === 3;
+
       for (let s = 0; s < 2; s++) {
 
-        drawStringLine(cctx, x1, x2, g.stringY(c, s), lw, on);
+        drawStringLine(cctx, x1, x2, g.stringY(c, s), lw, bright);
 
       }
 
@@ -560,15 +562,15 @@ const Highway = (() => {
 
 
 
-  function drawGlowingNote(cctx, cx, cy, label, color, status, urgent) {
+  function drawGlowingNote(cctx, cx, cy, label, color, status, urgent, gemR) {
 
-    const r = urgent ? 15 : 13;
+    const r = gemR ?? (urgent ? 15 : 13);
 
     cctx.save();
 
-    if (status === 'perfect' || status === 'good') cctx.globalAlpha = 0.25;
+    if (status === 'perfect' || status === 'good') cctx.globalAlpha = 0.55;
 
-    else if (status === 'wrong' || status === 'miss') cctx.globalAlpha = 0.7;
+    else if (status === 'wrong' || status === 'miss') cctx.globalAlpha = 0.85;
 
 
 
@@ -662,7 +664,9 @@ const Highway = (() => {
 
     const label = status === 'wrong' || status === 'miss' ? '!' : noteLabel(m, tg, gameType);
 
-    drawGlowingNote(cctx, cx, cy, label, status === 'wrong' || status === 'miss' ? '#e85050' : color, status, urgent);
+    const gemR = Math.max(12, Math.min(18, g.courseStep * 0.48)) * (urgent ? 1.12 : 1);
+
+    drawGlowingNote(cctx, cx, cy, label, status === 'wrong' || status === 'miss' ? '#e85050' : color, status, urgent, gemR);
 
   }
 

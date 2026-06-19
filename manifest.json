@@ -1,0 +1,21 @@
+{
+  "name": "בוזוקי אקדמי — Μπουζούκι",
+  "short_name": "בוזוקי",
+  "description": "כלי לימוד אינטראקטיבי לבוזוקי יווני — דרומוסים, תרגילים, ניתוח שירים",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1623",
+  "theme_color": "#0b1623",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

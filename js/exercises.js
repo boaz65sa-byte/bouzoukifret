@@ -186,13 +186,16 @@ function drawStrumStrip(container, item) {
       cell.innerHTML = `<div class="sc-top">·</div><div class="sc-bottom">שקט</div>`;
     } else if (ev.kind === 'bass') {
       cell.className = 'strum-cell bass';
+      cell.dataset.chord = ev.chord;
       cell.innerHTML = `<div class="sc-top">↓</div><div class="sc-bottom">בס ${ev.chord}</div>`;
     } else {
       cell.className = 'strum-cell';
+      cell.dataset.chord = ev.chord;
       cell.innerHTML = `<div class="sc-top">${ev.dir === 'd' ? '↓' : '↑'}</div><div class="sc-bottom">${ev.chord}</div>`;
     }
     container.appendChild(cell);
   });
+  if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
 }
 
 /* ---------- ניהול מסך ---------- */
@@ -283,6 +286,7 @@ function setExBpm(v) {
 
 function toggleExercise() {
   if (exScheduler && exScheduler.running) { stopExercise(); return; }
+  if (typeof stopAllPlayback === 'function') stopAllPlayback();
   AudioEngine.ensureCtx();
   const item = exItem;
   const evMap = exEventsAtSteps(item);
@@ -341,6 +345,31 @@ function stopExercise() {
   btn.classList.remove('playing');
   btn.textContent = '▶ נגן';
   $$('#ex-tab .tab-note, #ex-strum .strum-cell').forEach(el => el.classList.remove('lit'));
+}
+
+/** פתיחת תרגיל לפי id — משמש מסך "למד מהשיר" ונתיבי דרומוס */
+function openExerciseById(exId) {
+  for (let ci = 0; ci < EXERCISES.length; ci++) {
+    const cat = EXERCISES[ci];
+    const item = cat.items.find(x => x.id === exId);
+    if (!item) continue;
+    exCat = cat;
+    const navBtn = document.querySelector('.nav-btn[data-screen="exercises"]');
+    if (navBtn) navBtn.click();
+    setTimeout(() => {
+      const tabs = $$('#ex-cats .rhythm-tab');
+      if (tabs[ci]) {
+        $$('#ex-cats .rhythm-tab').forEach(t => t.classList.remove('active'));
+        tabs[ci].classList.add('active');
+        stopExercise();
+        dailyChallengeActive = false;
+        renderExList();
+      }
+      selectExercise(item);
+    }, 60);
+    return true;
+  }
+  return false;
 }
 
 initExercises();

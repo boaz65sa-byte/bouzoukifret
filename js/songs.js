@@ -212,6 +212,25 @@ const SongLibrary = (() => {
   let _highlightEls = [];
   let _playMode = 'bouzouki'; /* 'bouzouki' | 'simple' */
   let _bouzoukiMeta = null;   /* מטא-נתונים של ליווי נוכחי */
+  let _dromosIntroTimer = null;
+
+  function _isMobileSongs() {
+    return window.matchMedia('(max-width: 860px)').matches;
+  }
+
+  function _setMobileDetailOpen(open) {
+    const layout = document.querySelector('.songs-layout');
+    if (!layout || !_isMobileSongs()) return;
+    layout.classList.toggle('detail-open', open);
+    if (open) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function _closeMobileDetail() {
+    stopSong();
+    _setMobileDetailOpen(false);
+    const entries = document.getElementById('songs-entries');
+    if (entries) entries.querySelectorAll('.songs-entry').forEach(e => e.classList.remove('selected'));
+  }
 
   function _isMobileSongs() {
     return window.matchMedia('(max-width: 860px)').matches;
@@ -269,17 +288,18 @@ const SongLibrary = (() => {
     ];
   }
 
-  function _hasapikoFromBeats(beatChords) {
+  function _hasapikoFromBeats(beatChords, beatBase = 0) {
     const events = [];
     const beats = beatChords.length ? beatChords : ['Dm'];
     beats.forEach((ch, i) => {
-      const c = ch || beats[i - 1] || 'Dm';
-      events.push({ kind: 'bass', chord: c, len: 2 });
+      const c = ch || beats[i - 1] || beats[0] || 'Dm';
+      const beatIdx = beatBase + i;
+      events.push({ kind: 'bass', chord: c, len: 2, beatIdx });
       if (i === beats.length - 1) {
-        events.push({ kind: 'strum', chord: c, dir: 'd', len: 1 });
-        events.push({ kind: 'strum', chord: c, dir: 'u', len: 1 });
+        events.push({ kind: 'strum', chord: c, dir: 'd', len: 1, beatIdx });
+        events.push({ kind: 'strum', chord: c, dir: 'u', len: 1, beatIdx });
       } else {
-        events.push({ kind: 'strum', chord: c, dir: 'd', len: 2 });
+        events.push({ kind: 'strum', chord: c, dir: 'd', len: 2, beatIdx });
       }
     });
     return events;
@@ -321,13 +341,14 @@ const SongLibrary = (() => {
     ];
   }
 
-  function _balladFromBeats(beatChords) {
+  function _balladFromBeats(beatChords, beatBase = 0) {
     const events = [];
     const beats = beatChords.length ? beatChords : ['Dm'];
     beats.forEach((ch, i) => {
-      const c = ch || beats[i - 1] || 'Dm';
-      events.push({ kind: 'bass', chord: c, len: 2 });
-      events.push({ kind: 'strum', chord: c, dir: 'd', len: 2 });
+      const c = ch || beats[i - 1] || beats[0] || 'Dm';
+      const beatIdx = beatBase + i;
+      events.push({ kind: 'bass', chord: c, len: 2, beatIdx });
+      events.push({ kind: 'strum', chord: c, dir: 'd', len: 2, beatIdx });
     });
     return events;
   }
@@ -367,18 +388,18 @@ const SongLibrary = (() => {
     return BOUZOUKI_PATTERNS.hasapiko;
   }
 
-  function _buildMeasureEvents(patternId, beatChords) {
+  function _buildMeasureEvents(patternId, beatChords, beatBase = 0) {
     const primary = [...beatChords].reverse().find(Boolean) || beatChords[0] || 'Dm';
     if (patternId === 'zeibekiko') {
-      return _zeibekikoMeasure(primary).map(ev => _cloneEv(ev, primary));
+      return _zeibekikoMeasure(primary).map(ev => ({ ..._cloneEv(ev, primary), beatIdx: beatBase }));
     }
     if (patternId === 'tsifteteli') {
-      return _tsifteteliMeasure(primary).map(ev => _cloneEv(ev, primary));
+      return _tsifteteliMeasure(primary).map(ev => ({ ..._cloneEv(ev, primary), beatIdx: beatBase }));
     }
     if (patternId === 'ballad') {
-      return _balladFromBeats(beatChords);
+      return _balladFromBeats(beatChords, beatBase);
     }
-    return _hasapikoFromBeats(beatChords);
+    return _hasapikoFromBeats(beatChords, beatBase);
   }
 
   function _buildBouzoukiAccompaniment(song) {
@@ -398,12 +419,14 @@ const SongLibrary = (() => {
 
     const bpm = _beatsPerMeasure(song);
     const events = [];
+    let beatBase = 0;
     for (let i = 0; i < beats.length; i += bpm) {
       const slice = [];
       for (let j = 0; j < bpm; j++) {
         slice.push(beats[i + j] || beats[i + j - 1] || beats[i] || null);
       }
-      events.push(..._buildMeasureEvents(pattern.id, slice));
+      events.push(..._buildMeasureEvents(pattern.id, slice, beatBase));
+      beatBase += bpm;
     }
 
     return { pattern, events, sub: pattern.sub, custom: false };
@@ -456,13 +479,16 @@ const SongLibrary = (() => {
         cell.innerHTML = '<div class="sc-top">·</div><div class="sc-bottom">שקט</div>';
       } else if (ev.kind === 'bass') {
         cell.className = 'strum-cell bass';
+        cell.dataset.chord = ev.chord;
         cell.innerHTML = `<div class="sc-top">↓</div><div class="sc-bottom">בס ${ev.chord}</div>`;
       } else {
         cell.className = 'strum-cell';
+        cell.dataset.chord = ev.chord;
         cell.innerHTML = `<div class="sc-top">${ev.dir === 'd' ? '↓' : '↑'}</div><div class="sc-bottom">${ev.chord}</div>`;
       }
       container.appendChild(cell);
     });
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
   }
 
   function _renderBouzoukiPart(song) {
@@ -5159,15 +5185,68 @@ const SongLibrary = (() => {
 
   /* ===================== נגינה ===================== */
 
-  function playSong(song) {
-    stopSong();
-    if (!song || !song.sections) return;
+  function _findDromos(song) {
+    if (typeof DROMOI === 'undefined' || !song?.dromos) return null;
+    const q = song.dromos;
+    return DROMOI.find(d =>
+      d.nameEn === q || d.id === String(q).toLowerCase() || d.nameHe === q
+    ) || null;
+  }
 
-    _currentSong = song;
-    _playing = true;
-    _currentBpm = song.bpm || 120;
-    _currentStep = 0;
+  function _keyToRootPc(key) {
+    if (!key) return 2;
+    const m = String(key).match(/^([A-G][#b]?)/);
+    if (!m) return 2;
+    let name = m[1];
+    if (ENHARMONIC[name]) name = ENHARMONIC[name];
+    const idx = CHROMATIC.indexOf(name);
+    return idx >= 0 ? idx : 2;
+  }
 
+  function _renderDromosCard(song) {
+    const dr = _findDromos(song);
+    if (!dr) return '';
+    const mood = dr.mood ? `<p class="song-dromos-mood">${dr.mood}</p>` : '';
+    const chords = dr.chords ? `<p class="song-dromos-chords"><b>אקורדים בדרומוס:</b> ${dr.chords}</p>` : '';
+    return `
+      <div class="song-dromos-card" id="song-dromos-card">
+        <div class="song-dromos-card-head">
+          <h3>🛤️ דרומוס: ${dr.nameHe} <span class="song-dromos-gr">${dr.nameGr || dr.nameEn}</span></h3>
+          <button type="button" class="btn btn-sm" id="song-preview-dromos">▶ שמע סולם</button>
+        </div>
+        ${mood}
+        ${chords}
+        <p class="song-dromos-play-hint">בלחיצה על <b>נגינה</b> — קודם נשמע הסולם, ואז ליווי בוזוקי לפי האקורדים בשיר.</p>
+      </div>`;
+  }
+
+  function _previewDromos(song) {
+    const dr = _findDromos(song);
+    if (!dr || typeof AudioEngine.playModeScale !== 'function') return;
+    if (typeof stopAllPlayback === 'function') stopAllPlayback();
+    AudioEngine.ensureCtx();
+    AudioEngine.playModeScale(dr.intervals, _keyToRootPc(song.key), {
+      gapMs: 300, gain: 0.48, includeOctave: true, descending: false,
+    });
+    document.getElementById('song-dromos-card')?.classList.add('playing');
+    const n = dr.intervals.length + 1;
+    setTimeout(() => {
+      document.getElementById('song-dromos-card')?.classList.remove('playing');
+    }, n * 300 + 400);
+  }
+
+  function _highlightBeat(beatIdx) {
+    _clearHighlights();
+    const el = document.querySelector(`.song-chord[data-beat-idx="${beatIdx}"]`);
+    if (el) {
+      el.classList.add('chord-active');
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      document.querySelectorAll('.song-line.line-active').forEach(l => l.classList.remove('line-active'));
+      el.closest('.song-line')?.classList.add('line-active');
+    }
+  }
+
+  function _runSongPlayback(song) {
     if (_playMode === 'bouzouki') {
       _bouzoukiMeta = _buildBouzoukiAccompaniment(song);
       if (_bouzoukiMeta && _bouzoukiMeta.events.length) {
@@ -5202,61 +5281,91 @@ const SongLibrary = (() => {
       }
     }
 
-    /* מצב פשוט — אקורד אחד לכל beat */
-    const allChords = [];
-    song.sections.forEach(sec => {
-      sec.lines.forEach(line => {
-        (line.chords || []).forEach(ch => {
-          if (ch) allChords.push(ch);
-        });
-      });
-    });
-
-    if (!allChords.length) return;
-
-    const beatDur = 60 / _currentBpm;
+    /* אקורדים לפי פעימות בשיר — מסונכרן עם הטקסט */
+    const beats = _collectBeatChords(song);
+    if (!beats.length) return;
 
     const sched = new AudioEngine.Scheduler(
       (step, time) => {
-        const ch = allChords[step % allChords.length];
+        const ch = beats[step % beats.length];
         if (ch && CHORDS[ch]) {
           AudioEngine.strumChord(CHORDS[ch].shape, 'd', time, 0.52);
         }
       },
       (step) => {
-        _currentStep = step % allChords.length;
-        _highlightCurrent();
+        _currentStep = step % beats.length;
+        _highlightBeat(_currentStep);
       }
     );
-    sched.stepDur = beatDur;
-    sched.numSteps = allChords.length;
+    sched.stepDur = 60 / _currentBpm;
+    sched.numSteps = beats.length;
     sched.start();
     _scheduler = sched;
+    if (typeof activeSchedulers !== 'undefined') activeSchedulers.push(sched);
+  }
 
-    if (typeof activeSchedulers !== 'undefined') {
-      activeSchedulers.push(sched);
+  function playSong(song) {
+    stopSong();
+    if (!song || !song.sections) return;
+
+    _currentSong = song;
+    _playing = true;
+    _currentBpm = song.bpm || 120;
+    _currentStep = 0;
+
+    const dr = _findDromos(song);
+    const card = document.getElementById('song-dromos-card');
+    if (card) card.classList.add('playing');
+
+    const begin = () => {
+      if (card) card.classList.remove('playing');
+      _runSongPlayback(song);
+    };
+
+    if (dr && typeof AudioEngine.playModeScale === 'function') {
+      AudioEngine.ensureCtx();
+      AudioEngine.playModeScale(dr.intervals, _keyToRootPc(song.key), {
+        gapMs: 300, gain: 0.48, includeOctave: true, descending: false,
+      });
+      const n = dr.intervals.length + 1;
+      _dromosIntroTimer = setTimeout(() => {
+        _dromosIntroTimer = null;
+        begin();
+      }, n * 300 + 350);
+    } else {
+      begin();
     }
   }
 
   function _highlightBouzoukiStep(evMap, step, strumCells) {
     _clearHighlights();
     const hit = evMap.get(step);
-    if (hit && strumCells.length) {
+    if (!hit) return;
+    if (strumCells.length) {
       strumCells.forEach(el => el.classList.remove('lit'));
       const cell = document.querySelector(`#song-strum-strip .strum-cell[data-idx="${hit.idx}"]`);
       if (cell) {
         cell.classList.add('lit');
         cell.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
       }
-      if (hit.ev.chord) {
-        document.querySelectorAll('.song-chord').forEach(el => {
-          el.classList.toggle('chord-active', el.dataset.chord === hit.ev.chord);
-        });
-      }
+    }
+    if (hit.ev.beatIdx != null) {
+      _highlightBeat(hit.ev.beatIdx);
+    } else if (hit.ev.chord) {
+      document.querySelectorAll('.song-chord').forEach(el => {
+        el.classList.toggle('chord-active', el.dataset.chord === hit.ev.chord);
+      });
     }
   }
 
   function stopSong() {
+    if (_dromosIntroTimer) {
+      clearTimeout(_dromosIntroTimer);
+      _dromosIntroTimer = null;
+    }
+    if (typeof AudioEngine !== 'undefined' && AudioEngine.stopModeScale) {
+      AudioEngine.stopModeScale();
+    }
     if (_scheduler) {
       _scheduler.stop();
       _scheduler = null;
@@ -5272,17 +5381,9 @@ const SongLibrary = (() => {
     }
   }
 
-  function _highlightCurrent() {
-    _clearHighlights();
-    const el = document.querySelector(`.song-chord[data-idx="${_currentStep}"]`);
-    if (el) {
-      el.classList.add('chord-active');
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }
-
   function _clearHighlights() {
     document.querySelectorAll('.chord-active').forEach(e => e.classList.remove('chord-active'));
+    document.querySelectorAll('.song-line.line-active').forEach(e => e.classList.remove('line-active'));
   }
 
   /* ===================== דיאגרמת אקורד מיני ===================== */
@@ -5323,7 +5424,21 @@ const SongLibrary = (() => {
       }
     }
     svg += '</svg>';
-    return svg;
+    return `<div class="chord-mini-wrap" data-chord="${chordName}" tabindex="0">${svg}</div>`;
+  }
+
+  function _bindSongChordTooltips(detail) {
+    if (typeof ChordTooltip === 'undefined' || !detail) return;
+    ChordTooltip.bindContainer(detail.querySelector('.song-chord-diagrams'));
+    ChordTooltip.bindContainer(detail.querySelector('#song-strum-strip'));
+    ChordTooltip.bindContainer(detail.querySelector('#song-scroll-area'));
+    detail.querySelectorAll('.fret-chord-name').forEach(th => {
+      if (th.dataset.chordBound) return;
+      th.dataset.chord = th.textContent.trim();
+      th.dataset.chordBound = '1';
+      th.style.cursor = 'help';
+      ChordTooltip.bindHover(th, () => th.dataset.chord);
+    });
   }
 
   /* ===================== UI — רינדור ===================== */
@@ -5487,6 +5602,8 @@ const SongLibrary = (() => {
         ${dromosInfo ? `<div class="song-dromos-info">${dromosInfo.nameHe} — ${dromosInfo.mood || ''}</div>` : ''}
       </div>
 
+      ${_renderDromosCard(song)}
+
       ${_renderReference(song)}
 
       <div class="song-controls">
@@ -5541,7 +5658,6 @@ const SongLibrary = (() => {
     if (playBtn) playBtn.onclick = () => {
       playBtn.classList.add('playing');
       playSong(displaySong);
-      _startAutoScroll();
     };
     if (stopBtn) stopBtn.onclick = () => {
       if (playBtn) playBtn.classList.remove('playing');
@@ -5586,7 +5702,11 @@ const SongLibrary = (() => {
       detail.innerHTML = '<div class="songs-empty-state"><h2>השיר נמחק</h2></div>';
     };
 
+    const previewDromos = detail.querySelector('#song-preview-dromos');
+    if (previewDromos) previewDromos.onclick = () => _previewDromos(displaySong);
+
     _bindBouzoukiPartEvents(detail, displaySong);
+    _bindSongChordTooltips(detail);
   }
 
   function _refreshSongView(song, detail) {
@@ -5618,23 +5738,27 @@ const SongLibrary = (() => {
       tmp.innerHTML = bouzHtml;
       bouzPart.replaceWith(tmp.firstElementChild);
       _bindBouzoukiPartEvents(detail, song);
+      _bindSongChordTooltips(detail);
     } else if (bouzEmpty) {
       const tmp = document.createElement('div');
       tmp.innerHTML = bouzHtml;
       bouzEmpty.replaceWith(tmp.firstElementChild);
       _bindBouzoukiPartEvents(detail, song);
+      _bindSongChordTooltips(detail);
     }
+    _bindSongChordTooltips(detail);
   }
 
   function _renderSections(song) {
-    let chordIdx = 0;
+    let beatIdx = 0;
     return song.sections.map(sec => {
       const linesHtml = sec.lines.map(line => {
         const chordsHtml = (line.chords || []).map(ch => {
+          const idx = beatIdx;
+          beatIdx++;
           const html = ch
-            ? `<span class="song-chord" data-idx="${chordIdx}" data-chord="${ch}">${ch}</span>`
-            : `<span class="song-chord-space" data-idx="${chordIdx}"></span>`;
-          chordIdx++;
+            ? `<span class="song-chord" data-beat-idx="${idx}" data-chord="${ch}">${ch}</span>`
+            : `<span class="song-chord-space" data-beat-idx="${idx}"></span>`;
           return html;
         }).join('');
         const isGreek = /[Ͱ-Ͽ]/.test(line.lyrics);
@@ -5885,6 +6009,31 @@ More lyrics here</pre>
       .song-dromos-info {
         font-size: 13px; color: var(--aegean); margin-top: 8px; font-style: italic;
       }
+      .song-dromos-card {
+        margin: 14px 0; padding: 14px 16px;
+        background: rgba(79,179,217,0.06); border-radius: 12px;
+        border: 1px solid rgba(79,179,217,0.22);
+      }
+      .song-dromos-card.playing {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 2px rgba(227,179,65,0.15);
+      }
+      .song-dromos-card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+      }
+      .song-dromos-card h3 {
+        margin: 0; font-size: 16px; color: var(--aegean);
+      }
+      .song-dromos-gr { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+      .song-dromos-mood { font-size: 13px; color: var(--text-dim); margin: 0 0 6px; }
+      .song-dromos-chords { font-size: 13px; margin: 0 0 8px; line-height: 1.5; }
+      .song-dromos-play-hint { font-size: 12px; color: var(--text-dim); margin: 8px 0 0; }
+      .song-line.line-active {
+        background: rgba(227,179,65,0.06);
+        border-radius: 8px;
+        margin: 0 -6px; padding: 2px 6px;
+      }
 
       /* Reference / YouTube player */
       .song-reference {
@@ -6131,6 +6280,23 @@ More lyrics here</pre>
     document.head.appendChild(style);
   }
 
+  function openSongById(songId) {
+    const song = getAllSongs().find(s => s.id === songId);
+    if (!song) return false;
+    const navBtn = document.querySelector('.nav-btn[data-screen="songs"]');
+    if (navBtn) navBtn.click();
+    setTimeout(() => {
+      const entry = document.querySelector(`.songs-entry[data-id="${songId}"]`);
+      if (entry) {
+        document.querySelectorAll('.songs-entry').forEach(e => e.classList.remove('selected'));
+        entry.classList.add('selected');
+        stopSong();
+        _showSong(song);
+      }
+    }, 80);
+    return true;
+  }
+
   /* ===================== API ===================== */
 
   return {
@@ -6142,6 +6308,8 @@ More lyrics here</pre>
     saveSong,
     deleteSong,
     getAllSongs,
+    getSongReference,
+    openSongById,
     resetMobileView: _closeMobileDetail,
     BUILTIN_SONGS,
   };

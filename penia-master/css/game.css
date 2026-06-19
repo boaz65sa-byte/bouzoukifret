@@ -269,15 +269,19 @@ button, input, select {
 .lane-box.lane-highway #game-canvas {
   display: block;
   width: 100%;
-  min-height: 190px;
-  max-height: 320px;
+  height: auto;
+  min-height: 200px;
+  max-height: 360px;
   aspect-ratio: 2.5 / 1;
   cursor: crosshair;
   border-radius: 10px;
 }
 .lane-box.lane-highway.game-running #game-canvas {
-  max-height: min(42vh, 320px);
+  min-height: 210px;
+  max-height: min(52vh, 380px);
 }
+.lane-box.lane-highway .mic-meter { bottom: 6px; height: 3px; opacity: 0.75; }
+.lane-box.lane-highway .mic-status { bottom: 12px; font-size: 10px; opacity: 0.85; }
 .fb-svg.fb-landscape { max-width: 100%; width: 100%; height: auto; }
 .fb-svg.fb-8str { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35)); }
 
@@ -758,11 +762,12 @@ button, input, select {
 }
 .fb-wrap-compact.fb-wrap-real { max-width: min(240px, 88vw); padding: 6px 8px 2px; }
 .fb-svg.real-fretboard { display: block; width: 100%; height: auto; }
-.fb-marker .fb-dot { transition: filter 0.2s, transform 0.2s; }
+.fb-marker .fb-dot { transition: filter 0.2s; }
 .fb-marker.active .fb-dot {
   fill: #ffd86b;
-  filter: drop-shadow(0 0 12px rgba(255,216,107,0.95));
-  transform: scale(1.08);
+  stroke: #fff8d0;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(255,216,107,0.95));
 }
 .fb-marker.pulse .fb-dot { animation: learnPulse 0.9s ease infinite; }
 .chord-fb-host { display: flex; justify-content: center; }
@@ -787,6 +792,19 @@ button, input, select {
 .map-empty {
   text-align: center; color: var(--dim); font-size: 14px; padding: 24px 16px;
   background: rgba(8,15,24,0.5); border-radius: 12px; border: 1px dashed var(--line);
+}
+
+@media (max-width: 520px) {
+  .lane-box.lane-highway #game-canvas {
+    min-height: 180px;
+    max-height: min(48vw * 2.5, 52vh);
+  }
+  .lane-box.lane-highway.game-running #game-canvas {
+    min-height: 190px;
+    max-height: min(56vw * 2.5, 54vh);
+  }
+  .play-learn-wrap { margin-top: 4px; padding: 0 2px 2px; }
+  .fb-wrap-live { max-width: 100%; }
 }
 
 @media (min-width: 521px) {

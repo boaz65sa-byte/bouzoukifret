@@ -1389,6 +1389,131 @@ const EXERCISES = [
           { kind: 'strum', chord: 'Am', dir: 'D', len: 1 },
         ], 2)
       },
+      {
+        id: 'zb7', name: 'ζεϊμπέκικο — מלודיה + בס (Am)', bpm: 58, sub: 4, type: 'tab',
+        desc: 'שילוב מלא: בס על פעמות 1 ו-5, מלודיה במינורה על Am. תרגלו עד שה-9/4 מרגיש טבעי — זה הלב של כל ζεϊμπέκικο מקצועי.',
+        notes: [
+          _n(3, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 1), _n(0, 2, 'u', 1),
+          _n(3, 2, 'D', 1), _n(0, 3, 'd', 1), _rest(1), _n(0, 5, 'd', 1), _n(0, 7, 'U', 1),
+          _n(3, 2, 'D', 1), _rest(2), _n(0, 5, 'd', 2), _n(0, 3, 'd', 1), _n(0, 2, 'd', 1), _n(0, 0, 'U', 2),
+        ]
+      },
+      {
+        id: 'zb8', name: 'ζεϊμπέκικο — קדנצה ♭2→1 (חיג׳אזκיאר)', bpm: 52, sub: 4, type: 'tab',
+        desc: 'סיום פראזה קלאסי: ירידה מ♭2 ל-1 (מי♭→רה) ב-9/4. משוך עדין את המיתר לפני הפתרון — כך נשמע ζεϊμπέκικο אמיתי.',
+        notes: [
+          _n(0, 7, 'D', 2), _rest(1), _n(0, 5, 'd', 1), _rest(1),
+          _n(3, 2, 'D', 1), _n(0, 1, 'd', 2), _n(0, 0, 'U', 3),
+          _rest(4),
+          _n(0, 1, 'D', 2), _n(0, 0, 'U', 4),
+        ]
+      },
+      {
+        id: 'zb9', name: 'ζεϊμπέκικο — פתיחה בסגנון Ευδοκία (Am)', bpm: 60, sub: 4, type: 'tab',
+        desc: 'מוטיב פתיחה דמוי "Ζεϊμπέκικο της Ευδοκίας": Am עם מעבר ל-E7. נגנו רך — הרבה שקט, בס על D (סריג 2).',
+        notes: [
+          _n(0, 0, 'D', 2), _rest(2), _n(0, 2, 'd', 2), _rest(1),
+          _n(3, 2, 'D', 1), _n(0, 0, 'd', 1), _n(0, 3, 'u', 1),
+          _n(0, 2, 'D', 1), _rest(1), _n(0, 0, 'd', 2),
+          _n(0, 2, 'd', 1), _n(0, 3, 'd', 1), _n(0, 2, 'U', 2),
+          _n(0, 0, 'D', 2), _n(0, 4, 'd', 2), _rest(1), _n(0, 5, 'd', 2), _n(0, 4, 'U', 2),
+          _n(0, 2, 'd', 1), _n(0, 0, 'U', 4),
+        ]
+      },
+      {
+        id: 'zb10', name: 'ζεϊμπέκικο — Am→Dm→E7 (9/4)', bpm: 58, sub: 2, type: 'strum',
+        chords: ['Am', 'Dm', 'E7'],
+        desc: 'מעברי האקורדים הקלאסיים בזεϊμπέκικο. כל מחזור 9/4 = אקורד — בס על 1 ו-5, פריטה רכה.',
+        events: ['Am', 'Dm', 'E7', 'Am'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 1 },
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'u', len: 2 },
+          { kind: 'rest', len: 2 },
+        ])
+      },
+    ]
+  },
+  {
+    id: 'mode-path',
+    title: 'נתיב מודוס — פריטה + אקורדים',
+    icon: '15',
+    desc: 'לכל דרומוס: סולם → פריטה → מהלך אקורדים. כך לומדים שיר יווני שלם — מודוס, ליווי וטקסימי.',
+    items: [
+      {
+        id: 'mp1', name: 'מינורה: סולם + Dm–Gm–A7', bpm: 72, sub: 2, type: 'strum',
+        chords: ['Dm', 'Gm', 'A7'],
+        desc: 'נתיב מינורה מלא — תחילה סולם s2, ואז ליווי. כל תיבה = אקורד אחד בחסאפיקו. זה הבסיס ל-90% מהרבטיקו.',
+        events: ['Dm', 'Gm', 'A7', 'Dm'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+          { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+        ])
+      },
+      {
+        id: 'mp2', name: 'ζεϊμπέκικο: Am ב-9/4', bpm: 62, sub: 2, type: 'strum',
+        chords: ['Am'],
+        desc: 'ליווי ζεϊμπέκικο על Am — בס על 1, 5, 7. חברו עם תרגילי zb1–zb3 ואז שיר "Ζεϊμπέκικο της Ευδοκίας".',
+        events: [
+          { kind: 'bass', chord: 'Am', dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'bass', chord: 'Am', dir: 'd', len: 2 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 2 },
+          { kind: 'bass', chord: 'Am', dir: 'd', len: 2 },
+          { kind: 'strum', chord: 'Am', dir: 'd', len: 1 },
+          { kind: 'strum', chord: 'Am', dir: 'u', len: 1 },
+          { kind: 'rest', len: 2 },
+        ]
+      },
+      {
+        id: 'mp3', name: 'חיג׳אז: D–E♭–D + טקסימי', bpm: 68, sub: 2, type: 'tab',
+        desc: 'קדנצת חיג׳אז 4→3→♭2→1 על מיתר רה, ואז חזרה. חברו עם ch7 לליווי מלא.',
+        notes: _alt([[0, 7], [0, 5], [0, 1], [0, 0], [0, 1], [0, 4], [0, 5], [0, 7], [0, 8], [0, 10], [0, 12], [0, 10], [0, 8], [0, 7], [0, 5], [0, 0]])
+      },
+      {
+        id: 'mp4', name: 'אוסאκ: ♭2→1 + Dm', bpm: 55, sub: 2, type: 'tab',
+        desc: 'האנחה האופיינית לאוסאκ — ואז ליווי Dm איטי. מצוין לשירי כאב ו-ζεϊμπέκικα עמוקים.',
+        notes: [_n(0, 1, 'D', 4), _n(0, 0, 'u', 4), _n(0, 1, 'd', 2), _n(0, 0, 'U', 6),
+          _n(3, 2, 'D', 2), _n(3, 2, 'd', 2), _n(3, 2, 'd', 2), _n(3, 2, 'U', 2)]
+      },
+      {
+        id: 'mp5', name: 'סבאח: Dm–Gm6 נדנוד', bpm: 58, sub: 2, type: 'strum',
+        chords: ['Dm', 'Gm6'],
+        desc: 'צבע סבאח בהרמוניה — Gm6 עם סקסטה כואבת. נדנוד איטי, הרבה שקט בין פריטות.',
+        events: ['Dm', 'Gm6', 'Dm', 'Gm6'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 4 },
+        ])
+      },
+      {
+        id: 'mp6', name: 'ראסט: D–C–G בחסאפיקו', bpm: 78, sub: 2, type: 'strum',
+        chords: ['D', 'C', 'G'],
+        desc: 'מהלך מאיר לחסאפיקו וטברנה. מודוס ראסט = שמחה מאופקת עם ♭7.',
+        events: ['D', 'C', 'G', 'D'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 1 },
+          { kind: 'strum', chord: ch, dir: 'u', len: 1 },
+        ])
+      },
+      {
+        id: 'mp7', name: 'חיג׳אזκιαρ: עלייה + ירידה 9/4', bpm: 54, sub: 4, type: 'tab',
+        desc: 'סולם חיג׳אזκιαר מלא ב-9/4 — דרומוס ה-ζεϊμπέκικο הכבד. סיום תמיד ♭2→1.',
+        notes: _dromosScaleTab('hitzazkiar')
+      },
+      {
+        id: 'mp8', name: 'ניאוונט: ♭3→♯4→5', bpm: 64, sub: 2, type: 'tab',
+        desc: 'המתח הדרמטי של ניאוונט — שני מרווחים מוגדלים. בסיס לטקסימי וירטואוזיים.',
+        notes: _alt([[0, 0], [0, 3], [0, 6], [0, 7], [0, 6], [0, 3], [0, 2], [0, 0]])
+      },
     ]
   },
 ];

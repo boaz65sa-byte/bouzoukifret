@@ -60,11 +60,11 @@ const IntervalTrainer = (() => {
       difficulty = e.target.value;
       resetStats();
     });
-    document.querySelector('#it-play').addEventListener('click', () => next());
+    document.querySelector('#it-play').addEventListener('click', () => next(true));
     document.querySelector('#it-repeat').addEventListener('click', () => playCurrent());
     document.querySelector('#it-ref').addEventListener('click', () => {
       AudioEngine.ensureCtx();
-      AudioEngine.pluckMidi(baseMidi, 0, 0.5);
+      AudioEngine.pluckFromMidi(baseMidi, 0, 0.5);
     });
     resetStats(false);
   }
@@ -94,13 +94,20 @@ const IntervalTrainer = (() => {
     if (!current) return;
     AudioEngine.ensureCtx();
     const now = AudioEngine.ctx.currentTime + 0.05;
-    AudioEngine.pluckMidi(baseMidi, now, 0.55);
-    AudioEngine.pluckMidi(baseMidi + current.semitones, now + 0.65, 0.55);
+    AudioEngine.pluckFromMidi(baseMidi, now, 0.55);
+    AudioEngine.pluckFromMidi(baseMidi + current.semitones, now + 0.65, 0.55);
   }
 
-  function next() {
+  function prepareQuestion() {
     pick();
-    playCurrent();
+    renderOptions();
+    const fb = document.querySelector('#it-feedback');
+    if (fb) fb.innerHTML = '';
+  }
+
+  function next(playAudio = false) {
+    pick();
+    if (playAudio) playCurrent();
     renderOptions();
     const fb = document.querySelector('#it-feedback');
     if (fb) fb.innerHTML = '';
@@ -118,6 +125,8 @@ const IntervalTrainer = (() => {
       el.appendChild(btn);
     });
   }
+
+  let _itTimer = null;
 
   function answer(iv) {
     if (answered) return;
@@ -141,10 +150,21 @@ const IntervalTrainer = (() => {
       if (b.textContent === current.he) b.classList.add('correct');
       else if (b.textContent === iv.he && !correct) b.classList.add('wrong');
     });
-    setTimeout(() => next(), 1800);
+    if (_itTimer) clearTimeout(_itTimer);
+    _itTimer = setTimeout(() => {
+      _itTimer = null;
+      if (typeof isScreenActive === 'function' && isScreenActive('intervals')) {
+        next(true);
+      } else {
+        prepareQuestion();
+      }
+    }, 1800);
   }
 
-  function stop() { /* no timers */ }
+  function stop() {
+    if (_itTimer) { clearTimeout(_itTimer); _itTimer = null; }
+    AudioEngine.stopModeScale();
+  }
 
   return { init, stop };
 })();
@@ -163,6 +183,7 @@ const ModeQuiz = (() => {
   let difficulty = 'easy', current = null, answered = false;
   let stats = { correct: 0, wrong: 0, streak: 0, total: 0 };
   let rootMidi = 62; // D
+  let _mqTimer = null;
 
   function init() {
     const el = document.querySelector('#modequiz-app');
@@ -188,9 +209,12 @@ const ModeQuiz = (() => {
     document.querySelector('#mq-diff').addEventListener('change', e => {
       difficulty = e.target.value;
       resetStats();
-      nextQuestion();
+      prepareQuestion();
     });
-    document.querySelector('#mq-play').addEventListener('click', () => nextQuestion());
+    document.querySelector('#mq-play').addEventListener('click', () => {
+      prepareQuestion();
+      playScale();
+    });
     document.querySelector('#mq-repeat').addEventListener('click', () => playScale());
     document.querySelector('#mq-hint').addEventListener('click', () => showHint());
     resetStats();
@@ -233,18 +257,16 @@ const ModeQuiz = (() => {
     playScale();
   }
 
+  function nextQuestionAfterAnswer() {
+    prepareQuestion();
+    if (typeof isScreenActive === 'function' && isScreenActive('modequiz')) {
+      playScale();
+    }
+  }
+
   function playScale() {
     if (!current) return;
-    AudioEngine.ensureCtx();
-    const ivs = current.dromos.intervals;
-    const now = AudioEngine.ctx.currentTime + 0.05;
-    const gap = 0.35;
-    // ascending
-    ivs.forEach((iv, i) => AudioEngine.pluckMidi(rootMidi + iv, now + i * gap, 0.45));
-    // descending
-    const desc = [...ivs].reverse();
-    const offset = ivs.length * gap + 0.2;
-    desc.forEach((iv, i) => AudioEngine.pluckMidi(rootMidi + iv, now + offset + i * gap, 0.4));
+    AudioEngine.playModeScale(current.dromos.intervals, rootMidi % 12, { gapMs: 350, gain: 0.48 });
   }
 
   function renderOptions(opts) {
@@ -283,7 +305,11 @@ const ModeQuiz = (() => {
       if (b.dataset.id === current.dromos.id) b.classList.add('correct');
       else if (b.dataset.id === dr.id && !correct) b.classList.add('wrong');
     });
-    setTimeout(() => nextQuestion(), 2000);
+    if (_mqTimer) clearTimeout(_mqTimer);
+    _mqTimer = setTimeout(() => {
+      _mqTimer = null;
+      nextQuestionAfterAnswer();
+    }, 2000);
   }
 
   function showHint() {
@@ -292,7 +318,10 @@ const ModeQuiz = (() => {
     if (fb) fb.innerHTML = `<small>מרווחים: ${current.dromos.intervals.join('-')}</small>`;
   }
 
-  function stop() { /* no timers */ }
+  function stop() {
+    if (_mqTimer) { clearTimeout(_mqTimer); _mqTimer = null; }
+    AudioEngine.stopModeScale();
+  }
 
   return { init, stop };
 })();
@@ -392,17 +421,16 @@ const ScaleExplorer = (() => {
     const dr = DROMOI[selDromos];
     if (!dr) return;
     AudioEngine.ensureCtx();
-    const base = rootPc + 48;
-    let seq = dr.intervals.map(iv => base + iv);
-    if (dir === 'down') seq = [...seq, base + 12].reverse();
-    else seq = [...seq, base + 12];
-    const now = AudioEngine.ctx.currentTime + 0.05;
-    seq.forEach((m, i) => AudioEngine.pluckMidi(m, now + i * 0.35, 0.45));
+    const frets = AudioEngine.modeScaleFrets(dr.intervals, rootPc);
+    const seq = dir === 'down' ? [...frets].reverse() : frets;
+    const t0 = AudioEngine.ctx.currentTime + 0.05;
+    seq.forEach((f, i) => AudioEngine.pluckCourse(0, f, t0 + i * 0.35, 0.48));
     playTimer = setTimeout(() => { playTimer = null; }, seq.length * 350 + 200);
   }
 
   function stop() {
     if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+    AudioEngine.stopModeScale();
   }
 
   return { init, stop };
@@ -508,7 +536,7 @@ const ScaleChords = (() => {
           AudioEngine.strumChord(ch.shape, 'd', 0, 0.5);
         } else {
           AudioEngine.ensureCtx();
-          AudioEngine.pluckMidi(+card.dataset.midi, 0, 0.5);
+          AudioEngine.pluckFromMidi(+card.dataset.midi, 0, 0.5);
         }
       });
     });
@@ -814,8 +842,9 @@ const JamSimulator = (() => {
     const el = document.querySelector('#jam-prog');
     if (!el || !preset) return;
     el.innerHTML = '<strong>תהלוכה:</strong> ' + preset.chords.map((c, i) =>
-      `<span class="jam-chord${i === chordIdx ? ' active' : ''}" data-i="${i}">${CHORDS[c]?.he || c}</span>`
+      `<span class="jam-chord${i === chordIdx ? ' active' : ''}" data-i="${i}" data-chord="${c}" tabindex="0">${CHORDS[c]?.he || c}</span>`
     ).join(' → ');
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(el);
   }
 
   function startJam() {
@@ -935,7 +964,7 @@ const XpSystem = (() => {
     return { level: lvl + 1, label: cur.label, xp: data.xp, progress: Math.min(1, progress), nextMin: next.min };
   }
 
-  function award(amount, reason) {
+  function award(amount, reason, opts = {}) {
     if (!amount || amount <= 0) return;
     data.xp += amount;
     data.exerciseCount++;
@@ -944,6 +973,12 @@ const XpSystem = (() => {
     checkAchievements();
     save();
     renderBadge();
+    if (!opts.skipStreakTouch && typeof DailyStreak !== 'undefined') {
+      DailyStreak.touch('xp');
+    }
+    if (typeof ProgressLog !== 'undefined') {
+      ProgressLog.log('xp', reason || 'תרגול', { meta: { amount } });
+    }
   }
 
   function checkAchievements() {
@@ -972,7 +1007,19 @@ const XpSystem = (() => {
     setTimeout(() => { popup.classList.remove('show'); setTimeout(() => popup.remove(), 400); }, 3000);
   }
 
-  function renderBadge() { /* badge hidden by user request */ }
+  function renderBadge() {
+    document.querySelector('#xp-badge')?.remove();
+    const el = document.querySelector('#sidebar-xp');
+    if (!el) return;
+    const info = getLevelInfo();
+    if (info.xp <= 0 && data.exerciseCount <= 0) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = `רמה ${info.level} · ${info.label} · ${info.xp} XP`;
+    el.hidden = false;
+  }
 
   function getXp() { return data.xp; }
   function getAchievements() { return [...data.achievements]; }
@@ -985,19 +1032,6 @@ const XpSystem = (() => {
       const style = document.createElement('style');
       style.id = 'xp-styles';
       style.textContent = `
-        .xp-badge {
-          position: fixed; bottom: 16px; left: 16px; z-index: 9999;
-          background: var(--bg-card, #1a1a2e); border: 1px solid var(--gold, #e3b341);
-          border-radius: 12px; padding: 8px 14px; min-width: 120px;
-          font-size: 13px; color: var(--text, #eee); box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-          cursor: default; direction: ltr; text-align: center;
-        }
-        .xp-level { font-weight: 700; color: var(--gold, #e3b341); margin-bottom: 4px; }
-        .xp-bar-wrap {
-          height: 6px; background: var(--line, #333); border-radius: 3px; overflow: hidden; margin: 4px 0;
-        }
-        .xp-bar-fill { height: 100%; background: var(--gold, #e3b341); border-radius: 3px; transition: width 0.4s; }
-        .xp-points { font-size: 11px; color: var(--text-dim, #999); }
         .xp-achievement-popup {
           position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-60px);
           background: var(--bg-card, #1a1a2e); border: 2px solid var(--gold, #e3b341);
@@ -1060,6 +1094,7 @@ const XpSystem = (() => {
 
         .jam-prog { margin: 10px 0; font-size: 15px; text-align: center; }
         .jam-chord { padding: 4px 10px; border-radius: 6px; background: var(--bg-elev, #222);
+          cursor: help; font-size: 13px; transition: background 0.15s; }
           display: inline-block; margin: 2px; }
         .jam-chord.active { background: var(--gold, #e3b341); color: #111; font-weight: 700; }
         .jam-btns { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }

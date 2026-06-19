@@ -1,7 +1,9 @@
 /* מנוע המשחק — פריטה · מודוסים · אקורדים */
 const Engine = (() => {
   const W_PERFECT = 0.05, W_GOOD = 0.11, W_REGISTER = 0.16;
-  const LOOPS = 4, COUNT_IN = 4, PX_PER_BEAT = 155, HIT_X = 92;
+  const LOOPS = 4, COUNT_IN = 4, PX_PER_BEAT = 155;
+
+  function pickHitX(w) { return Math.max(68, Math.min(w * 0.18, 110)); }
 
   let level, bpm, gameType = 'pick', running = false, calibrating = false;
   let targets = [], beats = [], particles = [];
@@ -129,8 +131,10 @@ const Engine = (() => {
     addPopup(label, color);
     spawnParticles(hp.x, hp.y, color);
     laneFlash = performance.now();
-    if (gameType === 'pick') AudioEngine.strum(0, sfxDir, best.accent);
-    else AudioEngine.strum(0, 'd', false);
+    const tSfx = now();
+    if (gameType === 'pick') AudioEngine.strum(tSfx, sfxDir, best.accent);
+    else if (gameType === 'note' && best.midi != null) AudioEngine.pluckFromMidi(best.midi, tSfx, 0.52, 0);
+    else AudioEngine.strum(tSfx, 'd', false);
     onHud({ score, combo, maxCombo });
   }
 
@@ -197,7 +201,7 @@ const Engine = (() => {
   }
 
   function hitPoint(w, h) {
-    if (gameType === 'pick') return { x: HIT_X, y: h * 0.5 };
+    if (gameType === 'pick') return { x: pickHitX(w), y: h * 0.5 };
     const g = Highway.geom(w, h);
     const cp = Highway.catchPoint(gameType === 'note' ? 3 : 1);
     if (cp) return cp;
@@ -306,6 +310,7 @@ const Engine = (() => {
   }
 
   function drawCalibOverlay(w, h, tNow, beat, start0) {
+    const hitX = pickHitX(w);
     cctx.fillStyle = 'rgba(8,15,24,0.55)';
     cctx.fillRect(0, 0, w, h);
     cctx.fillStyle = '#f0cc74';
@@ -325,7 +330,7 @@ const Engine = (() => {
     cctx.strokeStyle = `rgba(227,179,65,${0.35 + pulse * 0.45})`;
     cctx.lineWidth = 3 + pulse * 2;
     cctx.beginPath();
-    cctx.arc(HIT_X, cy, 26 + pulse * 10, 0, Math.PI * 2);
+    cctx.arc(hitX, cy, 26 + pulse * 10, 0, Math.PI * 2);
     cctx.stroke();
     cctx.fillStyle = '#e3b341';
     cctx.font = '900 28px Heebo, sans-serif';
@@ -389,6 +394,7 @@ const Engine = (() => {
   }
 
   function drawPickFrame(w, h, tNow, beat, pxPerSec) {
+    const hitX = pickHitX(w);
     const gUp = cctx.createLinearGradient(0, 0, w, h * 0.5);
     gUp.addColorStop(0, 'rgba(36,72,110,0.45)'); gUp.addColorStop(1, 'rgba(12,24,38,0.12)');
     cctx.fillStyle = gUp; cctx.fillRect(0, 0, w, h / 2);
@@ -408,7 +414,7 @@ const Engine = (() => {
 
     cctx.strokeStyle = 'rgba(157,178,199,0.12)';
     for (const bt of beats) {
-      const x = HIT_X + (bt - tNow) * pxPerSec;
+      const x = hitX + (bt - tNow) * pxPerSec;
       if (x < -5 || x > w + 5) continue;
       cctx.beginPath(); cctx.moveTo(x, 0); cctx.lineTo(x, h); cctx.stroke();
     }
@@ -417,13 +423,13 @@ const Engine = (() => {
     cctx.shadowColor = '#e3b341'; cctx.shadowBlur = 12 + pulse * 14;
     cctx.strokeStyle = `rgba(240,204,116,${0.75 + pulse * 0.25})`;
     cctx.lineWidth = 5;
-    cctx.beginPath(); cctx.moveTo(HIT_X, 0); cctx.lineTo(HIT_X, h); cctx.stroke();
+    cctx.beginPath(); cctx.moveTo(hitX, 0); cctx.lineTo(hitX, h); cctx.stroke();
     cctx.shadowBlur = 0; cctx.lineWidth = 1;
 
     [[h * 0.28, '#4fb3d9'], [h * 0.72, '#e3b341']].forEach(([cy, col]) => {
-      cctx.strokeStyle = col + '66';
-      cctx.lineWidth = 2;
-      cctx.beginPath(); cctx.arc(HIT_X, cy, 22, 0, Math.PI * 2); cctx.stroke();
+      cctx.strokeStyle = col + '88';
+      cctx.lineWidth = 2.5;
+      cctx.beginPath(); cctx.arc(hitX, cy, 24, 0, Math.PI * 2); cctx.stroke();
     });
 
     if (running && tNow < t0 + COUNT_IN * beat) {
@@ -435,16 +441,16 @@ const Engine = (() => {
     }
 
     for (const tg of targets) {
-      const x = HIT_X + (tg.t - tNow) * pxPerSec;
+      const x = hitX + (tg.t - tNow) * pxPerSec;
       if (x < -60 || x > w + 60) continue;
       const y = tg.dir === 'u' ? h * 0.28 : h * 0.72;
-      const size = tg.accent ? 24 : 17;
+      const size = tg.accent ? 26 : 19;
       let color = tg.dir === 'u' ? '#4fb3d9' : '#e3b341';
       let alpha = 1;
-      if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.15;
+      if (tg.status === 'perfect' || tg.status === 'good') alpha = 0.45;
       else if (tg.status === 'wrong' || tg.status === 'miss') color = '#d96459';
       drawArrow(x, y, tg.dir, size, color, tg.accent && !tg.status, alpha);
-      if (!tg.status && x > HIT_X) {
+      if (!tg.status && x > hitX) {
         cctx.strokeStyle = color + '44';
         cctx.lineWidth = 3;
         cctx.beginPath(); cctx.moveTo(x - 18, y); cctx.lineTo(x - 4, y); cctx.stroke();

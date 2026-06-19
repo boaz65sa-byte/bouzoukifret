@@ -7,7 +7,7 @@ function dNote(fret, solfege) {
   const midi = D_MIDI + fret;
   const pc = midi % 12;
   return {
-    fret, midi, course: 0,
+    fret, midi, courseIdx: 3, course: 3,
     solfege: solfege || SOLFEGE[pc],
     label: solfege || SOLFEGE[pc],
   };

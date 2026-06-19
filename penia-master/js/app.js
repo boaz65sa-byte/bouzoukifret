@@ -322,20 +322,20 @@ const UI = (() => {
   }
 
   function renderLevelMap() {
-    renderGenericMap(LEVELS, '#level-map', lv => openPlay(lv, 'pick-levels', 'pick'));
+    renderGenericMap(LEVELS, '#level-map', lv => openPrep(lv, 'pick-levels', 'pick'));
   }
 
   function renderModeMap() {
     const list = typeof MODE_LEVELS !== 'undefined' ? MODE_LEVELS : [];
-    renderGenericMap(list, '#mode-map', lv => openPlay(lv, 'modes', 'modes'));
+    renderGenericMap(list, '#mode-map', lv => openPrep(lv, 'modes', 'modes'));
   }
 
   function renderChordFlowMap() {
     const all = typeof CHORD_FLOW_LEVELS !== 'undefined' ? CHORD_FLOW_LEVELS : [];
     const flow = all.filter(l => !l.song);
     const songs = all.filter(l => l.song);
-    renderGenericMap(flow, '#chord-flow-map', lv => openPlay(lv, 'chords', 'chords'));
-    renderGenericMap(songs, '#chord-song-map', lv => openPlay(lv, 'chords', 'chords'));
+    renderGenericMap(flow, '#chord-flow-map', lv => openPrep(lv, 'chords', 'chords'));
+    renderGenericMap(songs, '#chord-song-map', lv => openPrep(lv, 'chords', 'chords'));
   }
 
   function refreshPlayerChip() {
@@ -462,7 +462,14 @@ const UI = (() => {
     $('#prep-tip').textContent = '💡 ' + lv.tip;
     const vis = $('#prep-visual');
     try {
-      if (gt === 'note') {
+      if (gt === 'pick') {
+        $('#prep-badge').textContent = '📍 תבנית פריטה';
+        vis.innerHTML = '';
+        const row = document.createElement('div');
+        row.className = 'pattern-row prep-pattern';
+        renderPattern(row, lv.strokes);
+        vis.appendChild(row);
+      } else if (gt === 'note') {
         $('#prep-badge').textContent = lv.dromos
           ? '📍 גרף לימוד · ' + lv.dromos
           : '📍 גרף לימוד · מיתר רה';
@@ -486,11 +493,13 @@ const UI = (() => {
       console.warn('prep visual', err);
       if (vis) vis.innerHTML = '<p class="map-empty">תצוגה מקדימה · לחצו ▶ שחק</p>';
     }
-    $('#prep-flow-hint').textContent = gt === 'note'
-      ? 'כשמוכנים — הצלילים יזרמו לקו הזהב · נגנו כל צליל על מיתר רה'
-      : lv.song
-        ? 'כשמוכנים — האקורדים יזרמו כמו בשיר · פרטו ↓ על הבוזוקי בזמן'
-        : 'כשמוכנים — האקורדים יזרמו לקו הזהב · החזיקו צורה ופרטו ↓';
+    $('#prep-flow-hint').textContent = gt === 'pick'
+      ? 'כשמוכנים — החיצים יזרמו · ↓ למטה · ↑ למעלה · לחצו ▶ שחק'
+      : gt === 'note'
+        ? 'כשמוכנים — הצלילים יזרמו לקו הזהב · נגנו כל צליל על מיתר רה'
+        : lv.song
+          ? 'כשמוכנים — האקורדים יזרמו כמו בשיר · פרטו ↓ על הבוזוקי בזמן'
+          : 'כשמוכנים — האקורדים יזרמו לקו הזהב · החזיקו צורה ופרטו ↓';
     showScreen('prep');
     window.scrollTo(0, 0);
   }
@@ -515,8 +524,15 @@ const UI = (() => {
     $('#hud-score').textContent = '0';
     $('#hud-combo').textContent = '';
     const learnWrap = $('#play-learn-wrap');
-    if (learnWrap) learnWrap.hidden = true;
     if (typeof PlayLearnGraph !== 'undefined') PlayLearnGraph.destroy();
+    if (learnWrap) {
+      if ((gt === 'note' || gt === 'chord') && typeof PlayLearnGraph !== 'undefined') {
+        learnWrap.hidden = false;
+        PlayLearnGraph.mount(learnWrap, lv);
+      } else {
+        learnWrap.hidden = true;
+      }
+    }
     const playDetails = document.querySelector('#screen-play .play-details');
     if (playDetails) playDetails.hidden = gt === 'note' || gt === 'chord';
     setPlayUIState(false);
@@ -579,9 +595,12 @@ const UI = (() => {
     setPlayUIState(true);
     $('#calib-msg').textContent = '';
     Engine.start(currentLevel, bpm, $('#game-canvas'),
-      ({ score, combo }) => {
+      ({ score, combo, upcomingIdx, upcomingLive }) => {
         $('#hud-score').textContent = Math.round(score);
         $('#hud-combo').textContent = combo > 1 ? combo + '×' : '';
+        if (typeof PlayLearnGraph !== 'undefined' && upcomingIdx >= 0) {
+          PlayLearnGraph.highlight(upcomingIdx, upcomingLive);
+        }
       },
       result => showResults(result)
     );
@@ -639,7 +658,7 @@ const UI = (() => {
     const faster = $('#res-faster');
     if (faster) faster.onclick = () => { bpm += 5; $('#play-bpm-val').textContent = bpm; panel.classList.remove('show'); startGame(); };
     const next = $('#res-next');
-    if (next) next.onclick = () => openPlay(list[idx + 1], playBackTarget, currentGameKind);
+    if (next) next.onclick = () => openPrep(list[idx + 1], playBackTarget, currentGameKind);
     $('#res-share').onclick = () => shareScore(r, isRecord);
   }
 

@@ -40,6 +40,7 @@ const ModeDiagram = (() => {
         compact: opts.compact,
         markers: scaleMarkers,
         positionStart: positionFor(fret),
+        activeCourseIdx: 3,
         onCellClick(c, f, txt) {
           if (opts.onFocus) {
             const n = playNotes.find(p => p.fret === f && (f > 0 || c === 3)) || playNotes[0];

@@ -29,10 +29,30 @@ $$('.nav-btn').forEach(btn => {
 });
 
 let activeSchedulers = [];
+
+/** מנועי נגינה רשומים — כל מודול שנכנס לרשימה ייעצר במעבר מסך */
+const PLAYBACK_STOPPERS = new Map();
+
+function registerPlayback(id, stopFn) {
+  if (id && typeof stopFn === 'function') PLAYBACK_STOPPERS.set(id, stopFn);
+}
+
+function unregisterPlayback(id) {
+  PLAYBACK_STOPPERS.delete(id);
+}
+
+/** האם מסך מסוים פעיל (למניעת נגינה ברקע) */
+function isScreenActive(screenId) {
+  const el = document.getElementById('screen-' + screenId);
+  return el && el.classList.contains('active');
+}
+
 function stopAllPlayback() {
   activeSchedulers.forEach(s => s.stop());
   activeSchedulers = [];
   clearTimeout(scaleTimer);
+  scaleTimer = null;
+  if (typeof AudioEngine !== 'undefined') AudioEngine.stopModeScale();
   stopPenia();
   stopRhythm();
   stopMet();
@@ -54,9 +74,21 @@ function stopAllPlayback() {
   if (typeof SightReading !== 'undefined') SightReading.stop();
   if (typeof DrumMachine !== 'undefined') DrumMachine.stop();
   if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.stop();
+  if (typeof ScaleExplorer !== 'undefined') ScaleExplorer.stop();
+  if (typeof ModeQuiz !== 'undefined') ModeQuiz.stop();
+  if (typeof IntervalTrainer !== 'undefined') IntervalTrainer.stop();
   if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
   if (typeof PeniaLearn !== 'undefined') PeniaLearn.stop();
   if (typeof DromosLearn !== 'undefined') DromosLearn.stop();
+  if (typeof SkillsCoach !== 'undefined') SkillsCoach.stop();
+  if (typeof SongLearn !== 'undefined') SongLearn.stop();
+  if (typeof LearnHub !== 'undefined') LearnHub.stop();
+  if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
+  if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
+  if (typeof PitchPreservingPlayer !== 'undefined' && PitchPreservingPlayer.isPlaying()) {
+    PitchPreservingPlayer.pause();
+  }
+  if (typeof PLAYBACK_STOPPERS !== 'undefined') PLAYBACK_STOPPERS.forEach(fn => { try { fn(); } catch (_) { /* noop */ } });
   const droneBtn = $('#dr-drone');
   if (droneBtn) droneBtn.classList.remove('playing');
 }
@@ -377,6 +409,9 @@ function initDromoi() {
       $$('.dromos-item').forEach(x => x.classList.remove('active'));
       item.classList.add('active');
       currentDromos = d;
+      clearTimeout(scaleTimer);
+      scaleTimer = null;
+      AudioEngine.stopModeScale();
       refreshEnsembleIfActive();
       renderDromos();
     });
@@ -393,6 +428,9 @@ function initDromoi() {
   });
   rootSel.addEventListener('change', () => {
     currentRoot = parseInt(rootSel.value, 10);
+    clearTimeout(scaleTimer);
+    scaleTimer = null;
+    AudioEngine.stopModeScale();
     refreshEnsembleIfActive();
     renderDromos();
   });
@@ -425,10 +463,7 @@ function renderAjnas() {
       ${bar}
       <p>${jins.desc}</p>`;
     card.addEventListener('click', () => {
-      AudioEngine.ensureCtx();
-      jins.intervals.forEach((iv, i) => {
-        AudioEngine.pluckMidi(62 + iv, AudioEngine.ctx.currentTime + 0.05 + i * 0.32, 0.5);
-      });
+      AudioEngine.playModeIntervals(jins.intervals, currentRoot, 0.32, 0.5);
     });
     grid.appendChild(card);
   });
@@ -513,18 +548,13 @@ let scaleTimer = null;
 function playScale(msPerNote) {
   AudioEngine.ensureCtx();
   clearTimeout(scaleTimer);
-  const midis = scaleMidisFromRoot();
-  const seq = [...midis, ...[...midis].reverse().slice(1)];
+  scaleTimer = null;
   const svg = $('#fb-dromos');
-  let i = 0;
-  function step() {
-    if (i >= seq.length) return;
-    AudioEngine.pluckMidi(seq[i], 0, 0.5);
-    flashMidiOnBoard(svg, seq[i]);
-    i++;
-    scaleTimer = setTimeout(step, msPerNote);
-  }
-  step();
+  AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
+    gapMs: msPerNote,
+    gain: 0.52,
+    onStep(fret) { flashDot(svg, 0, fret); },
+  });
 }
 
 function playSingleString() {
@@ -898,6 +928,10 @@ function updateStreak() {
   const el = $('#streak');
   if (done === total) {
     el.textContent = '🏆 כל הכבוד! סיימתם את השגרה של היום — Γεια σου, μάστορα!';
+    if (typeof DailyStreak !== 'undefined') DailyStreak.touch('routine');
+    if (typeof ProgressLog !== 'undefined') {
+      ProgressLog.log('routine', 'שגרה יומית הושלמה', { durationSec: 25 * 60 });
+    }
   } else if (done > 0) {
     el.textContent = `${done} מתוך ${total} — ממשיכים!`;
   } else {
