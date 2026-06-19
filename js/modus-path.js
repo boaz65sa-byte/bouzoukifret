@@ -425,13 +425,20 @@ const ModusPath = (() => {
       <div class="mp-btn-row">
         <button class="btn gold" id="mp-play-prog">🔊 שמעו את הרצף</button>
       </div>
-      <div class="mp-chord-hint">לחצו על אקורד לשמיעה בודדת · השתמשו ב"מאסטר אקורדים" לאחיזות מלאות</div>
+      <div class="mp-chord-diagram" id="mp-chord-diagram"></div>
+      <div class="mp-chord-hint">לחצו על אקורד לשמיעה ולדיאגרמת אחיזה</div>
       ${stageNav()}
     `;
-    body.querySelectorAll('.mp-chord').forEach(el => el.addEventListener('click', () => playChord(el.dataset.chord)));
+    body.querySelectorAll('.mp-chord').forEach(el => el.addEventListener('click', () => {
+      playChord(el.dataset.chord);
+      body.querySelectorAll('.mp-chord').forEach(c => c.classList.remove('sel'));
+      el.classList.add('sel');
+      if (typeof ChordTooltip !== 'undefined') ChordTooltip.renderInto('#mp-chord-diagram', el.dataset.chord);
+    }));
     document.getElementById('mp-play-prog').addEventListener('click', () => {
       p.chords.progression.forEach((c, i) => setTimeout(() => playChord(c), i * 900));
     });
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(body);
     wireNav();
   }
 
@@ -607,7 +614,10 @@ const ModusPath = (() => {
       .mp-chord-flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:14px 0; direction:ltr; justify-content:center; }
       .mp-chord { padding:10px 16px; border:2px solid; border-radius:10px; font-size:18px; font-weight:700; color:var(--text,#eee); cursor:pointer; background:var(--bg-card,#1a1a2e); }
       .mp-chord:hover { background:var(--bg-elev,#222); }
+      .mp-chord.sel { background:var(--gold,#e3b341); color:#111; }
       .mp-arrow { color:var(--text-dim,#999); }
+      .mp-chord-diagram { display:flex; justify-content:center; min-height:0; margin:6px 0; }
+      .mp-chord-diagram:not(:empty) { min-height:170px; align-items:center; }
       .mp-chord-hint { font-size:12px; color:var(--text-dim,#999); text-align:center; margin:8px 0; }
       .mp-stroke-strip { display:flex; gap:5px; flex-wrap:wrap; margin:12px 0; justify-content:center; }
       .mp-stroke { width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:18px; font-weight:700; background:var(--bg-elev,#222); border:1px solid var(--line,#333); color:var(--text,#eee); }

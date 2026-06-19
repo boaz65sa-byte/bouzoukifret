@@ -246,8 +246,10 @@ const PracticeLibrary = (() => {
               <span class="pl-tag">${s.rhythm}</span>
               <span class="pl-tag">${s.bpm} BPM</span>
             </div>
-            <div class="pl-song-prog" dir="ltr">${s.prog}</div>
+            <div class="pl-song-prog" dir="ltr">${s.prog.split(/\s*→\s*/).map(ch =>
+              `<span class="pl-chord" data-chord="${ch.trim()}">${ch.trim()}</span>`).join('<span class="pl-prog-arrow">→</span>')}</div>
             ${s.special ? `<div class="pl-song-special">💡 ${s.special}</div>` : ''}
+            <div class="pl-chord-diagram"></div>
             <button class="btn small pl-song-find" data-name="${s.name}">🔎 חפשו ב-YouTube</button>
           </div>
         `).join('')}
@@ -260,6 +262,31 @@ const PracticeLibrary = (() => {
         if (inp) { inp.value = b.dataset.name + ' bouzouki'; inp.focus(); }
       }, 200); }
     }));
+    // אקורדים — לחיצה מציגה דיאגרמה + שמיעה
+    c.querySelectorAll('.pl-chord').forEach(ch => ch.addEventListener('click', () => {
+      const card = ch.closest('.pl-song-card');
+      const diag = card?.querySelector('.pl-chord-diagram');
+      card?.querySelectorAll('.pl-chord').forEach(x => x.classList.remove('sel'));
+      ch.classList.add('sel');
+      if (diag && typeof ChordTooltip !== 'undefined') ChordTooltip.renderInto(diag, ch.dataset.chord);
+      playChordName(ch.dataset.chord);
+    }));
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(c);
+  }
+
+  /* נגינת אקורד לפי שם (C-F-A-D) */
+  function playChordName(name) {
+    if (typeof AudioEngine === 'undefined' || typeof CHORDS === 'undefined') return;
+    AudioEngine.ensureCtx();
+    const key = (typeof ChordTooltip !== 'undefined') ? ChordTooltip.resolveKey(name) : name;
+    const chord = CHORDS[key];
+    if (!chord) return;
+    const TUNE = [48, 53, 57, 62]; // C3 F3 A3 D4 — מיתרי בוזוקי
+    const t = AudioEngine.ctx.currentTime;
+    chord.shape.forEach((fret, i) => {
+      if (fret === 'x') return;
+      AudioEngine.pluckMidi(TUNE[i] + fret, t + i * 0.05, 0.5);
+    });
   }
 
   function init() {
@@ -311,7 +338,13 @@ const PracticeLibrary = (() => {
       .pl-song-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
       .pl-tag { font-size:11px; padding:2px 8px; border-radius:6px; background:var(--bg-elev,#222); color:var(--text-dim,#999); border:1px solid var(--line,#333); }
       .pl-tag-dromos { color:var(--gold,#e3b341); border-color:var(--gold,#e3b341); }
-      .pl-song-prog { font-size:13px; font-weight:600; color:var(--aegean,#4fb3d9); margin:6px 0; }
+      .pl-song-prog { font-size:13px; font-weight:600; color:var(--aegean,#4fb3d9); margin:6px 0; display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+      .pl-chord { cursor:pointer; padding:1px 5px; border-radius:5px; border:1px solid transparent; }
+      .pl-chord:hover { border-color:var(--aegean,#4fb3d9); }
+      .pl-chord.sel { background:var(--gold,#e3b341); color:#111; }
+      .pl-prog-arrow { color:var(--text-dim,#999); }
+      .pl-chord-diagram { display:flex; justify-content:center; margin:4px 0; }
+      .pl-chord-diagram:not(:empty) { margin:8px 0; }
       .pl-song-special { font-size:12px; color:var(--text-dim,#999); margin-bottom:8px; line-height:1.4; }
     `;
     document.head.appendChild(st);

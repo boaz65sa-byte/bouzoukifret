@@ -638,12 +638,18 @@ const SongLearn = (() => {
     const typeName = typeLabels[suffix] || suffix;
 
     detail.innerHTML = `
-      <div class="sl-detail-name">${chordName}</div>
-      <div class="sl-detail-type">${typeName}</div>
-      ${rootIdx >= 0 ? `<div class="sl-detail-root">שורש: ${NOTE_NAMES_HE[rootIdx]}</div>` : ''}
-      ${fretHtml}
-      <button class="btn btn-sm" onclick="SongLearn.playChord('${chordName}')">🔊 שמעו</button>
+      <div class="sl-detail-row">
+        <div>
+          <div class="sl-detail-name">${chordName}</div>
+          <div class="sl-detail-type">${typeName}</div>
+          ${rootIdx >= 0 ? `<div class="sl-detail-root">שורש: ${NOTE_NAMES_HE[rootIdx]}</div>` : ''}
+          ${fretHtml}
+          <button class="btn btn-sm" onclick="SongLearn.playChord('${chordName}')">🔊 שמעו</button>
+        </div>
+        <div class="sl-detail-diagram" id="sl-detail-diagram"></div>
+      </div>
     `;
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.renderInto('#sl-detail-diagram', chordName);
   }
 
   function playChordByName(chordName) {
@@ -815,6 +821,8 @@ const SongLearn = (() => {
       .sl-chord-name { font-size:15px; font-weight:700; }
       .sl-chord-beats { font-size:10px; color:var(--text-dim,#999); margin-top:2px; }
       .sl-chord-detail { background:var(--bg-card,#1a1a2e); border-radius:12px; padding:14px 18px; margin:12px 0; min-height:64px; }
+      .sl-detail-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+      .sl-detail-diagram { flex-shrink:0; }
       .sl-detail-name { font-size:32px; font-weight:900; color:var(--gold,#e3b341); }
       .sl-detail-type,.sl-detail-root { font-size:14px; color:var(--text-dim,#999); }
       .sl-fret-hint { font-size:13px; color:var(--text,#eee); margin:6px 0; font-family:monospace; }

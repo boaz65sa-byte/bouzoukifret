@@ -154,5 +154,23 @@ const ChordTooltip = (() => {
     });
   }
 
-  return { show, hide, bindHover, bindContainer, resolveKey };
+  /** מצייר דיאגרמת אקורד לתוך אלמנט נתון (לטאצ׳/מובייל) */
+  function renderInto(container, chordName) {
+    const el = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!el) return false;
+    const key = resolveKey(chordName);
+    el.innerHTML = '';
+    if (!key) { el.innerHTML = `<span class="chord-tooltip-missing">${chordName}</span>`; return false; }
+    const chord = CHORDS[key];
+    const svg = svgEl('svg', {});
+    _drawDiagram(svg, key);
+    el.appendChild(svg);
+    const lbl = document.createElement('div');
+    lbl.className = 'chord-tooltip-label';
+    lbl.textContent = chord.he || key;
+    el.appendChild(lbl);
+    return true;
+  }
+
+  return { show, hide, bindHover, bindContainer, resolveKey, renderInto };
 })();
