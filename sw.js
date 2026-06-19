@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v2';
+const CACHE_STATIC = 'bouzouki-static-v3';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -36,6 +36,14 @@ const PRECACHE = [
   './js/features.js',
   './js/progress-dashboard.js',
   './js/features2.js',
+  './js/education-content.js',
+  './js/learn.js',
+  './js/song-learn.js',
+  './js/adaptive.js',
+  './js/daily-workout.js',
+  './js/practice-library.js',
+  './js/modus-path.js',
+  './js/skills.js',
 ];
 
 const CDN_ASSETS = [
@@ -86,6 +94,22 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
+    // network-first עבור HTML ו-CSS — כדי שעדכון/תיקון לא ייתקע במטמון ישן
+    const isDoc = req.mode === 'navigate' || url.pathname.endsWith('.html') ||
+                  url.pathname.endsWith('.css') || url.pathname === '/';
+    if (isDoc) {
+      event.respondWith(
+        fetch(req).then((resp) => {
+          if (cacheableResponse(resp)) {
+            const copy = resp.clone();
+            caches.open(CACHE_STATIC).then((c) => c.put(req, copy));
+          }
+          return resp;
+        }).catch(() => caches.match(req))
+      );
+      return;
+    }
+    // stale-while-revalidate עבור שאר הקבצים (JS וכו׳)
     event.respondWith(
       caches.match(req).then((cached) => {
         const net = fetch(req).then((resp) => {
