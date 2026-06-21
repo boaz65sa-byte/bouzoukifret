@@ -19,6 +19,7 @@ const LearnHub = (() => {
   let _searchHasMore = false;
   let _searchMeta = null;
   let _searchLoading = false;
+  let _downloadAuthor = '';
 
   function _esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -236,13 +237,15 @@ const LearnHub = (() => {
       await StemAPI.downloadForLearning(id, {
         title,
         titleHe: _currentSong?.titleHe || '',
+        author: _downloadAuthor || '',
         songId: _currentSong?.id || '',
         saveOffline: true,
         saveToDisk: true,
         onProgress: (msg, pct) => _setDownloadStatus(`${msg} (${pct}%)`, null),
       });
-      _setDownloadStatus('✓ נשמר באפליקציה + הורד למכשיר — אפשר לנתח offline', true);
+      _setDownloadStatus('✓ נשמר בספריית לימוד + בתיקייה learn-downloads', true);
       _renderOfflineLibrary();
+      if (typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
       alert(e.message || String(e));
@@ -275,9 +278,14 @@ const LearnHub = (() => {
     if (!list || typeof LearnOffline === 'undefined') return;
     const tracks = await LearnOffline.list();
     if (!tracks.length) {
-      list.innerHTML = '<p class="hint">עדיין אין שירים שמורים. לחצו «הורד MP3 ללימוד» — דורש stem-proxy + yt-dlp.</p>';
+      list.innerHTML = '<p class="hint">עדיין אין שירים. הורידו מלמעלה או פתחו <a href="#" id="learn-offline-open-lib">ספריית לימוד המלאה</a>.</p>';
+      document.getElementById('learn-offline-open-lib')?.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector('.nav-btn[data-screen="learn-lib"]')?.click();
+      });
       return;
     }
+    const openLib = `<p class="hint" style="margin-top:8px"><a href="#" id="learn-offline-open-lib">📚 פתח ספריית לימוד מלאה (${tracks.length})</a></p>`;
     list.innerHTML = tracks.map(t => `
       <div class="learn-offline-item" data-video="${_esc(t.videoId)}">
         <div class="learn-offline-meta">
@@ -289,7 +297,12 @@ const LearnHub = (() => {
           <button type="button" class="btn secondary learn-offline-dl" data-video="${_esc(t.videoId)}">⬇ שמור שוב</button>
           <button type="button" class="btn secondary learn-offline-del" data-video="${_esc(t.videoId)}">🗑</button>
         </div>
-      </div>`).join('');
+      </div>`).join('') + openLib;
+
+    document.getElementById('learn-offline-open-lib')?.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector('.nav-btn[data-screen="learn-lib"]')?.click();
+    });
 
     list.querySelectorAll('.learn-offline-analyze').forEach(btn => {
       btn.addEventListener('click', () => _analyzeOfflineTrack(btn.dataset.video));
@@ -685,7 +698,10 @@ const LearnHub = (() => {
           _loadVideo(id, title);
           document.getElementById('learn-yt-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         },
-        onDownload: (id, title) => _downloadForLearning(id, title),
+        onDownload: (id, title, author) => {
+          _downloadAuthor = author || '';
+          _downloadForLearning(id, title);
+        },
       };
 
       if (append) {

@@ -24,6 +24,7 @@ $$('.nav-btn').forEach(btn => {
     if (btn.dataset.screen === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
       SongLibrary.resetMobileView();
     }
+    if (btn.dataset.screen === 'learn-lib' && typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
     stopAllPlayback();
   });
 });
@@ -86,6 +87,7 @@ function stopAllPlayback() {
   if (typeof PracticeLibrary !== 'undefined') PracticeLibrary.stop();
   if (typeof SongAcademy !== 'undefined') SongAcademy.stop();
   if (typeof LearnHub !== 'undefined') LearnHub.stop();
+  if (typeof LearnLibrary !== 'undefined') LearnLibrary.stop();
   if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
   if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
   if (typeof PitchPreservingPlayer !== 'undefined' && PitchPreservingPlayer.isPlaying()) {

@@ -5,5 +5,9 @@ package-lock.json
 penia-master/config.js
 config.js
 
+# ספריית הורדות ללימוד (קבצים מקומיים)
+learn-downloads/*
+!learn-downloads/.gitkeep
+
 # החרגות — קבצים שכן צריכים להיכנס ל-git
 !tools/stem-proxy/package.json

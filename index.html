@@ -41,6 +41,9 @@
       <button class="nav-btn nav-featured" data-screen="learn" data-nav-priority="1">
         <span class="nav-ico">▶️</span> למד מהשיר (YouTube)
       </button>
+      <button class="nav-btn nav-featured" data-screen="learn-lib" data-nav-priority="1b">
+        <span class="nav-ico">📥</span> ספריית לימוד
+      </button>
       <button class="nav-btn nav-featured" data-screen="progress" data-nav-priority="2">
         <span class="nav-ico">📊</span> התקדמות
       </button>
@@ -814,6 +817,15 @@
       <div id="learn-hub-app"></div>
     </section>
 
+    <!-- ========== מסך: ספריית לימוד (הורדות) ========== -->
+    <section class="screen" id="screen-learn-lib">
+      <header class="screen-head">
+        <h1>ספריית לימוד</h1>
+        <p class="lead">כל השירים שהורדתם — נגינה, ניתוח AI, ושמירה בתיקייה <code>learn-downloads</code> במחשב</p>
+      </header>
+      <div id="learn-lib-app"></div>
+    </section>
+
     <!-- ========== מסך: Dashboard התקדמות ========== -->
     <section class="screen" id="screen-progress">
       <header class="screen-head">
@@ -1061,6 +1073,7 @@
 <script src="js/learning-resources.js"></script>
 <script src="js/dromos-paths.js"></script>
 <script src="js/learn-offline.js"></script>
+<script src="js/learn-library.js"></script>
 <script src="js/youtube-search.js"></script>
 <script src="js/learn-youtube.js"></script>
 <script src="js/stem-api.js"></script>
@@ -1115,6 +1128,7 @@ if (typeof DailyWorkout !== 'undefined') DailyWorkout.init();
 if (typeof PracticeLibrary !== 'undefined') PracticeLibrary.init();
 if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
+if (typeof LearnLibrary !== 'undefined') LearnLibrary.init();
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').then(() => {

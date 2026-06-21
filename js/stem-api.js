@@ -100,11 +100,14 @@ const StemAPI = (() => {
    * @param {string} videoId
    * @param {(msg:string,pct:number)=>void} [onProgress]
    */
-  async function fetchYoutube(videoId, onProgress) {
+  async function fetchYoutube(videoId, onProgress, meta = {}) {
     const proxy = cfg().stemProxyUrl?.replace(/\/$/, '');
     if (!proxy) throw new Error('הגדר stemProxyUrl ב-config.js והרץ stem-proxy');
     onProgress?.('מוריד מ-YouTube (yt-dlp)…', 8);
-    const resp = await fetch(`${proxy}/api/youtube-audio?id=${encodeURIComponent(videoId)}`, {
+    const qs = new URLSearchParams({ id: videoId, library: '1' });
+    if (meta.title) qs.set('title', meta.title);
+    if (meta.author) qs.set('author', meta.author);
+    const resp = await fetch(`${proxy}/api/youtube-audio?${qs}`, {
       signal: AbortSignal.timeout(300000),
     });
     if (!resp.ok) {
@@ -127,12 +130,13 @@ const StemAPI = (() => {
   /**
    * הורדת MP3 מ-YouTube — שמירה במכשיר + IndexedDB (LearnOffline)
    * @param {string} videoId
-   * @param {{ title?: string, titleHe?: string, songId?: string, onProgress?: Function, saveOffline?: boolean, saveToDisk?: boolean }} opts
+   * @param {{ title?: string, titleHe?: string, author?: string, songId?: string, onProgress?: Function, saveOffline?: boolean, saveToDisk?: boolean }} opts
    */
   async function downloadForLearning(videoId, opts = {}) {
     const {
       title = videoId,
       titleHe = '',
+      author = '',
       songId = '',
       onProgress,
       saveOffline = true,
@@ -143,11 +147,14 @@ const StemAPI = (() => {
     if (!health.ok) throw new Error('stem-proxy לא פעיל — הרץ tools/stem-proxy והגדר config.js');
     if (!health.ytdlp) throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
 
-    const blob = await fetchYoutube(videoId, onProgress);
+    const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
 
     if (saveOffline && typeof LearnOffline !== 'undefined') {
       onProgress?.('שומר בספריית לימוד…', 98);
-      await LearnOffline.save(videoId, blob, { title, titleHe, songId });
+      await LearnOffline.save(videoId, blob, {
+        title, titleHe, author, songId,
+        thumbUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      });
     }
 
     if (saveToDisk) {
@@ -156,8 +163,21 @@ const StemAPI = (() => {
     }
 
     onProgress?.('מוכן ללימוד', 100);
+    if (typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
     return blob;
   }
 
-  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning };
+  async function listDiskLibrary() {
+    const proxy = cfg().stemProxyUrl?.replace(/\/$/, '');
+    if (!proxy) return null;
+    try {
+      const r = await fetch(`${proxy}/api/learn-library`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return null;
+      return r.json();
+    } catch {
+      return null;
+    }
+  }
+
+  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning, listDiskLibrary };
 })();

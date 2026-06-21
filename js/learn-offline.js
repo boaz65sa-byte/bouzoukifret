@@ -31,7 +31,9 @@ const LearnOffline = (() => {
       videoId,
       title: meta.title || videoId,
       titleHe: meta.titleHe || '',
+      author: meta.author || '',
       songId: meta.songId || '',
+      thumbUrl: meta.thumbUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       size: blob.size,
       savedAt: Date.now(),
       blob,
@@ -72,6 +74,12 @@ const LearnOffline = (() => {
     });
   }
 
+  async function stats() {
+    const tracks = await list();
+    const totalSize = tracks.reduce((n, t) => n + (t.size || 0), 0);
+    return { count: tracks.length, totalSize };
+  }
+
   async function remove(videoId) {
     const db = await open();
     return new Promise((resolve, reject) => {
@@ -91,5 +99,5 @@ const LearnOffline = (() => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  return { save, get, list, remove, has, fmtSize };
+  return { save, get, list, remove, has, stats, fmtSize };
 })();

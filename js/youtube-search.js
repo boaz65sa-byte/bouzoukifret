@@ -210,7 +210,9 @@ const YoutubeSearch = (() => {
       btn.dataset.wired = '1';
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        opts.onDownload?.(btn.dataset.id, btn.dataset.title);
+        const card = btn.closest('.learn-yt-card');
+        const author = card?.querySelector('.learn-yt-card-meta')?.textContent?.trim() || '';
+        opts.onDownload?.(btn.dataset.id, btn.dataset.title, author);
       });
     });
   }

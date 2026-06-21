@@ -34,12 +34,42 @@ const PORT = process.env.PORT || 3456;
 const LALAL_KEY = process.env.LALAL_LICENSE_KEY || '';
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
 const YTDLP = process.env.YTDLP_PATH || 'yt-dlp';
+const LEARN_LIB_DIR = path.join(__dirname, '..', '..', 'learn-downloads');
+const LEARN_MANIFEST = path.join(LEARN_LIB_DIR, 'manifest.json');
 
 const app = express();
 app.use(cors({ origin: ALLOW_ORIGIN }));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 60 * 1024 * 1024 } });
 
 /* ---------- helpers ---------- */
+function ensureLearnLibDir() {
+  if (!fs.existsSync(LEARN_LIB_DIR)) fs.mkdirSync(LEARN_LIB_DIR, { recursive: true });
+}
+
+function readLearnManifest() {
+  ensureLearnLibDir();
+  try { return JSON.parse(fs.readFileSync(LEARN_MANIFEST, 'utf8')); }
+  catch { return { tracks: [], updatedAt: null }; }
+}
+
+function writeLearnManifest(data) {
+  ensureLearnLibDir();
+  data.updatedAt = Date.now();
+  fs.writeFileSync(LEARN_MANIFEST, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function addToLearnManifest(entry) {
+  const data = readLearnManifest();
+  data.tracks = (data.tracks || []).filter(t => t.videoId !== entry.videoId);
+  data.tracks.unshift({ ...entry, savedAt: entry.savedAt || Date.now() });
+  writeLearnManifest(data);
+}
+
+function safeFilename(s, fallback) {
+  const base = String(s || fallback || 'track').replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 60);
+  return base || fallback || 'track';
+}
+
 function lalalHeaders(extra = {}) {
   return { 'X-License-Key': LALAL_KEY, ...extra };
 }
@@ -182,6 +212,10 @@ app.get('/api/youtube-audio', (req, res) => {
   const id = String(req.query.id || '').trim();
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).json({ error: 'מזהה YouTube לא תקין' });
 
+  const saveLibrary = req.query.library === '1';
+  const libTitle = String(req.query.title || '').trim();
+  const libAuthor = String(req.query.author || '').trim();
+
   const tmp = path.join(os.tmpdir(), `yt-${id}-${Date.now()}.m4a`);
   console.log(`[youtube] downloading ${id}`);
   const args = ['-f', 'bestaudio[ext=m4a]/bestaudio', '--no-playlist', '-o', tmp, `https://www.youtube.com/watch?v=${id}`];
@@ -196,6 +230,27 @@ app.get('/api/youtube-audio', (req, res) => {
       console.error('[youtube] yt-dlp failed:', errBuf.slice(-300));
       return res.status(502).json({ error: 'הורדת YouTube נכשלה' });
     }
+
+    if (saveLibrary) {
+      try {
+        ensureLearnLibDir();
+        const fname = `${safeFilename(libTitle, id)}_${id}.m4a`;
+        const dest = path.join(LEARN_LIB_DIR, fname);
+        fs.copyFileSync(tmp, dest);
+        const st = fs.statSync(dest);
+        addToLearnManifest({
+          videoId: id,
+          title: libTitle || id,
+          author: libAuthor,
+          file: fname,
+          size: st.size,
+        });
+        console.log(`[library] saved ${fname}`);
+      } catch (e) {
+        console.error('[library] save failed:', e.message);
+      }
+    }
+
     res.set('Content-Type', 'audio/mp4');
     res.sendFile(tmp, (err) => {
       fs.unlink(tmp, () => {});
@@ -203,6 +258,30 @@ app.get('/api/youtube-audio', (req, res) => {
       else console.log(`[youtube] sent ${id}`);
     });
   });
+});
+
+app.get('/api/learn-library', (req, res) => {
+  const data = readLearnManifest();
+  res.json({
+    dir: LEARN_LIB_DIR,
+    tracks: (data.tracks || []).map(t => ({
+      ...t,
+      url: `/api/learn-library/file/${t.videoId}`,
+    })),
+    updatedAt: data.updatedAt || null,
+  });
+});
+
+app.get('/api/learn-library/file/:videoId', (req, res) => {
+  const id = String(req.params.videoId || '').trim();
+  if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).json({ error: 'מזהה לא תקין' });
+  const data = readLearnManifest();
+  const track = (data.tracks || []).find(t => t.videoId === id);
+  if (!track?.file) return res.status(404).json({ error: 'קובץ לא נמצא בספרייה' });
+  const filePath = path.join(LEARN_LIB_DIR, track.file);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'הקובץ נמחק מהדיסק' });
+  res.set('Content-Type', 'audio/mp4');
+  res.sendFile(filePath);
 });
 
 app.listen(PORT, () => {
