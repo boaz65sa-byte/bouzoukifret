@@ -69,6 +69,15 @@ const SongAcademy = (() => {
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
     },
     {
+      id:'ena-karavi', name:'Ena Karavi apo ti Chio', he:'ספינה מחיוס', greek:'Ένα Καράβι από τη Χίο',
+      artist:'מסורתי נסיוטיקו', era:'—', diff:2,
+      dromos:'rast', root:'רה',
+      chords:['D','A7'], prog:'D – A7 – D',
+      phrase:{ frets:[0,2,4,5,7,5,4,2,0], desc:'מנגינת אי בהירה וקופצנית' },
+      why:'שיר אי (nisiotiko) פשוט ובהיר — חיזוק ראסט/מז׳ור עם שני אקורדים.',
+      sections:[{label:'כל השיר', dromos:'rast'}]
+    },
+    {
       id:'misirlou', name:'Misirlou', he:'מיסירלו', greek:'Μισιρλού',
       artist:'מסורתי / N. Roubanis', era:'1927', diff:2,
       dromos:'hitzaz', root:'רה',
@@ -93,6 +102,24 @@ const SongAcademy = (() => {
       chords:['Am','Dm','E7'], prog:'Am – Dm – E7 – Am',
       phrase:{ frets:[7,8,7,5,3,1,0], desc:'אנחה יורדת אל הטוניקה' },
       why:'מבוא למשפחת הקינה (אוסאק). שימו לב לשנייה הרכה שנשענת מטה.',
+      sections:[{label:'כל השיר', dromos:'ousak'}]
+    },
+    {
+      id:'kaimos', name:'Kaimos', he:'קאימוס (כאב)', greek:'Καημός',
+      artist:'V. Tsitsanis', era:'1950s', diff:3,
+      dromos:'hitzaz', root:'רה',
+      chords:['Dm','A7','Gm'], prog:'Dm – A7 – Dm – Gm – A7 – Dm',
+      phrase:{ frets:[0,1,4,5,7,8,7,4,1,0], desc:'זאימבקיקו חיג׳אז עמוק' },
+      why:'אחד הזאימבקיקו היפים — חיג׳אז בהקשר איטי ורגשי.',
+      sections:[{label:'כל השיר', dromos:'hitzaz'}]
+    },
+    {
+      id:'limanakia', name:'Ta Limanakia', he:'הנמלים הקטנים', greek:'Τα Λιμανάκια',
+      artist:'מסורתי', era:'—', diff:3,
+      dromos:'ousak', root:'לה',
+      chords:['Am','Dm','E7'], prog:'Am – Dm – E7 – Am',
+      phrase:{ frets:[7,8,7,5,3,1,0], desc:'אנחת אוסאק יורדת' },
+      why:'אוסאק נוסף לחיזוק זיהוי משפחת הקינה.',
       sections:[{label:'כל השיר', dromos:'ousak'}]
     },
     {
@@ -121,6 +148,24 @@ const SongAcademy = (() => {
       phrase:{ frets:[0,2,3,5,3,2,0], desc:'מליסמה של שחר' },
       why:'מינור פשוט (דוריאן) — עוגן לפני שעוברים למודולציות.',
       sections:[{label:'כל השיר', dromos:'minore'}]
+    },
+    {
+      id:'mana-ellas', name:'Mana mou Ellas', he:'אמא שלי יוון', greek:'Μάνα μου Ελλάς',
+      artist:'M. Theodorakis', era:'1972', diff:3,
+      dromos:'minore', root:'רה',
+      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
+      phrase:{ frets:[0,2,3,5,7,5,3,2,0], desc:'מינור גאה ונוגע' },
+      why:'מינורה (דוריאן) בהקשר המנוני — עוגן נוסף למינור הפשוט.',
+      sections:[{label:'כל השיר', dromos:'minore'}]
+    },
+    {
+      id:'xarama', name:'Harama', he:'חאראמה (שחר)', greek:'Χάραμα',
+      artist:'M. Hiotis', era:'1950s', diff:5,
+      dromos:'rast', root:'רה',
+      chords:['D','G','A7','Bm'], prog:'D – G – A7 – D (וירטואוזי)',
+      phrase:{ frets:[0,2,4,5,7,9,10,12], desc:'ראסט מהיר וטכני — אתגר' },
+      why:'ראסט בקצב וירטואוזי — אתגר מתקדם לאחר שהבסיס יציב.',
+      sections:[{label:'כל השיר', dromos:'rast'}]
     },
     {
       id:'roza', name:'Roza', he:'רוזה', greek:'Ρόζα',
