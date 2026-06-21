@@ -5389,42 +5389,8 @@ const SongLibrary = (() => {
   /* ===================== דיאגרמת אקורד מיני ===================== */
 
   function _chordDiagramSVG(chordName) {
-    const data = CHORDS[chordName];
-    if (!data) return '';
-    const shape = data.shape;
-    /* SVG מינימלי: 4 מיתרים, 4 סריגים */
-    const w = 52, h = 68;
-    const left = 10, top = 16, sw = 10, sh = 12;
-    let svg = `<svg viewBox="0 0 ${w} ${h}" class="chord-mini-svg">`;
-    svg += `<text x="${w / 2}" y="11" text-anchor="middle" fill="var(--gold)" font-size="9" font-family="Heebo,sans-serif">${chordName}</text>`;
-    /* nut */
-    svg += `<line x1="${left}" y1="${top}" x2="${left + 3 * sw}" y2="${top}" stroke="var(--text)" stroke-width="2.5"/>`;
-    /* frets */
-    for (let f = 1; f <= 4; f++) {
-      const y = top + f * sh;
-      svg += `<line x1="${left}" y1="${y}" x2="${left + 3 * sw}" y2="${y}" stroke="var(--text-dim)" stroke-width="0.5"/>`;
-    }
-    /* strings */
-    for (let s = 0; s < 4; s++) {
-      const x = left + s * sw;
-      svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + 4 * sh}" stroke="var(--text-dim)" stroke-width="0.8"/>`;
-    }
-    /* dots - shape is [C,F,A,D] = courses 3,2,1,0 — display as strings left to right D,A,F,C */
-    const displayOrder = [3, 2, 1, 0]; // D, A, F, C on strings left to right
-    for (let s = 0; s < 4; s++) {
-      const fret = shape[displayOrder[s]];
-      const x = left + s * sw;
-      if (fret === 'x') {
-        svg += `<text x="${x}" y="${top - 3}" text-anchor="middle" fill="var(--accent-red)" font-size="8">x</text>`;
-      } else if (fret === 0) {
-        svg += `<circle cx="${x}" cy="${top - 4}" r="2.5" fill="none" stroke="var(--ok)" stroke-width="1"/>`;
-      } else {
-        const y = top + (fret - 0.5) * sh;
-        svg += `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--aegean)"/>`;
-      }
-    }
-    svg += '</svg>';
-    return `<div class="chord-mini-wrap" data-chord="${chordName}" tabindex="0">${svg}</div>`;
+    if (typeof ChordDiagram !== 'undefined') return ChordDiagram.miniHTML(chordName);
+    return '';
   }
 
   function _bindSongChordTooltips(detail) {

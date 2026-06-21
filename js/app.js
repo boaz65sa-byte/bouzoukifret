@@ -1073,8 +1073,8 @@ function openCourseLevel(idx) {
       if (!chord) return;
       const div = document.createElement('div');
       div.className = 'chord-card';
-      const shape = chord.shape.map(f => f === 'x' ? 'x' : f).join('-');
-      div.innerHTML = `<div class="chord-name">${chordName}</div><div class="chord-he">${chord.he}</div><div class="chord-shape">${shape}</div>`;
+      const tabShape = chord.shape.slice().reverse().map(f => f === 'x' ? 'x' : f).join('-');
+      div.innerHTML = `<div class="chord-name">${chordName}</div><div class="chord-he">${chord.he}</div><div class="chord-shape" title="TAB: D-A-F-C">${tabShape}</div>`;
       div.addEventListener('click', () => {
         AudioEngine.ensureCtx();
         AudioEngine.strumChord(chord.shape.map(f => f === 'x' ? 'x' : f), 'd');

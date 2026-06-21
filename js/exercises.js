@@ -118,59 +118,12 @@ function drawTab(svg, item) {
   });
 }
 
-/* ---------- דיאגרמת אקורד ---------- */
+/* ---------- דיאגרמת אקורד (D·A·F·C משמאל — סטנדרט בוזוקי) ---------- */
 function drawChordDiagram(container, name) {
-  const chord = CHORDS[name];
-  if (!chord) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'chord-card';
-  const numFrets = 5, strW = 22, frH = 19, padT2 = 34, padL2 = 28;
-  const w = padL2 + strW * 3 + 14, h = padT2 + frH * numFrets + 14;
-  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}` });
-  svg.classList.add('chord-svg');
-
-  // שם האקורד
-  svgEl('text', { x: padL2 + strW * 1.5, y: 14, fill: '#f0cc74', 'font-size': 14, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = name;
-
-  // מיתרים (אנכי): משמאל לימין C F A D
-  for (let i = 0; i < 4; i++) {
-    const x = padL2 + i * strW;
-    svgEl('line', { x1: x, y1: padT2, x2: x, y2: padT2 + frH * numFrets, stroke: '#8fa6bc', 'stroke-width': 1.2 }, svg);
-    svgEl('text', { x, y: h - 1, fill: '#5a7187', 'font-size': 9.5, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg)
-      .textContent = ['C', 'F', 'A', 'D'][i];
+  if (typeof ChordDiagram !== 'undefined') {
+    ChordDiagram.renderCard(container, name);
+    return;
   }
-  // סריגים (אופקי) + אום + מספרי סריגים בצד
-  svgEl('line', { x1: padL2 - 2, y1: padT2, x2: padL2 + strW * 3 + 2, y2: padT2, stroke: '#e8d9b0', 'stroke-width': 3.5 }, svg);
-  for (let f = 1; f <= numFrets; f++) {
-    svgEl('line', { x1: padL2, y1: padT2 + f * frH, x2: padL2 + strW * 3, y2: padT2 + f * frH, stroke: '#3b566f', 'stroke-width': 1 }, svg);
-    // מספר הסריג משמאל לשורה
-    svgEl('text', {
-      x: padL2 - 10, y: padT2 + (f - 0.5) * frH + 3.5,
-      fill: chord.shape.includes(f) ? '#e3b341' : '#5a7187',
-      'font-size': 10, 'font-weight': chord.shape.includes(f) ? 800 : 400,
-      'text-anchor': 'middle', 'font-family': 'Heebo'
-    }, svg).textContent = f;
-  }
-  // נקודות
-  chord.shape.forEach((f, i) => {
-    const x = padL2 + i * strW;
-    if (f === 'x') {
-      svgEl('text', { x, y: padT2 - 5, fill: '#d96459', 'font-size': 11, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = '×';
-    } else if (f === 0) {
-      svgEl('circle', { cx: x, cy: padT2 - 9, r: 4, fill: 'none', stroke: '#5fc88f', 'stroke-width': 1.6 }, svg);
-    } else {
-      svgEl('circle', { cx: x, cy: padT2 + (f - 0.5) * frH, r: 7, fill: '#e3b341' }, svg);
-      svgEl('text', { x, y: padT2 + (f - 0.5) * frH + 3.5, fill: '#1a1408', 'font-size': 9.5, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo' }, svg).textContent = f;
-    }
-  });
-
-  wrap.appendChild(svg);
-  const lbl = document.createElement('div');
-  lbl.className = 'chord-label';
-  lbl.textContent = chord.he;
-  wrap.appendChild(lbl);
-  wrap.addEventListener('click', () => AudioEngine.strumChord(chord.shape, 'd', 0, 0.55));
-  container.appendChild(wrap);
 }
 
 /* ---------- רצועת ליווי (strum) ---------- */

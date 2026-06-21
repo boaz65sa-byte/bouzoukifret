@@ -37,53 +37,8 @@ const ChordTooltip = (() => {
 
   function _drawDiagram(svg, key) {
     const chord = CHORDS[key];
-    const numFrets = 5;
-    const strW = 20;
-    const frH = 17;
-    const padT = 28;
-    const padL = 24;
-    const w = padL + strW * 3 + 10;
-    const h = padT + frH * numFrets + 10;
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.classList.add('chord-svg', 'chord-svg-tooltip');
-
-    svgEl('text', {
-      x: padL + strW * 1.5, y: 12, fill: '#f0cc74', 'font-size': 12, 'font-weight': 800,
-      'text-anchor': 'middle', 'font-family': 'Heebo',
-    }, svg).textContent = key;
-
-    for (let i = 0; i < 4; i++) {
-      const x = padL + i * strW;
-      svgEl('line', { x1: x, y1: padT, x2: x, y2: padT + frH * numFrets, stroke: '#8fa6bc', 'stroke-width': 1 }, svg);
-    }
-    svgEl('line', {
-      x1: padL - 2, y1: padT, x2: padL + strW * 3 + 2, y2: padT,
-      stroke: '#e8d9b0', 'stroke-width': 3,
-    }, svg);
-    for (let f = 1; f <= numFrets; f++) {
-      svgEl('line', {
-        x1: padL, y1: padT + f * frH, x2: padL + strW * 3, y2: padT + f * frH,
-        stroke: '#3b566f', 'stroke-width': 0.8,
-      }, svg);
-    }
-
-    chord.shape.forEach((fret, i) => {
-      const x = padL + i * strW;
-      if (fret === 'x') {
-        svgEl('text', {
-          x, y: padT - 4, fill: '#d96459', 'font-size': 10, 'font-weight': 700,
-          'text-anchor': 'middle', 'font-family': 'Heebo',
-        }, svg).textContent = '×';
-      } else if (fret === 0) {
-        svgEl('circle', { cx: x, cy: padT - 7, r: 3.5, fill: 'none', stroke: '#5fc88f', 'stroke-width': 1.4 }, svg);
-      } else {
-        svgEl('circle', { cx: x, cy: padT + (fret - 0.5) * frH, r: 6, fill: '#e3b341' }, svg);
-        svgEl('text', {
-          x, y: padT + (fret - 0.5) * frH + 3, fill: '#1a1408', 'font-size': 8.5, 'font-weight': 800,
-          'text-anchor': 'middle', 'font-family': 'Heebo',
-        }, svg).textContent = fret;
-      }
-    });
+    ChordDiagram.draw(svg, { name: key, shape: chord.shape, compact: true, showFretNumbers: false });
   }
 
   function _position(anchor) {
