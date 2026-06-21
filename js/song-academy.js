@@ -416,13 +416,27 @@ const SongAcademy = (() => {
       </div>
       <div class="sa-btn-row">
         <button class="btn gold" id="sa-ov-next">בואו נלמד את האקורדים →</button>
-        <button class="btn" id="sa-ov-yt">🔎 השיר ב-YouTube</button>
-      </div>`;
+        <button class="btn" id="sa-ov-yt">▶️ נגן מ-YouTube</button>
+      </div>
+      <div id="sa-yt"></div>`;
     document.getElementById('sa-ov-next').addEventListener('click', () => { activeTab='chords'; renderSong(); });
-    document.getElementById('sa-ov-yt').addEventListener('click', () => {
-      const nav = document.querySelector('[data-screen="song-learn"]');
-      if (nav) { nav.click(); setTimeout(()=>{ const inp=document.getElementById('sl-yt-search'); if(inp){ inp.value=s.name+' bouzouki'; inp.focus(); } },200); }
-    });
+    document.getElementById('sa-ov-yt').addEventListener('click', () => showYouTube(s));
+  }
+
+  function showYouTube(s) {
+    const box = document.getElementById('sa-yt');
+    if (!box) return;
+    const q = encodeURIComponent(`${s.greek} ${s.name} μπουζούκι`);
+    const results = `https://www.youtube.com/results?search_query=${q}`;
+    box.innerHTML = `
+      <div class="sa-yt-wrap">
+        <iframe class="sa-yt-frame" src="https://www.youtube-nocookie.com/embed?listType=search&list=${q}"
+          title="${s.he}" loading="lazy"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>
+      <a class="sa-yt-link" href="${results}" target="_blank" rel="noopener">לא נטען? פתחו חיפוש ב-YouTube ↗</a>`;
+    box.scrollIntoView({ block:'nearest', behavior:'smooth' });
   }
 
   /* ----- תחנה: אקורדים + אימון מעבר בדקה ----- */
@@ -765,6 +779,9 @@ const SongAcademy = (() => {
       .sa-overview-card { background:var(--bg-card,#1a1a2e); border:2px solid; border-radius:12px; padding:14px; margin-bottom:12px; }
       .sa-ov-line { font-size:14px; margin:6px 0; color:var(--text,#eee); }
       .sa-ov-mod { color:#c265a0; }
+      .sa-yt-wrap { position:relative; width:100%; aspect-ratio:16/9; margin:12px 0 6px; border-radius:12px; overflow:hidden; background:#000; }
+      .sa-yt-frame { position:absolute; inset:0; width:100%; height:100%; border:0; }
+      .sa-yt-link { display:inline-block; font-size:13px; color:var(--aegean,#4fb3d9); margin-bottom:8px; }
       .sa-why { font-size:13px; color:var(--text,#eee); background:rgba(255,255,255,.03); border-radius:8px; padding:10px 14px; margin:10px 0; line-height:1.5; }
       .sa-ov-fp { font-size:13px; color:var(--text-dim,#999); border-right:3px solid; padding:8px 12px; margin:10px 0; }
       .sa-btn-row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
