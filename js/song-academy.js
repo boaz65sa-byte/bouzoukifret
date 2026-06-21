@@ -267,6 +267,93 @@ const SongAcademy = (() => {
     frets.forEach((f,i) => AudioEngine.pluckMidi(D_OPEN + f, t + i*(gap/1000), 0.5));
   }
 
+  let _phraseAnim = null;
+
+  /** ממפה shape [C,F,A,D] לקורסים 3→0 */
+  function _shapeFingerings(shape) {
+    const out = [];
+    shape.forEach((f, i) => {
+      if (f === 'x') return;
+      out.push({ ci: 3 - i, f: Number(f) });
+    });
+    return out;
+  }
+
+  function _mountFretboard(svgId) {
+    const el = document.getElementById(svgId);
+    if (!el || typeof drawFretboard !== 'function') return null;
+    el.innerHTML = '';
+    return el;
+  }
+
+  /** סולם דרומוס על מיתר רה (קורס 0) */
+  function drawScaleBoard(svgId, scaleFrets) {
+    const svg = _mountFretboard(svgId);
+    if (!svg) return;
+    const set = new Set(scaleFrets);
+    drawFretboard(svg, (ci, f, midi) => {
+      if (ci !== 0 || !set.has(f)) return null;
+      const name = typeof midiToName === 'function' ? midiToName(midi) : String(f);
+      const sol = typeof SOLFEGE !== 'undefined' ? SOLFEGE[name] : name;
+      return { type: f === 0 ? 'root' : 'note', label: f === 0 ? 'רה' : (sol || String(f)) };
+    });
+  }
+
+  /** אקורד — כל נקודות האחיזה */
+  function drawChordBoard(svgId, chordName) {
+    const svg = _mountFretboard(svgId);
+    if (!svg || typeof CHORDS === 'undefined') return;
+    const key = (typeof ChordTooltip !== 'undefined') ? ChordTooltip.resolveKey(chordName) : chordName;
+    const ch = CHORDS[key];
+    if (!ch) return;
+    const fingers = _shapeFingerings(ch.shape);
+    drawFretboard(svg, (ci, f) => {
+      const hit = fingers.find(p => p.ci === ci && p.f === f);
+      if (!hit) return null;
+      return { type: f === 0 ? 'root' : 'note', label: String(f) };
+    });
+  }
+
+  /** פראזה על מיתר רה — מספרי סדר + הדגשת תו פעיל */
+  function drawPhraseBoard(svgId, phraseFrets, activeIdx = -1) {
+    const svg = _mountFretboard(svgId);
+    if (!svg) return;
+    drawFretboard(svg, (ci, f) => {
+      if (ci !== 0) return null;
+      const idx = phraseFrets.indexOf(f);
+      if (idx < 0) return null;
+      const active = idx === activeIdx;
+      return {
+        type: (f === 0 || active) ? 'root' : 'note',
+        label: active ? '▶' : String(idx + 1),
+      };
+    });
+  }
+
+  function playPhraseAnimated(frets, gap = 320) {
+    if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
+    if (typeof AudioEngine === 'undefined') return;
+    AudioEngine.ensureCtx();
+    let i = 0;
+    const step = () => {
+      if (i >= frets.length) {
+        drawPhraseBoard('sa-fb-phrase', frets, -1);
+        if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
+        return;
+      }
+      drawPhraseBoard('sa-fb-phrase', frets, i);
+      const f = frets[i];
+      AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.55);
+      if (typeof flashDot === 'function') {
+        const svg = document.getElementById('sa-fb-phrase');
+        if (svg) flashDot(svg, 0, f);
+      }
+      i++;
+    };
+    step();
+    _phraseAnim = { timer: setInterval(step, gap) };
+  }
+
   /* ---------- מיקרופון + זיהוי כרומה ---------- */
   async function ensureMic() {
     if (mic.stream) return true;
@@ -381,6 +468,7 @@ const SongAcademy = (() => {
 
   function renderSong() {
     stopMic(); stopLoop(); stopStem();
+    if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
     const app = document.getElementById('song-academy-app');
     if (!app || !activeSong) return;
     const s = activeSong, dr = DROMOI[s.dromos];
@@ -414,11 +502,17 @@ const SongAcademy = (() => {
       <div class="sa-ov-fp" style="border-color:${dr.color}">
         <b>טביעת האצבע של ${dr.he}:</b> ${dr.fp}
       </div>
+      <div class="sa-fb-section">
+        <h3 class="sa-fb-title">תצוגה מהירה — פראזה על מיתר רה</h3>
+        <p class="sa-hint">${s.phrase.desc}</p>
+        <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-overview" class="fretboard"></svg></div>
+      </div>
       <div class="sa-btn-row">
         <button class="btn gold" id="sa-ov-next">בואו נלמד את האקורדים →</button>
         <button class="btn" id="sa-ov-yt">▶️ נגן מ-YouTube</button>
       </div>
       <div id="sa-yt"></div>`;
+    drawPhraseBoard('sa-fb-overview', s.phrase.frets);
     document.getElementById('sa-ov-next').addEventListener('click', () => { activeTab='chords'; renderSong(); });
     document.getElementById('sa-ov-yt').addEventListener('click', () => showYouTube(s));
   }
@@ -446,7 +540,13 @@ const SongAcademy = (() => {
       <div class="sa-chord-row" id="sa-chord-row">
         ${s.chords.map(c => `<div class="sa-chord-slot"><div class="sa-chord-diag" data-chord="${c}"></div></div>`).join('')}
       </div>
-      <p class="sa-hint">לחצו על אקורד לשמיעה. הסוד: לא לשנן צורות — לתרגל את ה<b>מעבר</b> בין שניים.</p>
+      <p class="sa-hint">לחצו על אקורד לשמיעה ולראות איפה לאחוז על הלוח. הסוד: לא לשנן צורות — לתרגל את ה<b>מעבר</b> בין שניים.</p>
+
+      <div class="sa-fb-section">
+        <h3 class="sa-fb-title">לוח סריגים — אחיזת האקורד</h3>
+        <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-chord" class="fretboard"></svg></div>
+        <p class="sa-hint">🟡 = סריג פתוח · 🔵 = לחיצה · D למעלה, C למטה · לחצו על נקודה לשמיעה</p>
+      </div>
 
       <div class="sa-drill" style="margin-top:14px">
         <div class="sa-drill-title">⏱️ אימון המעבר בדקה</div>
@@ -469,8 +569,12 @@ const SongAcademy = (() => {
     s.chords.forEach(c => {
       const el = body.querySelector(`.sa-chord-diag[data-chord="${c}"]`);
       if (el && typeof ChordTooltip!=='undefined') ChordTooltip.renderInto(el, c);
-      if (el) el.parentElement.addEventListener('click', () => playChord(c));
+      if (el) el.parentElement.addEventListener('click', () => {
+        playChord(c);
+        drawChordBoard('sa-fb-chord', c);
+      });
     });
+    drawChordBoard('sa-fb-chord', s.chords[0]);
     showBest();
     document.getElementById('sa-drill-go').addEventListener('click', toggleDrill);
   }
@@ -560,14 +664,25 @@ const SongAcademy = (() => {
         <div class="sa-dr-name" style="color:${dr.color}">${dr.he} <span style="font-size:13px;color:var(--text-dim)">(${sec.label})</span></div>
         <div class="sa-dr-fp">👂 <b>איך מזהים:</b> ${dr.fp}</div>
         <div class="sa-dr-tell">🔑 ${dr.tell}</div>
+
+        <h3 class="sa-fb-title">לוח סריגים — סולם ${dr.he} על מיתר רה</h3>
+        <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-scale" class="fretboard"></svg></div>
+        <p class="sa-hint">כל הנקודות על מיתר <b>רה (D)</b> — כך נלמדים דרומוסים בבוזוקי יווני. לחצו לשמיעה.</p>
         ${tabSvg(dr.frets, dr.color)}
+
+        <h3 class="sa-fb-title">פראזת השיר — איפה ללחוץ (מיתר רה)</h3>
+        <p class="sa-hint">${s.phrase.desc} · המספרים = סדר הנגינה</p>
+        <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-phrase" class="fretboard"></svg></div>
+
         <div class="sa-btn-row">
           <button class="btn gold" id="sa-dr-scale">🔊 שמעו את הסולם</button>
-          <button class="btn" id="sa-dr-phrase">🎶 הפראזה של השיר</button>
+          <button class="btn" id="sa-dr-phrase">🎶 הפראזה של השיר (עם הדגשה)</button>
         </div>
       </div>`;
+    drawScaleBoard('sa-fb-scale', dr.frets);
+    drawPhraseBoard('sa-fb-phrase', s.phrase.frets);
     document.getElementById('sa-dr-scale').addEventListener('click', () => playFrets([...dr.frets, ...[...dr.frets].reverse().slice(1)], 300));
-    document.getElementById('sa-dr-phrase').addEventListener('click', () => playFrets(s.phrase.frets, 320));
+    document.getElementById('sa-dr-phrase').addEventListener('click', () => playPhraseAnimated(s.phrase.frets, 320));
   }
 
   function tabSvg(frets, color) {
@@ -589,7 +704,13 @@ const SongAcademy = (() => {
     body.innerHTML = `
       <p class="sa-hint">הלולאה ההרמונית של השיר. התחילו לאט, נגנו יחד, האיצו כשנקי. <b>הזיזו את היד השמאלית על הביט הריק</b> כדי שהאקורד יהיה מוכן בזמן.</p>
       <div class="sa-loop-chords" dir="ltr" id="sa-loop-chords">
-        ${chords.map((c,i)=>`<span class="sa-loop-ch" id="sa-loop-${i}">${c}</span>`).join('<span class="sa-loop-arr">→</span>')}
+        ${chords.map((c,i)=>`<span class="sa-loop-ch" id="sa-loop-${i}" data-chord="${c}">${c}</span>`).join('<span class="sa-loop-arr">→</span>')}
+      </div>
+
+      <div class="sa-fb-section">
+        <h3 class="sa-fb-title">לוח סריגים — האקורד הפעיל</h3>
+        <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-practice" class="fretboard"></svg></div>
+        <p class="sa-hint">הנקודות מראות <b>איפה ללחוץ</b> באקורד שמודגש בלולאה. D למעלה, C למטה.</p>
       </div>
       <div class="sa-loop-ctrls">
         <button class="btn small" id="sa-bpm-down">−</button>
@@ -612,6 +733,11 @@ const SongAcademy = (() => {
       if (loopState) { stopLoop(); document.getElementById('sa-loop-play').textContent = '▶ נגן לולאה'; }
       else { startLoop(chords, bpm); document.getElementById('sa-loop-play').textContent = '⏹ עצור'; }
     });
+    chords.forEach((c, i) => {
+      const el = document.getElementById(`sa-loop-${i}`);
+      if (el) el.addEventListener('click', () => { playChord(c); drawChordBoard('sa-fb-practice', c); });
+    });
+    drawChordBoard('sa-fb-practice', chords[0]);
     setupStemPanel();
   }
 
@@ -727,7 +853,9 @@ const SongAcademy = (() => {
     const step = () => {
       if (!loopState) return;
       document.querySelectorAll('.sa-loop-ch').forEach((e,j)=>e.classList.toggle('active', j===idx));
-      playChord(chords[idx]);
+      const ch = chords[idx];
+      drawChordBoard('sa-fb-practice', ch);
+      playChord(ch);
       idx = (idx+1) % chords.length;
     };
     loopState = { timer: setInterval(step, beat*1000) };
@@ -749,7 +877,7 @@ const SongAcademy = (() => {
     stemPlayer.playing = false;
     if (typeof PitchPreservingPlayer !== 'undefined') { try { PitchPreservingPlayer.pause(); } catch {} }
   }
-  function stop() { stopMic(); stopLoop(); endDrill(); stopStem(); }
+  function stop() { stopMic(); stopLoop(); endDrill(); stopStem(); if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; } }
 
   function injectStyles() {
     if (document.getElementById('sa-styles')) return;
@@ -811,6 +939,10 @@ const SongAcademy = (() => {
       .sa-dr-name { font-size:20px; font-weight:800; }
       .sa-dr-fp,.sa-dr-tell { font-size:13px; color:var(--text,#eee); margin:6px 0; line-height:1.5; }
       .sa-tab-svg { max-width:100%; height:52px; margin:8px 0; }
+      .sa-fb-section { margin:14px 0; }
+      .sa-fb-title { font-size:14px; font-weight:700; color:var(--gold,#e3b341); margin:12px 0 6px; }
+      .sa-fb-wrap { background:var(--bg-elev,#222); border-radius:12px; padding:8px 4px; margin:6px 0; overflow-x:auto; }
+      .sa-fb-wrap .fretboard { width:100%; min-width:320px; height:auto; display:block; }
       .sa-loop-chords { display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:center; margin:14px 0; }
       .sa-loop-ch { font-size:20px; font-weight:800; padding:10px 16px; border-radius:10px; background:var(--bg-card,#1a1a2e); border:2px solid var(--line,#333); color:var(--text,#eee); }
       .sa-loop-ch.active { background:var(--gold,#e3b341); color:#111; border-color:var(--gold,#e3b341); transform:scale(1.08); }
