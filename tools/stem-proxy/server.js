@@ -16,6 +16,20 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
+/* טעינת .env בלי תלות חיצונית (אם הקובץ קיים) */
+(function loadEnv() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
+      if (m && process.env[m[1]] === undefined) {
+        process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+      }
+    }
+  } catch { /* התעלם */ }
+})();
+
 const PORT = process.env.PORT || 3456;
 const LALAL_KEY = process.env.LALAL_LICENSE_KEY || '';
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
