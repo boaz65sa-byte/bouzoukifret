@@ -27,130 +27,161 @@ const PeniaLearn = (() => {
     const progress = loadProgress();
     el.innerHTML = '';
 
-    // כותרת + סיכום התקדמות
     const done = PENIA_CURRICULUM.filter(s => progress[s.id]).length;
     const total = PENIA_CURRICULUM.length;
     const pct = Math.round(done / total * 100);
+    const firstOpen = PENIA_CURRICULUM.find(s => !progress[s.id])?.id || PENIA_CURRICULUM[0].id;
 
-    // מדריך יד ימין מ-EDUCATION_CONTENT
-    const edu = (typeof EDUCATION_CONTENT !== 'undefined') ? EDUCATION_CONTENT.peniaCurriculum : null;
-
-    if (edu) {
-      const guide = document.createElement('div');
-      guide.className = 'card';
-      guide.innerHTML = `
-        <h2 style="margin:0 0 14px">🤚 ${edu.rightHandGuide.title}</h2>
-        <p style="color:var(--text-dim);margin-bottom:16px;font-size:14px">${edu.intro.he}</p>
-        <div class="rh-guide-grid" id="rh-guide-grid"></div>`;
-      const grid = guide.querySelector('#rh-guide-grid');
-      edu.rightHandGuide.sections.forEach(sec => {
-        const card = document.createElement('div');
-        card.className = 'rh-section-card';
-        card.innerHTML = `
-          <h3 class="rh-sec-title">${sec.title}</h3>
-          <ul class="rh-sec-points">${sec.points.map(p => `<li>${p}</li>`).join('')}</ul>`;
-        grid.appendChild(card);
-      });
-      el.appendChild(guide);
-    }
-
-    // שורת התקדמות
     const header = document.createElement('div');
-    header.className = 'card';
+    header.className = 'card penia-learn-header';
     header.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h2 style="margin:0">🎯 תרגילים: ${done} / ${total} שלבים הושלמו</h2>
-          <p style="margin:6px 0 0;color:var(--muted)">סמנו כל שלב כ"הושלם" אחרי שתרגלתם</p>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:2.2rem;font-weight:900;color:var(--gold)">${pct}%</div>
-          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-        </div>
+      <h2 style="margin:0 0 8px">🎯 מסלול פנייה מעשי — עשה, אל תקרא</h2>
+      <p class="hint" style="margin:0 0 12px">כל שלב: תמונה · צעדים · תבנית · כפתור נגן. סמנו ✓ אחרי שתרגלתם 5+ דקות.</p>
+      <div class="penia-learn-progress">
+        <span><strong>${done}/${total}</strong> שלבים</span>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <span class="penia-pct">${pct}%</span>
       </div>`;
     el.appendChild(header);
 
-    // רשת שלבים — מאחד PENIA_CURRICULUM עם EDUCATION_CONTENT
     const grid = document.createElement('div');
-    grid.className = 'curriculum-grid';
+    grid.className = 'penia-practical-grid';
     el.appendChild(grid);
 
-    PENIA_CURRICULUM.forEach((stage, stageIdx) => {
+    PENIA_CURRICULUM.forEach(stage => {
       const isDone = !!progress[stage.id];
+      const practical = typeof PeniaVisuals !== 'undefined' ? PeniaVisuals.getPractical(stage.id) : null;
+      const isCurrent = stage.id === firstOpen;
+      const strokes = practical?.strokes || (stage.patternId
+        ? PENIA_PATTERNS.find(p => p.id === stage.patternId)?.strokes
+        : null);
 
-      // מצא תוכן מתאים מ-EDUCATION_CONTENT
-      const eduLevel = edu ? edu.levels[stageIdx] : null;
-
-      const card = document.createElement('div');
-      card.className = 'curriculum-card' + (isDone ? ' done' : '');
-
-      const extraExercises = eduLevel ? eduLevel.exercises.map(ex =>
-        `<li><b>${ex.name}</b> (${ex.bpm} BPM) — ${ex.desc}${ex.focus ? `<br><span class="ex-focus">🎯 ${ex.focus}</span>` : ''}</li>`
-      ).join('') : '';
+      const card = document.createElement('article');
+      card.className = 'penia-practical-card card' + (isDone ? ' done' : '') + (isCurrent ? ' current' : '');
 
       card.innerHTML = `
-        <div class="cc-head">
-          <span class="cc-icon">${stage.icon}</span>
-          <div class="cc-meta">
-            <div class="cc-level">שלב ${stage.level}</div>
-            <h3 class="cc-title">${stage.title}</h3>
-            ${stage.bpmRange[0] ? `<div class="cc-bpm">${stage.bpmRange[0]}–${stage.bpmRange[1]} BPM</div>` : ''}
+        <div class="ppc-head">
+          <span class="ppc-num">${stage.level}</span>
+          <div class="ppc-title-wrap">
+            <h3>${stage.icon} ${stage.title}</h3>
+            <p class="ppc-focus">${stage.focus}</p>
+            ${stage.bpmRange[0] ? `<span class="ppc-bpm">${practical?.bpmStart || stage.bpmRange[0]} BPM להתחלה</span>` : ''}
           </div>
-          <div class="cc-check ${isDone ? 'checked' : ''}" data-id="${stage.id}">✓</div>
+          <button type="button" class="ppc-check ${isDone ? 'checked' : ''}" data-id="${stage.id}" aria-label="סמן הושלם">✓</button>
         </div>
-        <div class="cc-focus"><b>מיקוד:</b> ${stage.focus}</div>
-        <div class="cc-body">
-          <div class="cc-theory"><b>תיאוריה:</b> ${eduLevel ? eduLevel.theory : stage.theory}</div>
-          <div class="cc-exercises-title">תרגילים:</div>
-          <ol class="cc-exercises">
-            ${stage.exercises.map(e => `<li>${e}</li>`).join('')}
-            ${extraExercises}
-          </ol>
-          <div class="cc-tip">💡 <b>טיפ:</b> ${stage.tips}</div>
-          ${stage.patternId ? `<button class="btn small cc-go" data-pattern="${stage.patternId}">▶ פתח מאמן פנייה: ${stage.title}</button>` : ''}
+        <div class="ppc-visual" id="ppc-vis-${stage.id}"></div>
+        ${practical?.caption ? `<p class="ppc-caption">${practical.caption}</p>` : ''}
+        <div class="ppc-do">
+          <h4>עשה עכשיו</h4>
+          <ol class="ppc-steps"></ol>
         </div>
-        <button class="cc-expand-btn">הצג פרטים ▾</button>`;
+        ${practical?.strings ? `<p class="ppc-meta"><b>מיתרים:</b> ${practical.strings}</p>` : ''}
+        <div class="ppc-strip-wrap">
+          <span class="ppc-strip-label">תבנית פריטה:</span>
+          <div class="ppc-strip" id="ppc-strip-${stage.id}"></div>
+        </div>
+        ${practical?.check ? `<p class="ppc-checklist">✅ <b>עברת שלב כש:</b> ${practical.check}</p>` : ''}
+        <div class="ppc-actions"></div>
+        <details class="ppc-theory">
+          <summary>📖 למה זה חשוב (תיאוריה קצרה)</summary>
+          <p>${stage.theory}</p>
+          <p class="ppc-tip">💡 ${stage.tips}</p>
+        </details>`;
 
-      // toggle expand
-      const expandBtn = card.querySelector('.cc-expand-btn');
-      const body = card.querySelector('.cc-body');
-      body.style.display = 'none';
-      expandBtn.addEventListener('click', () => {
-        const open = body.style.display !== 'none';
-        body.style.display = open ? 'none' : '';
-        expandBtn.textContent = open ? 'הצג פרטים ▾' : 'הסתר ▲';
+      const stepsOl = card.querySelector('.ppc-steps');
+      const steps = practical?.steps || stage.exercises.map((e, i) => ({ icon: String(i + 1), title: 'תרגיל', detail: e }));
+      steps.forEach((st, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="ppc-step-n">${st.icon || i + 1}</span><div><strong>${st.title}</strong><p>${st.detail}</p></div>`;
+        stepsOl.appendChild(li);
       });
 
-      // mark done
-      card.querySelector('.cc-check').addEventListener('click', (e) => {
-        e.stopPropagation();
+      if (typeof PeniaVisuals !== 'undefined' && practical?.visual) {
+        PeniaVisuals.mountIllustration(card.querySelector(`#ppc-vis-${stage.id}`), practical.visual);
+      }
+
+      const stripEl = card.querySelector(`#ppc-strip-${stage.id}`);
+      if (strokes && typeof PeniaVisuals !== 'undefined') {
+        PeniaVisuals.renderStrokeStrip(stripEl, strokes);
+      } else if (stripEl) {
+        stripEl.closest('.ppc-strip-wrap').style.display = 'none';
+      }
+
+      const actions = card.querySelector('.ppc-actions');
+      if (stage.patternId) {
+        const playBtn = document.createElement('button');
+        playBtn.type = 'button';
+        playBtn.className = 'btn gold';
+        playBtn.textContent = '▶ נגן במאמן פנייה';
+        playBtn.addEventListener('click', () => {
+          const idx = PENIA_PATTERNS.findIndex(p => p.id === stage.patternId);
+          if (idx >= 0) {
+            document.querySelector('[data-screen="penia"]')?.click();
+            setTimeout(() => {
+              const sel = document.querySelector('#penia-select');
+              if (sel) { sel.value = idx; sel.dispatchEvent(new Event('change')); }
+              document.querySelector('#penia-play')?.click();
+            }, 120);
+          }
+        });
+        actions.appendChild(playBtn);
+      }
+      const gameBtn = document.createElement('button');
+      gameBtn.type = 'button';
+      gameBtn.className = 'btn secondary';
+      gameBtn.textContent = '🎮 מאסטר הפנייה';
+      gameBtn.addEventListener('click', () => document.querySelector('[data-screen="game"]')?.click());
+      actions.appendChild(gameBtn);
+
+      const metBtn = document.createElement('button');
+      metBtn.type = 'button';
+      metBtn.className = 'btn secondary';
+      metBtn.textContent = '🥁 מטרונום';
+      metBtn.addEventListener('click', () => document.querySelector('[data-screen="practice"]')?.click());
+      actions.appendChild(metBtn);
+
+      (practical?.exerciseIds || []).forEach(exId => {
+        const found = typeof getExerciseById === 'function' ? getExerciseById(exId) : null;
+        if (!found) return;
+        const exBtn = document.createElement('button');
+        exBtn.type = 'button';
+        exBtn.className = 'btn secondary';
+        exBtn.textContent = `📚 ${found.item.name}`;
+        exBtn.addEventListener('click', () => {
+          if (typeof openExerciseById === 'function') openExerciseById(exId);
+        });
+        actions.appendChild(exBtn);
+      });
+
+      card.querySelector('.ppc-check').addEventListener('click', () => {
         const p = loadProgress();
         p[stage.id] = !p[stage.id];
         saveProgress(p);
         render(el);
       });
 
-      // go to penia trainer
-      const goBtn = card.querySelector('.cc-go');
-      if (goBtn) {
-        goBtn.addEventListener('click', () => {
-          const idx = PENIA_PATTERNS.findIndex(p => p.id === goBtn.dataset.pattern);
-          if (idx >= 0) {
-            document.querySelector('[data-screen="penia"]').click();
-            setTimeout(() => {
-              const sel = document.querySelector('#penia-select');
-              if (sel) { sel.value = idx; sel.dispatchEvent(new Event('change')); }
-            }, 100);
-          }
-        });
-      }
-
       grid.appendChild(card);
     });
 
-    // כפתור איפוס
+    if (typeof TECHNIQUE_PRINCIPLES !== 'undefined') {
+      const tech = document.createElement('details');
+      tech.className = 'card penia-tech-ref';
+      tech.innerHTML = `<summary>🤚 מדריך אחיזה ותנועה (4 איורים)</summary><div class="penia-tech-grid"></div>`;
+      const tgrid = tech.querySelector('.penia-tech-grid');
+      TECHNIQUE_PRINCIPLES.forEach(tp => {
+        const box = document.createElement('div');
+        box.className = 'penia-tech-item';
+        box.innerHTML = `<h4>${tp.title}</h4><div class="penia-tech-svg" data-kind="${tp.svg}"></div><ul>${tp.points.slice(0, 3).map(p => `<li>${p}</li>`).join('')}</ul>`;
+        if (typeof PeniaVisuals !== 'undefined') {
+          PeniaVisuals.mountIllustration(box.querySelector('.penia-tech-svg'), tp.svg);
+        }
+        tgrid.appendChild(box);
+      });
+      el.appendChild(tech);
+    }
+
     const resetWrap = document.createElement('div');
-    resetWrap.style.cssText = 'text-align:center;margin-top:16px;';
+    resetWrap.className = 'penia-reset-wrap';
     const resetBtn = document.createElement('button');
     resetBtn.className = 'btn';
     resetBtn.textContent = 'איפוס התקדמות';

@@ -188,6 +188,120 @@ const LearnHub = (() => {
     }
   }
 
+  function _openExternalYoutube(videoId) {
+    const id = videoId || _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
+    if (!id) {
+      alert('הדביקו קישור YouTube או בחרו שיר');
+      return;
+    }
+    window.open(`https://www.youtube.com/watch?v=${id}`, '_blank', 'noopener,noreferrer');
+  }
+
+  function _setDownloadStatus(msg, ok) {
+    const el = document.getElementById('learn-download-status');
+    if (!el) return;
+    el.hidden = !msg;
+    el.textContent = msg || '';
+    el.classList.toggle('learn-dl-ok', !!ok);
+    el.classList.toggle('learn-dl-err', ok === false);
+  }
+
+  async function _downloadForLearning() {
+    const id = _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
+    if (!id) {
+      alert('הדביקו קישור YouTube או בחרו שיר מהרשימה');
+      return;
+    }
+    if (typeof StemAPI === 'undefined' || !StemAPI.downloadForLearning) {
+      alert('StemAPI לא נטען');
+      return;
+    }
+
+    const btn = document.getElementById('learn-download-mp3');
+    const title = _currentSong?.titleHe || _currentSong?.title || id;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ מוריד…'; }
+    _setDownloadStatus('מתחיל הורדה…', null);
+
+    try {
+      await StemAPI.downloadForLearning(id, {
+        title,
+        titleHe: _currentSong?.titleHe || '',
+        songId: _currentSong?.id || '',
+        saveOffline: true,
+        saveToDisk: true,
+        onProgress: (msg, pct) => _setDownloadStatus(`${msg} (${pct}%)`, null),
+      });
+      _setDownloadStatus('✓ נשמר באפליקציה + הורד למכשיר — אפשר לנתח offline', true);
+      _renderOfflineLibrary();
+    } catch (e) {
+      _setDownloadStatus(e.message || String(e), false);
+      alert(e.message || String(e));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '📥 הורד MP3 ללימוד'; }
+    }
+  }
+
+  async function _analyzeOfflineTrack(videoId) {
+    if (typeof LearnOffline === 'undefined' || typeof SongAnalyzer === 'undefined') return;
+    const rec = await LearnOffline.get(videoId);
+    if (!rec?.blob) {
+      alert('השיר לא נמצא בספרייה');
+      return;
+    }
+    _pauseYoutube();
+    _activeTab = 'analyze';
+    _renderTabs();
+    if (!document.getElementById('sa-file')) SongAnalyzer.render('learn-analyze-app');
+    document.getElementById('sa-progress-wrap').style.display = '';
+    try {
+      await SongAnalyzer.runPipeline(rec.blob);
+    } catch (e) {
+      alert(e.message || String(e));
+    }
+  }
+
+  async function _renderOfflineLibrary() {
+    const list = document.getElementById('learn-offline-list');
+    if (!list || typeof LearnOffline === 'undefined') return;
+    const tracks = await LearnOffline.list();
+    if (!tracks.length) {
+      list.innerHTML = '<p class="hint">עדיין אין שירים שמורים. לחצו «הורד MP3 ללימוד» — דורש stem-proxy + yt-dlp.</p>';
+      return;
+    }
+    list.innerHTML = tracks.map(t => `
+      <div class="learn-offline-item" data-video="${_esc(t.videoId)}">
+        <div class="learn-offline-meta">
+          <strong>${_esc(t.titleHe || t.title)}</strong>
+          <span class="hint">${_esc(t.videoId)} · ${LearnOffline.fmtSize(t.size)}</span>
+        </div>
+        <div class="learn-offline-actions">
+          <button type="button" class="btn primary learn-offline-analyze" data-video="${_esc(t.videoId)}">🔬 נתח</button>
+          <button type="button" class="btn secondary learn-offline-dl" data-video="${_esc(t.videoId)}">⬇ שמור שוב</button>
+          <button type="button" class="btn secondary learn-offline-del" data-video="${_esc(t.videoId)}">🗑</button>
+        </div>
+      </div>`).join('');
+
+    list.querySelectorAll('.learn-offline-analyze').forEach(btn => {
+      btn.addEventListener('click', () => _analyzeOfflineTrack(btn.dataset.video));
+    });
+    list.querySelectorAll('.learn-offline-dl').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const rec = await LearnOffline.get(btn.dataset.video);
+        if (rec?.blob && typeof StemAPI !== 'undefined') {
+          const safe = String(rec.titleHe || rec.title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
+          StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.mp3`);
+        }
+      });
+    });
+    list.querySelectorAll('.learn-offline-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('למחוק את השיר מהספרייה?')) return;
+        await LearnOffline.remove(btn.dataset.video);
+        _renderOfflineLibrary();
+      });
+    });
+  }
+
   function stop() {
     _destroyPlayer();
     _currentSong = null;
@@ -273,6 +387,8 @@ const LearnHub = (() => {
 
       html += `
         <div class="learn-actions">
+          <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
+          <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
           <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI (TAB + אקורדים)</button>
           <button type="button" class="btn primary learn-open-song" data-song="${song.id}">פתח בספריית שירים (אקורדים + גלילה)</button>
         </div>`;
@@ -280,8 +396,12 @@ const LearnHub = (() => {
       html += `
         <div class="learn-card card">
           <h4>לא נמצא בספרייה</h4>
-          <p>הדביקו קישור YouTube — נגן למטה. ניתוח AI דורש stem-proxy + yt-dlp.</p>
-          <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
+          <p>הדביקו קישור YouTube — נגן למטה. הורדה ללימוד דורשת stem-proxy + yt-dlp.</p>
+          <div class="learn-actions">
+            <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
+            <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
+            <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
+          </div>
           <label class="learn-label">דרומוס משוער
             <select id="learn-manual-dromos" class="learn-select">
               ${DROMOI.map(d => `<option value="${d.id}">${d.nameHe}</option>`).join('')}
@@ -312,6 +432,12 @@ const LearnHub = (() => {
     if (!panel) return;
     panel.querySelectorAll('.learn-analyze-video').forEach(btn => {
       btn.addEventListener('click', () => _goAnalyzeVideo());
+    });
+    panel.querySelectorAll('.learn-open-youtube').forEach(btn => {
+      btn.addEventListener('click', () => _openExternalYoutube());
+    });
+    panel.querySelectorAll('.learn-download-mp3').forEach(btn => {
+      btn.addEventListener('click', () => _downloadForLearning());
     });
     panel.querySelectorAll('.learn-go-ex').forEach(btn => {
       btn.addEventListener('click', () => _openExercise(btn.dataset.ex));
@@ -507,6 +633,8 @@ const LearnHub = (() => {
           <li><strong>ייצוא / ייבוא:</strong> אחרי ניתוח — JSON או TXT. אפשר לטעון JSON שמור (עם או בלי קובץ אודיו) בלי לרוץ שוב Essentia.</li>
           <li><strong>TAB poly:</strong> נקודות זהב ב-TAB = רמז polyphonic (עד 3 צלילים ב-onset).</li>
           <li><strong>Offline:</strong> לאחר ביקור אחד ב-HTTPS, האפליקציה + Essentia/Meyda נשמרים ב-cache (PWA). תג ● בסרגל = מוכן offline.</li>
+          <li><strong>הורדה ללימוד:</strong> «הורד MP3 ללימוד» — דורש stem-proxy + yt-dlp במחשב. השיר נשמר באפליקציה (IndexedDB) + קובץ במכשיר. לשימוש אישי ללימוד בלבד.</li>
+          <li>אפשר גם להעלות MP3 מ-YMusic / Moises ידנית בטאב «ניתוח AI».</li>
         </ol>
       </details>
 
@@ -530,6 +658,11 @@ const LearnHub = (() => {
               <select id="learn-song-select" class="learn-select"></select>
             </div>
             <div id="learn-panel" class="learn-panel"></div>
+            <div class="learn-offline card" id="learn-offline-card">
+              <h4>📥 ספריית לימוד — שירים שמורים</h4>
+              <p class="hint learn-offline-note">להורדה אישית ללימוד בלבד · דרך yt-dlp בפרוקסי המקומי · אחרי שמירה אפשר לנתח offline</p>
+              <div id="learn-offline-list"></div>
+            </div>
           </div>
           <div class="learn-yt-main card">
             <div class="learn-yt-toolbar">
@@ -537,8 +670,11 @@ const LearnHub = (() => {
               <button type="button" class="learn-speed-btn" data-rate="0.5">0.5×</button>
               <button type="button" class="learn-speed-btn active" data-rate="0.75">0.75×</button>
               <button type="button" class="learn-speed-btn" data-rate="1">1×</button>
+              <button type="button" class="btn secondary" id="learn-open-youtube">↗ YouTube</button>
+              <button type="button" class="btn secondary" id="learn-download-mp3">📥 הורד MP3 ללימוד</button>
               <button type="button" class="btn gold" id="learn-analyze-video">🔬 נתח ב-AI</button>
             </div>
+            <p id="learn-download-status" class="hint learn-download-status" hidden></p>
             <div id="learn-yt-host" class="learn-yt-host">
               <p class="hint learn-yt-placeholder">הדביקו קישור או בחרו שיר — הנגן יופיע כאן</p>
             </div>
@@ -579,6 +715,8 @@ const LearnHub = (() => {
     });
 
     document.getElementById('learn-analyze-video')?.addEventListener('click', () => _goAnalyzeVideo());
+    document.getElementById('learn-open-youtube')?.addEventListener('click', () => _openExternalYoutube());
+    document.getElementById('learn-download-mp3')?.addEventListener('click', () => _downloadForLearning());
 
     document.getElementById('learn-url-load').addEventListener('click', () => {
       const id = _extractYoutubeId(document.getElementById('learn-url-input').value);
@@ -600,6 +738,7 @@ const LearnHub = (() => {
 
     _renderSongPicker();
     _renderLearningPanel();
+    _renderOfflineLibrary();
     if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.render('learn-analyze-app');
   }
 
