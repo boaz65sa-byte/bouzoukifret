@@ -41,6 +41,7 @@ const PRECACHE = [
   './js/penia-visuals.js',
   './js/learn.js',
   './js/song-learn.js',
+  './js/song-academy.js',
   './js/adaptive.js',
   './js/daily-workout.js',
   './js/practice-library.js',

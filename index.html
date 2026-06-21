@@ -67,6 +67,9 @@
       <button class="nav-btn" data-screen="dromos-learn">
         <span class="nav-ico">🌟</span> מסלול לימוד מודוסים
       </button>
+      <button class="nav-btn nav-featured" data-screen="song-academy">
+        <span class="nav-ico">📀</span> אקדמיית השירים
+      </button>
       <button class="nav-btn nav-featured" data-screen="modus-path">
         <span class="nav-ico">🧭</span> נתיב המודוס
       </button>
@@ -988,6 +991,17 @@
       </div>
     </section>
 
+    <!-- ========== מסך: אקדמיית השירים ========== -->
+    <section class="screen" id="screen-song-academy">
+      <header class="screen-head">
+        <h1>אקדמיית השירים 📀</h1>
+        <p class="lead">לומדים אקורדים ודרומוסים מתוך שירים מוכרים — מעשי, לא רק עיוני. כל שיר: אקורדים, דרומוס, ופראזה</p>
+      </header>
+      <div class="card">
+        <div id="song-academy-app"></div>
+      </div>
+    </section>
+
     <!-- ========== מסך: נתיב המודוס ========== -->
     <section class="screen" id="screen-modus-path">
       <header class="screen-head">
@@ -1058,6 +1072,7 @@
 <script src="js/penia-visuals.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/song-learn.js"></script>
+<script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
 <script src="js/daily-workout.js"></script>
 <script src="js/practice-library.js"></script>
@@ -1090,6 +1105,7 @@ if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
 if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
+if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();
 if (typeof AdaptiveCoach !== 'undefined') AdaptiveCoach.init();
 if (typeof DailyWorkout !== 'undefined') DailyWorkout.init();
