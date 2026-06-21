@@ -619,24 +619,72 @@ const LearnHub = (() => {
     const q = String(query || '').trim();
     if (q.length < 2) return;
 
-    grid.innerHTML = '<p class="learn-search-loading">מחפש…</p>';
-    if (status) status.textContent = '';
+    grid.innerHTML = '<p class="learn-search-loading">מחפש בספרייה וב-YouTube…</p>';
+    if (status) status.textContent = 'מחפש…';
 
-    const { results, source } = await YoutubeSearch.search(q);
+    const meta = await YoutubeSearch.search(q);
+    const { results, source, proxyOnline, localCount, needsRestart } = meta;
+
     if (status) {
-      status.textContent = results.length
-        ? `${results.length} תוצאות${source === 'ytdlp' ? ' (דרך yt-dlp)' : source === 'invidious' ? '' : ''}`
-        : 'לא נמצאו תוצאות — ודאו ש-stem-proxy פעיל או נסו חיפוש אחר';
+      if (results.length) {
+        const parts = [`${results.length} תוצאות`];
+        if (localCount) parts.push(`${localCount} מהספרייה`);
+        if (source === 'ytdlp') parts.push('YouTube (yt-dlp)');
+        else if (source === 'invidious') parts.push('YouTube');
+        status.textContent = parts.join(' · ');
+      } else if (needsRestart) {
+        status.textContent = 'הפעילו מחדש את stem-proxy לחיפוש YouTube מלא (ראו הוראות למטה)';
+      } else if (!proxyOnline) {
+        status.textContent = 'stem-proxy לא פעיל — הפעילו אותו לחיפוש מלא (ראו הוראות למטה)';
+      } else {
+        status.textContent = 'לא נמצאו תוצאות — נסו מילים אחרות';
+      }
     }
+
+    _updateProxyBanner(proxyOnline, needsRestart);
 
     YoutubeSearch.renderGrid(grid, results, {
       activeId: _currentVideoId,
+      meta,
       onSelect: (id, title) => {
         _loadVideo(id, title);
         document.getElementById('learn-yt-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       },
       onDownload: (id, title) => _downloadForLearning(id, title),
     });
+  }
+
+  async function _updateProxyBanner(online, needsRestart) {
+    const el = document.getElementById('learn-proxy-banner');
+    if (!el) return;
+    if (online && !needsRestart) {
+      el.hidden = true;
+      return;
+    }
+    const url = typeof YoutubeSearch !== 'undefined' ? YoutubeSearch.getProxyUrl() : 'http://127.0.0.1:3456';
+    el.hidden = false;
+    if (needsRestart) {
+      el.innerHTML = `
+        <span>🔄 <b>stem-proxy דורש הפעלה מחדש</b> — עצרו (Ctrl+C) והריצו שוב ב-<code>tools\\stem-proxy</code></span>
+        <code class="learn-proxy-cmd">npm start</code>`;
+    } else {
+      el.innerHTML = `
+        <span>⚙️ <b>stem-proxy לא פעיל</b> — חיפוש YouTube מלא והורדת MP3 דורשים את השרת המקומי (${url})</span>
+        <code class="learn-proxy-cmd">cd tools\\stem-proxy &amp;&amp; npm start</code>`;
+    }
+  }
+
+  async function _checkProxyOnInit() {
+    if (typeof YoutubeSearch === 'undefined') return;
+    const health = await YoutubeSearch.checkProxy();
+    let needsRestart = false;
+    if (health.online) {
+      try {
+        const r = await fetch(`${YoutubeSearch.getProxyUrl()}/api/youtube-search?q=test`, { signal: AbortSignal.timeout(3000) });
+        needsRestart = r.status === 404;
+      } catch { /* noop */ }
+    }
+    _updateProxyBanner(health.online, needsRestart);
   }
 
   function _injectLearnStyles() {
@@ -663,6 +711,12 @@ const LearnHub = (() => {
       .learn-yt-card-body { min-width:0; flex:1; padding-top:2px; }
       .learn-yt-card-title { margin:0 0 4px; font-size:14px; font-weight:600; color:var(--text,#eee); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
       .learn-yt-card-meta { margin:0; font-size:12px; color:var(--text-dim,#999); }
+      .learn-yt-card-badge { position:absolute; top:6px; right:6px; background:rgba(79,179,217,.9); color:#0b1623; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; }
+      .learn-proxy-banner { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 14px; margin-bottom:10px; background:rgba(217,100,89,.12); border:1px solid rgba(217,100,89,.35); border-radius:10px; font-size:13px; }
+      .learn-proxy-cmd { background:var(--bg-elev,#222); padding:4px 8px; border-radius:6px; font-size:12px; direction:ltr; }
+      .learn-search-help { padding:14px; margin:8px 0; background:var(--bg-elev,#222); border-radius:10px; border-right:3px solid var(--gold,#e3b341); }
+      .learn-search-help-steps { margin:8px 0; padding-right:20px; font-size:13px; line-height:1.7; }
+      .learn-search-help code { background:var(--bg-card,#1a1a2e); padding:2px 6px; border-radius:4px; font-size:12px; direction:ltr; display:inline-block; }
       .learn-url-advanced { margin-top:12px; padding-top:12px; border-top:1px solid var(--line,#333); }
       .learn-url-advanced summary { cursor:pointer; font-size:13px; color:var(--text-dim,#999); }
     `;
@@ -707,6 +761,7 @@ const LearnHub = (() => {
       </div>
 
       <div class="learn-tab-panel active" data-panel="youtube">
+        <div id="learn-proxy-banner" class="learn-proxy-banner" hidden></div>
         <div class="learn-yt-search-wrap card">
           <form class="learn-yt-search-form" id="learn-yt-search-form">
             <input type="search" id="learn-yt-search-input" class="learn-yt-search-input"
@@ -822,6 +877,7 @@ const LearnHub = (() => {
     });
 
     _injectLearnStyles();
+    _checkProxyOnInit();
     _renderSongPicker();
     _renderLearningPanel();
     _renderOfflineLibrary();

@@ -5,7 +5,10 @@
 'use strict';
 
 const StemAPI = (() => {
-  const cfg = () => window.BOUZOUKI_CONFIG || {};
+  const cfg = () => ({
+    stemProxyUrl: 'http://127.0.0.1:3456',
+    ...(window.BOUZOUKI_CONFIG || {}),
+  });
 
   async function checkHealth() {
     const url = cfg().stemProxyUrl;
