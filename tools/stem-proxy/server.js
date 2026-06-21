@@ -132,7 +132,17 @@ app.get('/api/youtube-search', (req, res) => {
   const q = String(req.query.q || '').trim().slice(0, 120);
   if (q.length < 2) return res.status(400).json({ error: 'חיפוש קצר מדי' });
 
-  const args = ['--flat-playlist', '-j', '--no-warnings', '--no-download', `ytsearch12:${q}`];
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(10, parseInt(req.query.limit, 10) || 30));
+  const start = (page - 1) * limit + 1;
+  const end = page * limit;
+  const totalNeeded = end;
+
+  const args = [
+    '--flat-playlist', '-j', '--no-warnings', '--no-download',
+    '--playlist-items', `${start}-${end}`,
+    `ytsearch${totalNeeded}:${q}`,
+  ];
   const proc = spawn(YTDLP, args);
   let out = '';
   let errBuf = '';
@@ -162,8 +172,9 @@ app.get('/api/youtube-search', (req, res) => {
         });
       } catch { /* skip bad line */ }
     }
-    console.log(`[youtube-search] "${q}" → ${results.length} results`);
-    res.json({ results });
+    const hasMore = results.length >= limit;
+    console.log(`[youtube-search] "${q}" p${page} → ${results.length} results (hasMore=${hasMore})`);
+    res.json({ results, page, limit, hasMore });
   });
 });
 

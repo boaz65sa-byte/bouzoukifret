@@ -13,6 +13,12 @@ const LearnHub = (() => {
   let _activeTab = 'youtube';
   let _activePathId = 'zeibekiko';
   let _searchTitle = null;
+  let _searchQuery = '';
+  let _searchPage = 1;
+  let _searchResults = [];
+  let _searchHasMore = false;
+  let _searchMeta = null;
+  let _searchLoading = false;
 
   function _esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -612,46 +618,84 @@ const LearnHub = (() => {
     sel.innerHTML = opts.join('');
   }
 
-  async function _runYoutubeSearch(query) {
+  async function _runYoutubeSearch(query, { append = false } = {}) {
     const grid = document.getElementById('learn-search-results');
     const status = document.getElementById('learn-search-status');
-    if (!grid || typeof YoutubeSearch === 'undefined') return;
-    const q = String(query || '').trim();
+    if (!grid || typeof YoutubeSearch === 'undefined' || _searchLoading) return;
+    const q = String(query || _searchQuery || '').trim();
     if (q.length < 2) return;
 
-    grid.innerHTML = '<p class="learn-search-loading">מחפש בספרייה וב-YouTube…</p>';
-    if (status) status.textContent = 'מחפש…';
+    _searchLoading = true;
+    const nextPage = append ? _searchPage + 1 : 1;
 
-    const meta = await YoutubeSearch.search(q);
-    const { results, source, proxyOnline, localCount, needsRestart } = meta;
-
-    if (status) {
-      if (results.length) {
-        const parts = [`${results.length} תוצאות`];
-        if (localCount) parts.push(`${localCount} מהספרייה`);
-        if (source === 'ytdlp') parts.push('YouTube (yt-dlp)');
-        else if (source === 'invidious') parts.push('YouTube');
-        status.textContent = parts.join(' · ');
-      } else if (needsRestart) {
-        status.textContent = 'הפעילו מחדש את stem-proxy לחיפוש YouTube מלא (ראו הוראות למטה)';
-      } else if (!proxyOnline) {
-        status.textContent = 'stem-proxy לא פעיל — הפעילו אותו לחיפוש מלא (ראו הוראות למטה)';
-      } else {
-        status.textContent = 'לא נמצאו תוצאות — נסו מילים אחרות';
-      }
+    if (!append) {
+      _searchQuery = q;
+      _searchPage = 1;
+      _searchResults = [];
+      grid.innerHTML = '<p class="learn-search-loading">מחפש בספרייה וב-YouTube…</p>';
+      if (status) status.textContent = 'מחפש…';
+    } else {
+      const btn = grid.querySelector('.learn-search-more');
+      if (btn) { btn.disabled = true; btn.textContent = 'טוען…'; }
+      if (status) status.textContent = `טוען עמוד ${nextPage}…`;
     }
 
-    _updateProxyBanner(proxyOnline, needsRestart);
+    try {
+      const meta = await YoutubeSearch.search(q, { page: nextPage });
+      const { results, source, proxyOnline, localCount, needsRestart, hasMore } = meta;
 
-    YoutubeSearch.renderGrid(grid, results, {
-      activeId: _currentVideoId,
-      meta,
-      onSelect: (id, title) => {
-        _loadVideo(id, title);
-        document.getElementById('learn-yt-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      },
-      onDownload: (id, title) => _downloadForLearning(id, title),
-    });
+      let fresh = [];
+      if (append) {
+        fresh = results.filter(v => !_searchResults.some(x => x.videoId === v.videoId));
+        _searchResults = [..._searchResults, ...fresh];
+        _searchPage = nextPage;
+      } else {
+        _searchResults = results;
+        _searchPage = 1;
+      }
+      _searchHasMore = hasMore;
+      _searchMeta = meta;
+
+      if (status) {
+        if (_searchResults.length) {
+          const parts = [`${_searchResults.length} תוצאות`];
+          if (!append && localCount) parts.push(`${localCount} מהספרייה`);
+          if (source === 'ytdlp') parts.push('YouTube');
+          else if (source === 'invidious') parts.push('YouTube');
+          if (hasMore) parts.push('יש עוד — לחצו למטה');
+          status.textContent = parts.join(' · ');
+        } else if (needsRestart) {
+          status.textContent = 'הפעילו מחדש את stem-proxy לחיפוש YouTube מלא (ראו הוראות למטה)';
+        } else if (!proxyOnline) {
+          status.textContent = 'stem-proxy לא פעיל — הפעילו אותו לחיפוש מלא (ראו הוראות למטה)';
+        } else {
+          status.textContent = 'לא נמצאו תוצאות — נסו מילים אחרות';
+        }
+      }
+
+      _updateProxyBanner(proxyOnline, needsRestart);
+
+      const gridOpts = {
+        activeId: _currentVideoId,
+        meta: append ? null : meta,
+        hasMore: _searchHasMore,
+        append,
+        onLoadMore: () => _runYoutubeSearch(_searchQuery, { append: true }),
+        onSelect: (id, title) => {
+          _loadVideo(id, title);
+          document.getElementById('learn-yt-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        },
+        onDownload: (id, title) => _downloadForLearning(id, title),
+      };
+
+      if (append) {
+        YoutubeSearch.renderGrid(grid, fresh, gridOpts);
+      } else {
+        YoutubeSearch.renderGrid(grid, _searchResults, gridOpts);
+      }
+    } finally {
+      _searchLoading = false;
+    }
   }
 
   async function _updateProxyBanner(online, needsRestart) {
@@ -717,6 +761,8 @@ const LearnHub = (() => {
       .learn-search-help { padding:14px; margin:8px 0; background:var(--bg-elev,#222); border-radius:10px; border-right:3px solid var(--gold,#e3b341); }
       .learn-search-help-steps { margin:8px 0; padding-right:20px; font-size:13px; line-height:1.7; }
       .learn-search-help code { background:var(--bg-card,#1a1a2e); padding:2px 6px; border-radius:4px; font-size:12px; direction:ltr; display:inline-block; }
+      .learn-search-more-wrap { grid-column:1/-1; text-align:center; padding:12px 0 4px; }
+      .learn-search-more { width:100%; max-width:280px; }
       .learn-url-advanced { margin-top:12px; padding-top:12px; border-top:1px solid var(--line,#333); }
       .learn-url-advanced summary { cursor:pointer; font-size:13px; color:var(--text-dim,#999); }
     `;
