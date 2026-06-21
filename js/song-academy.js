@@ -51,6 +51,24 @@ const SongAcademy = (() => {
       sections:[{label:'כל השיר', dromos:'pireotikos'}]
     },
     {
+      id:'antilaloune', name:'Antilaloune ta Vouna', he:'ההרים מהדהדים', greek:'Αντιλαλούνε τα Βουνά',
+      artist:'מסורתי', era:'—', diff:2,
+      dromos:'pireotikos', root:'רה',
+      chords:['D','G','A7'], prog:'D – G – A7 – D',
+      phrase:{ frets:[0,2,4,5,7,9,11,12], desc:'מז׳ור פתוח וגאה — המנון זאימבקיקו' },
+      why:'הדרומוס הפיריאוטיקוס הבהיר — מז׳ור פתוח עם שלושה אקורדים בסיסיים.',
+      sections:[{label:'כל השיר', dromos:'pireotikos'}]
+    },
+    {
+      id:'zorba', name:'Zorba (Syrtaki)', he:'זורבה (סירטאקי)', greek:'Συρτάκι',
+      artist:'M. Theodorakis', era:'1964', diff:2,
+      dromos:'hitzaz', root:'רה',
+      chords:['Dm','A7'], prog:'Dm – A7 – Dm (מאיץ)',
+      phrase:{ frets:[0,1,4,5,7,8,7,5], desc:'האוסטינטו המטפס המפורסם' },
+      why:'חיג׳אז שמאיץ בהדרגה — מראה איך דרומוס אחד מחזיק מתח לאורך כל השיר.',
+      sections:[{label:'כל השיר', dromos:'hitzaz'}]
+    },
+    {
       id:'misirlou', name:'Misirlou', he:'מיסירלו', greek:'Μισιρλού',
       artist:'מסורתי / N. Roubanis', era:'1927', diff:2,
       dromos:'hitzaz', root:'רה',
@@ -78,6 +96,15 @@ const SongAcademy = (() => {
       sections:[{label:'כל השיר', dromos:'ousak'}]
     },
     {
+      id:'pente-ellines', name:'Pente Ellines ston Adi', he:'חמישה יוונים בשאול', greek:'Πέντε Έλληνες στον Άδη',
+      artist:'M. Theodorakis', era:'1960s', diff:3,
+      dromos:'hitzaz', root:'רה',
+      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
+      phrase:{ frets:[7,8,7,4,1,0], desc:'ירידה דרמטית במורד החיג׳אז' },
+      why:'חיג׳אז דרמטי — מחזק את זיהוי השנייה המוגברת בהקשר אחר.',
+      sections:[{label:'כל השיר', dromos:'hitzaz'}]
+    },
+    {
       id:'drapetsona', name:'Drapetsona', he:'דראפטסונה', greek:'Δραπετσώνα',
       artist:'M. Theodorakis', era:'1960', diff:3,
       dromos:'kiourdi', root:'לה',
@@ -94,6 +121,18 @@ const SongAcademy = (() => {
       phrase:{ frets:[0,2,3,5,3,2,0], desc:'מליסמה של שחר' },
       why:'מינור פשוט (דוריאן) — עוגן לפני שעוברים למודולציות.',
       sections:[{label:'כל השיר', dromos:'minore'}]
+    },
+    {
+      id:'roza', name:'Roza', he:'רוזה', greek:'Ρόζα',
+      artist:'M. Loizos', era:'1972', diff:4,
+      dromos:'ousak', root:'רה',
+      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 (פזמון למז׳ור)',
+      phrase:{ frets:[0,1,3,5,3,1,0], desc:'בית אוסאק נוגה, פזמון נפתח למז׳ור' },
+      why:'מודולציה בינונית: בית באוסאק (קינה), פזמון נפתח למז׳ור יחסי — ניגוד רגשי.',
+      sections:[
+        {label:'בית', dromos:'ousak'},
+        {label:'פזמון', dromos:'rast'}
+      ]
     },
     {
       id:'synnefiasmeni', name:'Synnefiasmeni Kyriaki', he:'יום ראשון מעונן', greek:'Συννεφιασμένη Κυριακή',
@@ -251,7 +290,7 @@ const SongAcademy = (() => {
   ];
 
   function renderSong() {
-    stopMic();
+    stopMic(); stopLoop(); stopStem();
     const app = document.getElementById('song-academy-app');
     if (!app || !activeSong) return;
     const s = activeSong, dr = DROMOI[s.dromos];
@@ -454,7 +493,13 @@ const SongAcademy = (() => {
         <button class="btn small" id="sa-bpm-up">+</button>
         <button class="btn gold" id="sa-loop-play">▶ נגן לולאה</button>
       </div>
-      <p class="sa-hint" style="margin-top:6px">💡 כל אקורד = תיבה אחת. כשהמעבר נקי ב-70, העלו ל-85, ואז ל-100.</p>`;
+      <p class="sa-hint" style="margin-top:6px">💡 כל אקורד = תיבה אחת. כשהמעבר נקי ב-70, העלו ל-85, ואז ל-100.</p>
+
+      <div class="sa-stem" id="sa-stem">
+        <div class="sa-stem-title">🎻 נגנו עם הבוזוקי המבודד</div>
+        <p class="sa-hint">העלו הקלטה של השיר — מנוע ההפרדה יבודד את <b>הבוזוקי בלבד</b>, ותוכלו לנגן יחד איתו, לאט ובלולאה.</p>
+        <div id="sa-stem-body"></div>
+      </div>`;
     let bpm = 70;
     const setBpm = v => { bpm = Math.max(50, Math.min(140, v)); document.getElementById('sa-bpm').textContent = bpm; if (loopState) { stopLoop(); startLoop(chords, bpm); } };
     document.getElementById('sa-bpm-down').addEventListener('click', ()=>setBpm(bpm-5));
@@ -463,6 +508,112 @@ const SongAcademy = (() => {
       if (loopState) { stopLoop(); document.getElementById('sa-loop-play').textContent = '▶ נגן לולאה'; }
       else { startLoop(chords, bpm); document.getElementById('sa-loop-play').textContent = '⏹ עצור'; }
     });
+    setupStemPanel();
+  }
+
+  /* ---------- הפרדת stems: נגינה עם בוזוקי מבודד ---------- */
+  let stemPlayer = { rate: 1, playing: false, loop: true, raf: null };
+
+  async function setupStemPanel() {
+    const body = document.getElementById('sa-stem-body');
+    if (!body) return;
+    body.innerHTML = '<div class="sa-hint">בודק זמינות מנוע הפרדה…</div>';
+
+    if (typeof StemAPI === 'undefined') { body.innerHTML = stemSetupHint(); return; }
+    let health = { ok:false };
+    try { health = await StemAPI.checkHealth(); } catch {}
+    const hasKey = !!(window.BOUZOUKI_CONFIG?.lalalLicenseKey);
+    if (!health.ok && !hasKey) { body.innerHTML = stemSetupHint(); return; }
+
+    body.innerHTML = `
+      <div class="sa-stem-ready">
+        <input type="file" id="sa-stem-file" accept="audio/*" style="display:none">
+        <button class="btn gold" id="sa-stem-pick">📁 בחרו קובץ אודיו לבידוד</button>
+        <span class="sa-stem-ok">✓ מנוע הפרדה זמין</span>
+      </div>
+      <div class="sa-stem-prog" id="sa-stem-prog" style="display:none">
+        <div class="sa-stem-bar"><div class="sa-stem-fill" id="sa-stem-fill"></div></div>
+        <div class="sa-stem-msg" id="sa-stem-msg"></div>
+      </div>
+      <div class="sa-stem-player" id="sa-stem-player" style="display:none"></div>`;
+    const input = document.getElementById('sa-stem-file');
+    document.getElementById('sa-stem-pick').addEventListener('click', () => input.click());
+    input.addEventListener('change', e => { if (e.target.files[0]) isolateAndLoad(e.target.files[0]); });
+  }
+
+  function stemSetupHint() {
+    return `<div class="sa-stem-hint">
+      ⚙️ כדי לבודד בוזוקי צריך <b>stem-proxy</b> פעיל + מפתח LALAL.ai.
+      <br><small>הריצו <code>tools/stem-proxy</code> והגדירו <code>stemProxyUrl</code> ב-<code>config.js</code>. ראו את ה-README בתיקיה.</small>
+      <br>בינתיים תוכלו לתרגל עם לולאת האקורדים למעלה ☝️</div>`;
+  }
+
+  async function isolateAndLoad(file) {
+    const prog = document.getElementById('sa-stem-prog');
+    const fill = document.getElementById('sa-stem-fill');
+    const msg = document.getElementById('sa-stem-msg');
+    const playerEl = document.getElementById('sa-stem-player');
+    prog.style.display = 'block';
+    playerEl.style.display = 'none';
+    const onProgress = (m, pct) => { if (msg) msg.textContent = m; if (fill) fill.style.width = (pct||0) + '%'; };
+    try {
+      const blob = await StemAPI.separate(file, { provider:'lalal', stem:'strings', onProgress });
+      onProgress('מפענח את הבוזוקי המבודד…', 99);
+      const ab = await blob.arrayBuffer();
+      const tmp = new (window.AudioContext||window.webkitAudioContext)();
+      const buf = await tmp.decodeAudioData(ab);
+      await tmp.close();
+      prog.style.display = 'none';
+      if (typeof PitchPreservingPlayer !== 'undefined') {
+        PitchPreservingPlayer.load(buf);
+        renderStemPlayer(buf.duration);
+      } else {
+        msg.textContent = 'נגן לא זמין';
+      }
+    } catch (err) {
+      onProgress('שגיאה: ' + err.message, 0);
+    }
+  }
+
+  function renderStemPlayer(duration) {
+    const el = document.getElementById('sa-stem-player');
+    if (!el) return;
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div class="sa-stem-ctrls">
+        <button class="btn gold" id="sa-stem-play">▶</button>
+        <label class="sa-stem-loop"><input type="checkbox" id="sa-stem-loopchk" checked> לולאה</label>
+        <select id="sa-stem-rate" class="ctrl-select" style="width:96px">
+          <option value="1">1× מהירות</option>
+          <option value="0.85">0.85×</option>
+          <option value="0.7">0.7× איטי</option>
+          <option value="0.5">0.5× איטי מאוד</option>
+        </select>
+      </div>
+      <div class="sa-hint">🎸 זה הבוזוקי לבד מהשיר — נגנו יחד איתו. האיטו ל-0.5× כדי לתפוס כל תו.</div>`;
+    const P = PitchPreservingPlayer;
+    const playBtn = document.getElementById('sa-stem-play');
+    playBtn.addEventListener('click', () => {
+      if (stemPlayer.playing) { P.pause(); stemPlayer.playing = false; playBtn.textContent = '▶'; cancelAnimationFrame(stemPlayer.raf); }
+      else { P.setTempo(stemPlayer.rate, true); P.play(); stemPlayer.playing = true; playBtn.textContent = '⏸'; loopWatch(duration); }
+    });
+    document.getElementById('sa-stem-loopchk').addEventListener('change', e => stemPlayer.loop = e.target.checked);
+    document.getElementById('sa-stem-rate').addEventListener('change', e => { stemPlayer.rate = parseFloat(e.target.value); P.setTempo(stemPlayer.rate, true); });
+  }
+
+  function loopWatch(duration) {
+    const P = PitchPreservingPlayer;
+    const tick = () => {
+      if (!stemPlayer.playing) return;
+      if (stemPlayer.loop && P.getCurrentTime() >= duration - 0.15) { P.seek(0); P.play(); }
+      else if (!P.isPlaying() && P.getCurrentTime() >= duration - 0.15) {
+        stemPlayer.playing = false;
+        const b = document.getElementById('sa-stem-play'); if (b) b.textContent = '▶';
+        return;
+      }
+      stemPlayer.raf = requestAnimationFrame(tick);
+    };
+    stemPlayer.raf = requestAnimationFrame(tick);
   }
   function startLoop(chords, bpm) {
     if (typeof AudioEngine==='undefined') return;
@@ -489,7 +640,12 @@ const SongAcademy = (() => {
     injectStyles();
     renderHome();
   }
-  function stop() { stopMic(); stopLoop(); endDrill(); }
+  function stopStem() {
+    if (stemPlayer.raf) cancelAnimationFrame(stemPlayer.raf);
+    stemPlayer.playing = false;
+    if (typeof PitchPreservingPlayer !== 'undefined') { try { PitchPreservingPlayer.pause(); } catch {} }
+  }
+  function stop() { stopMic(); stopLoop(); endDrill(); stopStem(); }
 
   function injectStyles() {
     if (document.getElementById('sa-styles')) return;
@@ -555,6 +711,19 @@ const SongAcademy = (() => {
       .sa-loop-ctrls { display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap; }
       .sa-bpm { font-size:14px; color:var(--text-dim,#999); }
       .sa-bpm b { font-size:18px; color:var(--text,#eee); }
+      .sa-stem { margin-top:18px; padding-top:14px; border-top:1px solid var(--line,#333); }
+      .sa-stem-title { font-size:15px; font-weight:700; color:var(--gold,#e3b341); margin-bottom:4px; }
+      .sa-stem-hint { font-size:13px; color:var(--text-dim,#999); background:rgba(255,255,255,.03); border-radius:8px; padding:10px 14px; line-height:1.6; }
+      .sa-stem-hint code { background:var(--bg-elev,#222); padding:1px 5px; border-radius:4px; font-size:12px; }
+      .sa-stem-ready { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0; }
+      .sa-stem-ok { font-size:12px; color:var(--ok,#27ae60); }
+      .sa-stem-prog { margin:10px 0; }
+      .sa-stem-bar { height:8px; background:var(--bg-elev,#222); border-radius:4px; overflow:hidden; }
+      .sa-stem-fill { height:100%; width:0%; background:var(--gold,#e3b341); transition:width .3s; }
+      .sa-stem-msg { font-size:12px; color:var(--text-dim,#999); margin-top:6px; text-align:center; }
+      .sa-stem-ctrls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 6px; }
+      .sa-stem-loop { font-size:13px; color:var(--text,#eee); display:flex; align-items:center; gap:4px; }
+      #sa-stem-play { width:44px; height:44px; border-radius:50%; font-size:18px; }
     `;
     document.head.appendChild(st);
   }
