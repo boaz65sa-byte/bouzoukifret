@@ -197,7 +197,7 @@ const PeniaLearn = (() => {
 })();
 
 /* ============================================================
-   DromosLearn — מסלול לימוד מודוסים
+   DromosLearn — מסלול לימוד מודוסים (מעשי)
    ============================================================ */
 const DromosLearn = (() => {
   const STORE = 'dromos-curriculum-progress-v1';
@@ -213,225 +213,258 @@ const DromosLearn = (() => {
     render(el);
   }
 
+  function stageKey(dc, i) { return `${dc.id}-${i}`; }
+
   function render(el) {
     const progress = loadProgress();
     el.innerHTML = '';
 
-    const edu = (typeof EDUCATION_CONTENT !== 'undefined') ? EDUCATION_CONTENT.modalCurriculum : null;
-
-    // כותרת
-    if (edu) {
-      const intro = document.createElement('div');
-      intro.className = 'card';
-      intro.innerHTML = `<p style="font-size:15px;line-height:1.7">${edu.intro.he}</p>`;
-      el.appendChild(intro);
-    }
-
-    // סיכום התקדמות
     const totalStages = DROMOS_CURRICULUM.reduce((s, d) => s + d.stages.length, 0);
     const doneStages = DROMOS_CURRICULUM.reduce((s, d) =>
-      s + d.stages.filter((st, i) => progress[d.id + '-' + i]).length, 0);
+      s + d.stages.filter((st, i) => progress[stageKey(d, i)]).length, 0);
     const pct = Math.round(doneStages / totalStages * 100);
+    const firstOpen = (() => {
+      for (const dc of DROMOS_CURRICULUM) {
+        const i = dc.stages.findIndex((st, idx) => !progress[stageKey(dc, idx)]);
+        if (i >= 0) return stageKey(dc, i);
+      }
+      return stageKey(DROMOS_CURRICULUM[0], 0);
+    })();
 
-    const summary = document.createElement('div');
-    summary.className = 'card';
-    summary.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h2 style="margin:0">התקדמות: ${doneStages} / ${totalStages} שלבים</h2>
-          <p style="margin:6px 0 0;color:var(--muted)">לחצו על כל שלב לסמן כהושלם</p>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:2.2rem;font-weight:900;color:var(--gold)">${pct}%</div>
-          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-        </div>
+    const header = document.createElement('div');
+    header.className = 'card penia-learn-header';
+    header.innerHTML = `
+      <h2 style="margin:0 0 8px">🎯 מסלול מודוסים מעשי — עשה, אל תקרא</h2>
+      <p class="hint" style="margin:0 0 12px">כל שלב: לוח סריגים · סריגים · צעדים · נגן. סמנו ✓ אחרי 5+ דקות תרגול.</p>
+      <div class="penia-learn-progress">
+        <span><strong>${doneStages}/${totalStages}</strong> שלבים</span>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <span class="penia-pct">${pct}%</span>
       </div>`;
-    el.appendChild(summary);
+    el.appendChild(header);
 
-    DROMOS_CURRICULUM.forEach((dc, dromosIdx) => {
+    DROMOS_CURRICULUM.forEach(dc => {
       const dromos = (typeof DROMOI !== 'undefined') ? DROMOI.find(d => d.id === dc.dromosId) : null;
-      const stagesDone = dc.stages.filter((st, i) => progress[dc.id + '-' + i]).length;
+      const stagesDone = dc.stages.filter((st, i) => progress[stageKey(dc, i)]).length;
       const allDone = stagesDone === dc.stages.length;
 
-      // חפש תוכן מ-EDUCATION_CONTENT
-      const eduLevel = edu ? edu.levels.find(l => l.dromos === dc.dromosId) : null;
-
-      const card = document.createElement('div');
-      card.className = 'dromos-learn-card card' + (allDone ? ' all-done' : '');
-
-      // כותרת דרומוס
-      const head = document.createElement('div');
-      head.className = 'dlc-head';
-      head.innerHTML = `
-        <span class="dlc-icon">${dc.icon}</span>
-        <div class="dlc-meta">
-          <h2 class="dlc-title">${dc.title}</h2>
-          <p class="dlc-sub">${dc.subtitle}</p>
-          ${eduLevel ? `<p class="dlc-level-badge">${eduLevel.level}</p>` : ''}
+      const section = document.createElement('section');
+      section.className = 'dpc-dromos-section card' + (allDone ? ' all-done' : '');
+      section.innerHTML = `
+        <div class="dpc-dromos-head">
+          <span class="dlc-icon">${dc.icon}</span>
+          <div>
+            <h2 class="dlc-title">${dc.title}</h2>
+            <p class="dlc-sub">${dc.subtitle}</p>
+            <p class="dpc-prog">${stagesDone}/${dc.stages.length} שלבים · אקורדים: ${dc.common_chords.join(', ')}</p>
+          </div>
         </div>
-        <div class="dlc-prog">${stagesDone} / ${dc.stages.length}</div>`;
-      card.appendChild(head);
+        <div class="penia-practical-grid dpc-stages-grid"></div>`;
+      const grid = section.querySelector('.dpc-stages-grid');
 
-      // אופי ותיאוריה מ-EDUCATION_CONTENT
-      if (eduLevel) {
-        const moodBox = document.createElement('div');
-        moodBox.className = 'dlc-mood-box';
-        moodBox.innerHTML = `
-          <div class="dlc-mood">"${eduLevel.mood.he}"</div>
-          <div class="dlc-theory-text">${eduLevel.theory}</div>`;
-        card.appendChild(moodBox);
-      }
-
-      // מרווחים מאפיינים
-      const intervals = document.createElement('div');
-      intervals.className = 'dlc-intervals';
-      intervals.innerHTML = `<b>מרווחים מאפיינים:</b> ${dc.characteristic_intervals.join(' · ')}`;
-      card.appendChild(intervals);
-
-      // שלבי לימוד עם תיבות סימון
-      const stagesWrap = document.createElement('div');
-      stagesWrap.className = 'dlc-stages';
       dc.stages.forEach((stage, i) => {
-        const done = !!progress[dc.id + '-' + i];
-        const stageEl = document.createElement('div');
-        stageEl.className = 'dlc-stage' + (done ? ' done' : '');
-        stageEl.innerHTML = `
-          <div class="dlc-stage-head">
-            <div class="dlc-stage-check ${done ? 'checked' : ''}" data-key="${dc.id}-${i}">✓</div>
-            <div>
-              <b>שלב ${stage.stage}: ${stage.title}</b>
-              <p>${stage.desc}</p>
-              <div class="dlc-ex">🎯 <b>תרגיל:</b> ${stage.exercise}</div>
+        const key = stageKey(dc, i);
+        const isDone = !!progress[key];
+        const isCurrent = key === firstOpen;
+        const practical = typeof DromosVisuals !== 'undefined' ? DromosVisuals.getPractical(dc.id, i) : null;
+        const frets = practical?.phraseFrets || practical?.frets || (typeof DromosVisuals !== 'undefined' ? DromosVisuals.getScaleFrets(dc.dromosId) : []);
+
+        const card = document.createElement('article');
+        card.className = 'penia-practical-card card dpc-stage-card' + (isDone ? ' done' : '') + (isCurrent ? ' current' : '');
+
+        card.innerHTML = `
+          <div class="ppc-head">
+            <span class="ppc-num">${stage.stage}</span>
+            <div class="ppc-title-wrap">
+              <h3>${stage.title}</h3>
+              <p class="ppc-focus">${practical?.caption || stage.desc}</p>
+              ${practical?.bpmStart ? `<span class="ppc-bpm">${practical.bpmStart} BPM להתחלה</span>` : ''}
             </div>
-          </div>`;
-        stageEl.querySelector('.dlc-stage-check').addEventListener('click', () => {
+            <button type="button" class="ppc-check ${isDone ? 'checked' : ''}" data-key="${key}" aria-label="סמן הושלם">✓</button>
+          </div>
+          <div class="ppc-visual" id="dpc-vis-${key}"></div>
+          <div class="dpc-fb-wrap" dir="ltr" id="dpc-fb-${key}"></div>
+          <div class="dpc-strip" id="dpc-strip-${key}"></div>
+          <div class="ppc-do">
+            <h4>עשה עכשיו</h4>
+            <ol class="ppc-steps"></ol>
+          </div>
+          ${practical?.check ? `<p class="ppc-checklist">✅ <b>עברת שלב כש:</b> ${practical.check}</p>` : ''}
+          <div class="ppc-strip-wrap" id="dpc-strokes-wrap-${key}" style="display:none">
+            <span class="ppc-strip-label">תבנית פריטה:</span>
+            <div class="ppc-strip" id="dpc-strokes-${key}"></div>
+          </div>
+          <div class="ppc-actions"></div>
+          <details class="ppc-theory">
+            <summary>📖 תיאוריה + טיפים</summary>
+            <p>${stage.desc}</p>
+            <p><b>תרגיל:</b> ${stage.exercise}</p>
+            <p><b>מרווחים:</b> ${dc.characteristic_intervals.join(' · ')}</p>
+            <ul>${dc.practice_tips.map(t => `<li>${t}</li>`).join('')}</ul>
+            ${dromos ? `<p class="ppc-tip">💡 ${dromos.tips}</p>` : ''}
+          </details>`;
+
+        const stepsOl = card.querySelector('.ppc-steps');
+        const steps = practical?.steps || [{ icon: '🎯', title: 'תרגיל', detail: stage.exercise }];
+        steps.forEach((st, si) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="ppc-step-n">${st.icon || si + 1}</span><div><strong>${st.title}</strong><p>${st.detail}</p></div>`;
+          stepsOl.appendChild(li);
+        });
+
+        if (typeof DromosVisuals !== 'undefined') {
+          if (practical?.visual) {
+            DromosVisuals.mountIllustration(card.querySelector(`#dpc-vis-${key}`), practical.visual);
+          }
+          const fbEl = card.querySelector(`#dpc-fb-${key}`);
+          if (practical?.chords) {
+            DromosVisuals.mountChordBoard(fbEl, practical.chords[0]);
+          } else if (frets.length) {
+            DromosVisuals.mountFretboard(fbEl, frets, { numbered: !!practical?.phraseFrets });
+          }
+          DromosVisuals.renderFretStrip(card.querySelector(`#dpc-strip-${key}`), frets);
+          if (practical?.strokes) {
+            const sw = card.querySelector(`#dpc-strokes-wrap-${key}`);
+            sw.style.display = '';
+            DromosVisuals.renderStrokeStrip(card.querySelector(`#dpc-strokes-${key}`), practical.strokes);
+          }
+        }
+
+        const actions = card.querySelector('.ppc-actions');
+        const fbContainer = card.querySelector(`#dpc-fb-${key}`);
+
+        if (practical?.playMode === 'scale' && frets.length) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn gold';
+          btn.textContent = '▶ נגן סולם (עלייה+ירידה)';
+          btn.addEventListener('click', () => {
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, frets, 300);
+          });
+          actions.appendChild(btn);
+        }
+        if (practical?.playMode === 'phrase' && practical.phraseFrets) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn gold';
+          btn.textContent = '▶ נגן פראזה (עם הדגשה)';
+          btn.addEventListener('click', () => {
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playPhraseAnimated(fbContainer, practical.phraseFrets, 320);
+          });
+          actions.appendChild(btn);
+        }
+        if (practical?.playMode === 'chords' && practical.chords) {
+          practical.chords.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn';
+            btn.textContent = `🔊 ${ch}`;
+            btn.addEventListener('click', () => {
+              const cKey = (typeof ChordTooltip !== 'undefined') ? ChordTooltip.resolveKey(ch) : ch;
+              if (typeof CHORDS !== 'undefined' && CHORDS[cKey] && typeof AudioEngine !== 'undefined') {
+                AudioEngine.ensureCtx();
+                AudioEngine.strumChord(CHORDS[cKey].shape, 'd', 0, 0.55);
+              }
+              if (typeof DromosVisuals !== 'undefined') DromosVisuals.mountChordBoard(fbContainer, ch);
+            });
+            actions.appendChild(btn);
+          });
+        }
+        if (practical?.playMode === 'compare' && practical.altFrets) {
+          const btnK = document.createElement('button');
+          btnK.type = 'button';
+          btnK.className = 'btn';
+          btnK.textContent = '▶ קיורדי';
+          btnK.addEventListener('click', () => {
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.frets, 280);
+          });
+          const btnO = document.createElement('button');
+          btnO.type = 'button';
+          btnO.className = 'btn';
+          btnO.textContent = '▶ אוסאק';
+          btnO.addEventListener('click', () => {
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.altFrets, 280);
+          });
+          actions.appendChild(btnK);
+          actions.appendChild(btnO);
+        }
+
+        const dromosBtn = document.createElement('button');
+        dromosBtn.type = 'button';
+        dromosBtn.className = 'btn secondary';
+        dromosBtn.textContent = '🛤️ מסך דרומוסים';
+        dromosBtn.addEventListener('click', () => {
+          document.querySelector('[data-screen="dromoi"]')?.click();
+          setTimeout(() => {
+            const idx = (typeof DROMOI !== 'undefined') ? DROMOI.findIndex(d => d.id === dc.dromosId) : -1;
+            document.querySelectorAll('.dromos-item')[idx]?.click();
+          }, 120);
+        });
+        actions.appendChild(dromosBtn);
+
+        const mmBtn = document.createElement('button');
+        mmBtn.type = 'button';
+        mmBtn.className = 'btn secondary';
+        mmBtn.textContent = '🎯 מאסטר מודוסים';
+        mmBtn.addEventListener('click', () => {
+          document.querySelector('[data-screen="master-modes"]')?.click();
+          setTimeout(() => {
+            const sel = document.querySelector('#mm-dromos-select');
+            if (sel) {
+              for (const opt of sel.options) {
+                if (opt.value === dc.dromosId) { opt.selected = true; break; }
+              }
+              sel.dispatchEvent(new Event('change'));
+            }
+          }, 120);
+        });
+        actions.appendChild(mmBtn);
+
+        if (practical?.peniaStage) {
+          const penBtn = document.createElement('button');
+          penBtn.type = 'button';
+          penBtn.className = 'btn secondary';
+          penBtn.textContent = '🤘 מסלול פנייה';
+          penBtn.addEventListener('click', () => document.querySelector('[data-screen="penia-learn"]')?.click());
+          actions.appendChild(penBtn);
+        }
+        if (practical?.navScreen === 'backing') {
+          const btBtn = document.createElement('button');
+          btBtn.type = 'button';
+          btBtn.className = 'btn secondary';
+          btBtn.textContent = '🎵 רצועות ליווי';
+          btBtn.addEventListener('click', () => document.querySelector('[data-screen="backing"]')?.click());
+          actions.appendChild(btBtn);
+        }
+        if (practical?.songId) {
+          const songBtn = document.createElement('button');
+          songBtn.type = 'button';
+          songBtn.className = 'btn secondary';
+          songBtn.textContent = '🎵 שיר בספרייה';
+          songBtn.addEventListener('click', () => {
+            document.querySelector('[data-screen="songs"]')?.click();
+            setTimeout(() => {
+              if (typeof SongLibrary !== 'undefined' && SongLibrary.openSongById) SongLibrary.openSongById(practical.songId);
+            }, 150);
+          });
+          actions.appendChild(songBtn);
+        }
+
+        card.querySelector('.ppc-check').addEventListener('click', () => {
           const p = loadProgress();
-          p[dc.id + '-' + i] = !p[dc.id + '-' + i];
+          p[key] = !p[key];
           saveProgress(p);
           render(el);
         });
-        stagesWrap.appendChild(stageEl);
-      });
-      card.appendChild(stagesWrap);
 
-      // פראזות אופייניות מ-EDUCATION_CONTENT
-      if (eduLevel && eduLevel.characteristicPhrases && eduLevel.characteristicPhrases.length) {
-        const phrasesSection = document.createElement('div');
-        phrasesSection.className = 'dlc-phrases';
-        phrasesSection.innerHTML = `<h3 class="dlc-section-title">🎵 פראזות אופייניות</h3>`;
-        const phrasesGrid = document.createElement('div');
-        phrasesGrid.className = 'dlc-phrases-grid';
-        eduLevel.characteristicPhrases.forEach(ph => {
-          const p = document.createElement('div');
-          p.className = 'dlc-phrase-card';
-          p.innerHTML = `
-            <div class="dlc-phrase-name">${ph.name}</div>
-            <div class="dlc-phrase-desc">${ph.desc}</div>
-            ${ph.tab ? `<div class="dlc-phrase-tab" dir="ltr">${ph.tab}</div>` : ''}
-            ${ph.strokes ? `<div class="dlc-phrase-strokes">${ph.strokes}</div>` : ''}`;
-          phrasesGrid.appendChild(p);
-        });
-        phrasesSection.appendChild(phrasesGrid);
-        card.appendChild(phrasesSection);
-      }
-
-      // תרגילים מ-EDUCATION_CONTENT
-      if (eduLevel && eduLevel.exercises && eduLevel.exercises.length) {
-        const exSection = document.createElement('div');
-        exSection.className = 'dlc-edu-exercises';
-        exSection.innerHTML = `
-          <h3 class="dlc-section-title">🎼 תרגילים מפורטים</h3>
-          <div class="dlc-ex-grid"></div>`;
-        const exGrid = exSection.querySelector('.dlc-ex-grid');
-        eduLevel.exercises.forEach(ex => {
-          const div = document.createElement('div');
-          div.className = 'dlc-ex-card';
-          div.innerHTML = `
-            <div class="dlc-ex-name">${ex.name} <span class="dlc-ex-bpm">${ex.bpm} BPM</span></div>
-            <div class="dlc-ex-desc">${ex.desc}</div>
-            ${ex.tab ? `<div class="dlc-ex-tab" dir="ltr">${ex.tab}</div>` : ''}
-            ${ex.focus ? `<div class="dlc-ex-focus">🎯 ${ex.focus}</div>` : ''}`;
-          exGrid.appendChild(div);
-        });
-        card.appendChild(exSection);
-      }
-
-      // שירים לדוגמה
-      if (eduLevel && eduLevel.exampleSongs) {
-        const songsDiv = document.createElement('div');
-        songsDiv.className = 'dlc-example-songs';
-        songsDiv.innerHTML = `<h3 class="dlc-section-title">🎶 שירים לאזנה</h3>
-          <ul class="dlc-songs-list">
-            ${eduLevel.exampleSongs.map(s =>
-              `<li><b>${s.name}</b> — ${s.artist}<br><small style="color:var(--text-dim)">${s.note}</small></li>`
-            ).join('')}
-          </ul>`;
-        card.appendChild(songsDiv);
-      }
-
-      // אקורדים ופרוגרסיות
-      if (eduLevel && eduLevel.chordProgressions) {
-        const chordsDiv = document.createElement('div');
-        chordsDiv.className = 'dlc-chord-progressions';
-        chordsDiv.innerHTML = `<h3 class="dlc-section-title">🎸 פרוגרסיות אקורדים</h3>
-          <div class="dlc-prog-list">
-            ${eduLevel.chordProgressions.map(cp =>
-              `<div class="dlc-prog-item">
-                <div class="dlc-prog-name">${cp.name}</div>
-                <div class="dlc-prog-chords" dir="ltr">${cp.prog}</div>
-                <div class="dlc-prog-desc">${cp.desc}</div>
-              </div>`
-            ).join('')}
-          </div>`;
-        card.appendChild(chordsDiv);
-      }
-
-      // כפתורי ניווט
-      const footer = document.createElement('div');
-      footer.className = 'dlc-footer';
-      footer.innerHTML = `
-        <div class="dlc-chords"><b>אקורדים עיקריים:</b> ${dc.common_chords.join(', ')}</div>
-        <div class="dlc-tips"><b>טיפים:</b><ul>${dc.practice_tips.map(t => `<li>${t}</li>`).join('')}</ul></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn small dlc-go-dromos" data-dromos="${dc.dromosId}">🛤️ דרומוסים</button>
-          <button class="btn small dlc-go-mm" data-dromos="${dc.dromosId}">🎯 מאסטר מודוסים</button>
-          <button class="btn small dlc-go-listen" data-dromos="${dc.dromosId}">🎤 מאמן מאזין</button>
-        </div>`;
-      card.appendChild(footer);
-
-      // event listeners
-      footer.querySelector('.dlc-go-dromos').addEventListener('click', () => {
-        document.querySelector('[data-screen="dromoi"]').click();
-        setTimeout(() => {
-          const idx = (typeof DROMOI !== 'undefined') ? DROMOI.findIndex(d => d.id === dc.dromosId) : -1;
-          const items = document.querySelectorAll('.dromos-item');
-          if (idx >= 0 && items[idx]) items[idx].click();
-        }, 150);
+        grid.appendChild(card);
       });
 
-      footer.querySelector('.dlc-go-mm').addEventListener('click', () => {
-        document.querySelector('[data-screen="master-modes"]').click();
-        setTimeout(() => {
-          const sel = document.querySelector('#mm-dromos-select');
-          if (sel) {
-            for (const opt of sel.options) {
-              if (opt.value === dc.dromosId) { opt.selected = true; break; }
-            }
-            sel.dispatchEvent(new Event('change'));
-          }
-        }, 150);
-      });
-
-      footer.querySelector('.dlc-go-listen').addEventListener('click', () => {
-        document.querySelector('[data-screen="listen"]').click();
-      });
-
-      el.appendChild(card);
+      el.appendChild(section);
     });
 
-    // איפוס
     const resetWrap = document.createElement('div');
-    resetWrap.style.cssText = 'text-align:center;margin-top:16px;';
+    resetWrap.className = 'penia-reset-wrap';
     const resetBtn = document.createElement('button');
     resetBtn.className = 'btn';
     resetBtn.textContent = 'איפוס התקדמות';

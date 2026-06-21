@@ -128,6 +128,45 @@ app.post('/api/separate', upload.single('file'), async (req, res) => {
   }
 });
 
+app.get('/api/youtube-search', (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 120);
+  if (q.length < 2) return res.status(400).json({ error: 'חיפוש קצר מדי' });
+
+  const args = ['--flat-playlist', '-j', '--no-warnings', '--no-download', `ytsearch12:${q}`];
+  const proc = spawn(YTDLP, args);
+  let out = '';
+  let errBuf = '';
+  proc.stdout.on('data', (d) => { out += d.toString(); });
+  proc.stderr.on('data', (d) => { errBuf += d.toString(); });
+  proc.on('error', (e) => {
+    res.status(500).json({ error: `yt-dlp לא נמצא (${e.message})` });
+  });
+  proc.on('close', (code) => {
+    if (code !== 0) {
+      console.error('[youtube-search] failed:', errBuf.slice(-300));
+      return res.status(502).json({ error: 'חיפוש YouTube נכשל' });
+    }
+    const results = [];
+    for (const line of out.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        const j = JSON.parse(line);
+        const id = j.id || j.video_id;
+        if (!id || id.length !== 11) continue;
+        results.push({
+          videoId: id,
+          title: j.title || '',
+          author: j.channel || j.uploader || '',
+          lengthSeconds: typeof j.duration === 'number' ? j.duration : null,
+          thumbUrl: j.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        });
+      } catch { /* skip bad line */ }
+    }
+    console.log(`[youtube-search] "${q}" → ${results.length} results`);
+    res.json({ results });
+  });
+});
+
 app.get('/api/youtube-audio', (req, res) => {
   const id = String(req.query.id || '').trim();
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).json({ error: 'מזהה YouTube לא תקין' });

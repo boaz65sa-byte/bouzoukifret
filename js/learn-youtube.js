@@ -12,6 +12,7 @@ const LearnHub = (() => {
   let _currentVideoId = null;
   let _activeTab = 'youtube';
   let _activePathId = 'zeibekiko';
+  let _searchTitle = null;
 
   function _esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -111,10 +112,13 @@ const LearnHub = (() => {
     if (host) host.innerHTML = '';
   }
 
-  function _loadVideo(videoId) {
+  function _loadVideo(videoId, title) {
     if (!videoId) return;
     _currentVideoId = videoId;
+    _searchTitle = title || null;
     _currentSong = _findSongByYoutubeId(videoId);
+    const urlIn = document.getElementById('learn-url-input');
+    if (urlIn) urlIn.value = `https://youtu.be/${videoId}`;
     _renderLearningPanel();
     _ensureYtApi().then(() => {
       const host = document.getElementById('learn-yt-host');
@@ -206,10 +210,10 @@ const LearnHub = (() => {
     el.classList.toggle('learn-dl-err', ok === false);
   }
 
-  async function _downloadForLearning() {
-    const id = _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
+  async function _downloadForLearning(videoId, titleOverride) {
+    const id = videoId || _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
     if (!id) {
-      alert('הדביקו קישור YouTube או בחרו שיר מהרשימה');
+      alert('בחרו סרטון מהחיפוש או מהרשימה');
       return;
     }
     if (typeof StemAPI === 'undefined' || !StemAPI.downloadForLearning) {
@@ -218,7 +222,7 @@ const LearnHub = (() => {
     }
 
     const btn = document.getElementById('learn-download-mp3');
-    const title = _currentSong?.titleHe || _currentSong?.title || id;
+    const title = titleOverride || _searchTitle || _currentSong?.titleHe || _currentSong?.title || id;
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מוריד…'; }
     _setDownloadStatus('מתחיל הורדה…', null);
 
@@ -411,7 +415,7 @@ const LearnHub = (() => {
         </div>
         <div id="learn-manual-path-out"></div>`;
     } else {
-      html += `<p class="hint">הדביקו קישור YouTube או בחרו שיר מהרשימה — הלימוד יכלול מודוס, פריטה, אקורדים ותרגילים.</p>`;
+      html += `<p class="hint">חפשו למעלה או בחרו שיר — הלימוד יכלול מודוס, פריטה, אקורדים ותרגילים.</p>`;
     }
 
     if (path) {
@@ -608,6 +612,63 @@ const LearnHub = (() => {
     sel.innerHTML = opts.join('');
   }
 
+  async function _runYoutubeSearch(query) {
+    const grid = document.getElementById('learn-search-results');
+    const status = document.getElementById('learn-search-status');
+    if (!grid || typeof YoutubeSearch === 'undefined') return;
+    const q = String(query || '').trim();
+    if (q.length < 2) return;
+
+    grid.innerHTML = '<p class="learn-search-loading">מחפש…</p>';
+    if (status) status.textContent = '';
+
+    const { results, source } = await YoutubeSearch.search(q);
+    if (status) {
+      status.textContent = results.length
+        ? `${results.length} תוצאות${source === 'ytdlp' ? ' (דרך yt-dlp)' : source === 'invidious' ? '' : ''}`
+        : 'לא נמצאו תוצאות — ודאו ש-stem-proxy פעיל או נסו חיפוש אחר';
+    }
+
+    YoutubeSearch.renderGrid(grid, results, {
+      activeId: _currentVideoId,
+      onSelect: (id, title) => {
+        _loadVideo(id, title);
+        document.getElementById('learn-yt-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+      onDownload: (id, title) => _downloadForLearning(id, title),
+    });
+  }
+
+  function _injectLearnStyles() {
+    if (document.getElementById('learn-yt-search-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'learn-yt-search-styles';
+    s.textContent = `
+      .learn-yt-browse { display:grid; grid-template-columns:minmax(280px,38%) 1fr; gap:14px; align-items:start; }
+      @media (max-width:900px) { .learn-yt-browse { grid-template-columns:1fr; } }
+      .learn-yt-search-form { display:flex; gap:8px; margin-bottom:8px; }
+      .learn-yt-search-input { flex:1; background:var(--bg-elev,#222); border:1px solid var(--line,#444); border-radius:24px; padding:12px 18px; color:var(--text,#eee); font-size:15px; }
+      .learn-yt-search-input:focus { outline:none; border-color:var(--gold,#e3b341); }
+      .learn-search-results { display:flex; flex-direction:column; gap:10px; max-height:min(72vh,720px); overflow-y:auto; padding-left:2px; }
+      .learn-search-loading,.learn-search-empty { text-align:center; color:var(--text-dim,#999); font-size:13px; padding:24px 8px; }
+      .learn-search-status { font-size:12px; color:var(--text-dim,#999); margin:0 0 8px; }
+      .learn-yt-card { display:flex; gap:10px; padding:8px; border-radius:10px; cursor:pointer; transition:background .15s; border:1px solid transparent; }
+      .learn-yt-card:hover { background:var(--bg-elev,#222); }
+      .learn-yt-card.active { background:rgba(227,179,65,.08); border-color:var(--gold,#e3b341); }
+      .learn-yt-card-thumb-wrap { position:relative; flex-shrink:0; width:168px; }
+      .learn-yt-card-thumb { width:168px; aspect-ratio:16/9; object-fit:cover; border-radius:8px; background:#111; display:block; }
+      .learn-yt-card-dur { position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,.82); color:#fff; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:700; }
+      .learn-yt-card-dl { position:absolute; top:6px; left:6px; width:32px; height:32px; border-radius:50%; border:none; background:rgba(0,0,0,.7); cursor:pointer; font-size:14px; opacity:0; transition:opacity .15s; }
+      .learn-yt-card:hover .learn-yt-card-dl,.learn-yt-card-dl:focus { opacity:1; }
+      .learn-yt-card-body { min-width:0; flex:1; padding-top:2px; }
+      .learn-yt-card-title { margin:0 0 4px; font-size:14px; font-weight:600; color:var(--text,#eee); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+      .learn-yt-card-meta { margin:0; font-size:12px; color:var(--text-dim,#999); }
+      .learn-url-advanced { margin-top:12px; padding-top:12px; border-top:1px solid var(--line,#333); }
+      .learn-url-advanced summary { cursor:pointer; font-size:13px; color:var(--text-dim,#999); }
+    `;
+    document.head.appendChild(s);
+  }
+
   function _renderTabs() {
     document.querySelectorAll('.learn-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tab === _activeTab);
@@ -646,24 +707,41 @@ const LearnHub = (() => {
       </div>
 
       <div class="learn-tab-panel active" data-panel="youtube">
-        <div class="learn-yt-layout">
-          <div class="learn-yt-side">
-            <div class="learn-url-row card">
-              <label for="learn-url-input">קישור YouTube (ללא הורדה)</label>
-              <div class="learn-url-inputs">
-                <input id="learn-url-input" type="url" placeholder="https://youtube.com/watch?v=..." dir="ltr" />
-                <button type="button" class="btn primary" id="learn-url-load">טען</button>
-              </div>
-              <label for="learn-song-select">או בחר מהספרייה</label>
-              <select id="learn-song-select" class="learn-select"></select>
+        <div class="learn-yt-search-wrap card">
+          <form class="learn-yt-search-form" id="learn-yt-search-form">
+            <input type="search" id="learn-yt-search-input" class="learn-yt-search-input"
+              placeholder="חפשו כמו ב-YouTube — Misirlou bouzouki, Τσιτσάνης, ζεϊμπέκικο…" autocomplete="off" />
+            <button type="submit" class="btn gold">🔍 חיפוש</button>
+          </form>
+          <p class="hint">לחצו על סרטון לנגן · 📥 על התמונה להורדה ישירה (ללא העתקת קישור)</p>
+        </div>
+
+        <div class="learn-yt-browse">
+          <div class="learn-yt-results-col card">
+            <p id="learn-search-status" class="learn-search-status">הקלידו וחפשו — או בחרו מהספרייה למטה</p>
+            <div id="learn-search-results" class="learn-search-results">
+              <p class="learn-search-empty">תוצאות החיפוש יופיעו כאן בסגנון YouTube</p>
             </div>
-            <div id="learn-panel" class="learn-panel"></div>
-            <div class="learn-offline card" id="learn-offline-card">
+            <details class="learn-url-advanced">
+              <summary>קישור ידני / ספריית שירים</summary>
+              <div class="learn-url-row" style="margin-top:10px">
+                <label for="learn-url-input">קישור YouTube</label>
+                <div class="learn-url-inputs">
+                  <input id="learn-url-input" type="url" placeholder="https://youtube.com/watch?v=..." dir="ltr" />
+                  <button type="button" class="btn primary" id="learn-url-load">טען</button>
+                </div>
+                <label for="learn-song-select">או מהספרייה</label>
+                <select id="learn-song-select" class="learn-select"></select>
+              </div>
+            </details>
+            <div id="learn-panel" class="learn-panel" style="margin-top:12px"></div>
+            <div class="learn-offline card" id="learn-offline-card" style="margin-top:12px">
               <h4>📥 ספריית לימוד — שירים שמורים</h4>
-              <p class="hint learn-offline-note">להורדה אישית ללימוד בלבד · דרך yt-dlp בפרוקסי המקומי · אחרי שמירה אפשר לנתח offline</p>
+              <p class="hint learn-offline-note">הורדה אישית ללימוד בלבד · stem-proxy + yt-dlp</p>
               <div id="learn-offline-list"></div>
             </div>
           </div>
+
           <div class="learn-yt-main card">
             <div class="learn-yt-toolbar">
               <span>מהירות:</span>
@@ -676,7 +754,7 @@ const LearnHub = (() => {
             </div>
             <p id="learn-download-status" class="hint learn-download-status" hidden></p>
             <div id="learn-yt-host" class="learn-yt-host">
-              <p class="hint learn-yt-placeholder">הדביקו קישור או בחרו שיר — הנגן יופיע כאן</p>
+              <p class="hint learn-yt-placeholder">בחרו סרטון מהחיפוש — הנגן יופיע כאן</p>
             </div>
           </div>
         </div>
@@ -725,17 +803,25 @@ const LearnHub = (() => {
     document.getElementById('learn-url-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') document.getElementById('learn-url-load').click();
     });
+    document.getElementById('learn-yt-search-form')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const q = document.getElementById('learn-yt-search-input')?.value;
+      if (q?.trim()) _runYoutubeSearch(q.trim());
+    });
     document.getElementById('learn-song-select').addEventListener('change', e => {
       const id = e.target.value;
       if (id) {
+        const opt = e.target.selectedOptions[0];
+        const title = opt?.textContent?.replace(/^\s*⭐\s*/, '').trim();
         document.getElementById('learn-url-input').value = 'https://youtu.be/' + id;
-        _loadVideo(id);
+        _loadVideo(id, title);
       }
     });
     document.querySelectorAll('.learn-speed-btn').forEach(btn => {
       btn.addEventListener('click', () => _setPlaybackRate(parseFloat(btn.dataset.rate)));
     });
 
+    _injectLearnStyles();
     _renderSongPicker();
     _renderLearningPanel();
     _renderOfflineLibrary();
