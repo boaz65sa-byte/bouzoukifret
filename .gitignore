@@ -4,3 +4,6 @@ package-lock.json
 *.log
 penia-master/config.js
 config.js
+
+# החרגות — קבצים שכן צריכים להיכנס ל-git
+!tools/stem-proxy/package.json

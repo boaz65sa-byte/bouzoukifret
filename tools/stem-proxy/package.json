@@ -1,0 +1,19 @@
+{
+  "name": "bouzouki-stem-proxy",
+  "version": "1.0.0",
+  "description": "Relay server for LALAL.ai stem separation + YouTube audio download",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "start:noenv": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^2.0.1"
+  }
+}
