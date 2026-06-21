@@ -105,12 +105,39 @@ const SongAcademy = (() => {
       sections:[{label:'כל השיר', dromos:'ousak'}]
     },
     {
+      id:'strose-stroma', name:'Strose to Stroma sou', he:'הציעי את מצעך', greek:'Στρώσε το Στρώμα σου',
+      artist:'M. Hadjidakis', era:'1950s', diff:2,
+      dromos:'minore', root:'לה',
+      chords:['Am','E7'], prog:'Am – E7 – Am',
+      phrase:{ frets:[0,2,3,5,3,2,0], desc:'מינור פשוט עם שני אקורדים' },
+      why:'שני אקורדים בלבד (Am↔E7) — מצוין לאימון המעבר הקלאסי של הרבטיקו.',
+      sections:[{label:'כל השיר', dromos:'minore'}]
+    },
+    {
+      id:'apo-kseno-topo', name:'Apo Kseno Topo', he:'מארץ זרה', greek:'Από Ξένο Τόπο',
+      artist:'סמירנאיקו מסורתי', era:'1920s', diff:3,
+      dromos:'hitzaz', root:'רה',
+      chords:['Dm','A7'], prog:'Dm – A7 – Dm',
+      phrase:{ frets:[0,1,4,5,4,1,0], desc:'"הנערה מארץ זרה" — פראזת חיג׳אז קלאסית' },
+      why:'מהשירים הסמירנאיים האהובים — חיג׳אז טהור ומזוהה.',
+      sections:[{label:'כל השיר', dromos:'hitzaz'}]
+    },
+    {
       id:'kaimos', name:'Kaimos', he:'קאימוס (כאב)', greek:'Καημός',
       artist:'V. Tsitsanis', era:'1950s', diff:3,
       dromos:'hitzaz', root:'רה',
       chords:['Dm','A7','Gm'], prog:'Dm – A7 – Dm – Gm – A7 – Dm',
       phrase:{ frets:[0,1,4,5,7,8,7,4,1,0], desc:'זאימבקיקו חיג׳אז עמוק' },
       why:'אחד הזאימבקיקו היפים — חיג׳אז בהקשר איטי ורגשי.',
+      sections:[{label:'כל השיר', dromos:'hitzaz'}]
+    },
+    {
+      id:'chaidari', name:'Chaidari', he:'חאידארי', greek:'Χαϊδάρι',
+      artist:'V. Tsitsanis', era:'1940s', diff:3,
+      dromos:'hitzaz', root:'רה',
+      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
+      phrase:{ frets:[4,5,4,1,0,1,4], desc:'פראזה סובבת סביב המי♭→פה#' },
+      why:'חיג׳אז של טסיטסאניס — מחזק את הזיהוי בהקשר זאימבקיקו.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
     },
     {
@@ -156,6 +183,24 @@ const SongAcademy = (() => {
       chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
       phrase:{ frets:[0,2,3,5,7,5,3,2,0], desc:'מינור גאה ונוגע' },
       why:'מינורה (דוריאן) בהקשר המנוני — עוגן נוסף למינור הפשוט.',
+      sections:[{label:'כל השיר', dromos:'minore'}]
+    },
+    {
+      id:'archontissa', name:'Archontissa', he:'הגבירה', greek:'Αρχόντισσα',
+      artist:'M. Hiotis', era:'1950s', diff:3,
+      dromos:'rast', root:'רה',
+      chords:['D','G','A7'], prog:'D – G – A7 – D',
+      phrase:{ frets:[0,2,4,5,7,9,7,5], desc:'ראסט בהיר ואלגנטי' },
+      why:'ראסט אלגנטי של חיוטיס — מז׳ור יווני קלאסי.',
+      sections:[{label:'כל השיר', dromos:'rast'}]
+    },
+    {
+      id:'zeibekiko-anazito', name:"Zeibekiko (S'anazito)", he:'זאימבקיקו (מחפש אותך)', greek:'Σ’ αναζητώ στη Σαλονίκη',
+      artist:'Th. Mikroutsikos', era:'1991', diff:4,
+      dromos:'minore', root:'לה',
+      chords:['Am','Dm','E7'], prog:'Am – Dm – E7 – Am',
+      phrase:{ frets:[7,9,10,9,7,5,3,2,0], desc:'מינור מודרני ודרמטי' },
+      why:'זאימבקיקו מודרני אהוב — מינורה במשקל 9/4 רגשי.',
       sections:[{label:'כל השיר', dromos:'minore'}]
     },
     {
