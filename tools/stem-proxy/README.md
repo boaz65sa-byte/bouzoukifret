@@ -40,14 +40,26 @@ window.BOUZOUKI_CONFIG = {
 ⚠️ **Vercel / Netlify לא מתאימים** — הפרדת stems לוקחת 1-3 דקות (חורג מ-timeout של serverless),
 ו-yt-dlp דורש בינארי. השתמש בפלטפורמה שמריצה שרת Node מתמשך:
 
-### Render.com (הכי פשוט)
-1. צור Web Service חדש, חבר את הריפו, root = `tools/stem-proxy`
-2. Build: `npm install` · Start: `node server.js`
-3. Environment → הוסף `LALAL_LICENSE_KEY` ו-`ALLOW_ORIGIN` (כתובת האפליקציה)
-4. ל-yt-dlp: הוסף build command `pip install yt-dlp` (Render תומך ב-Python)
+### Render.com — בלחיצה אחת (Blueprint + Docker)
+הריפו כולל `render.yaml` ו-`Dockerfile` (כולל yt-dlp + ffmpeg מובנים).
+1. [render.com](https://render.com) → **New → Blueprint** → חבר את הריפו → Render יזהה את `render.yaml`
+2. אחרי היצירה: **Dashboard → Environment** → הוסף `LALAL_LICENSE_KEY` (הסוד שלך)
+3. עדכן `ALLOW_ORIGIN` לכתובת האפליקציה (במקום `*`)
+4. עדכן ב-`config.js`: `stemProxyUrl: 'https://<your-service>.onrender.com'`
 
-### Railway / Fly.io / VPS
-זהה — `npm install && node server.js`, הגדר את משתני הסביבה, התקן yt-dlp.
+> ⚠️ **Free tier**: השירות "נרדם" אחרי 15 דק׳ חוסר פעילות — הבקשה הראשונה איטית (~50 שניות).
+> לשימוש קבוע שדרג ל-Starter, או השתמש ב-Railway.
+
+### Railway / Fly.io (גם Docker)
+שתיהן קוראות את ה-`Dockerfile` אוטומטית. הגדר את משתני הסביבה ב-Dashboard.
+
+### VPS ידני
+```bash
+cd tools/stem-proxy && npm install
+cp .env.example .env   # הכנס LALAL_LICENSE_KEY
+# התקן yt-dlp: pip install yt-dlp
+node server.js
+```
 
 לאחר הפריסה עדכן ב-`config.js`: `stemProxyUrl: 'https://your-proxy.onrender.com'`.
 

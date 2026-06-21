@@ -1,0 +1,18 @@
+# Render blueprint — שרת הפרדת בוזוקי (stem-proxy)
+# פריסה: render.com → New → Blueprint → חבר את הריפו.
+# אחרי הפריסה הוסף ב-Dashboard את LALAL_LICENSE_KEY ועדכן ALLOW_ORIGIN.
+services:
+  - type: web
+    name: bouzouki-stem-proxy
+    runtime: docker
+    dockerfilePath: ./tools/stem-proxy/Dockerfile
+    dockerContext: ./tools/stem-proxy
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: LALAL_LICENSE_KEY
+        sync: false          # מוגדר ידנית ב-Dashboard (סוד)
+      - key: ALLOW_ORIGIN
+        value: "*"           # בפרודקשן: כתובת האפליקציה בלבד
+      - key: PORT
+        value: "3456"
