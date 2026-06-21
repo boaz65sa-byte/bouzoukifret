@@ -278,6 +278,10 @@ const SongLearn = (() => {
     'https://invidious.nerdvpn.de',
     'https://invidious.privacydev.net',
     'https://iv.melmac.space',
+    'https://invidious.jing.rocks',
+    'https://yewtu.be',
+    'https://invidious.f5.si',
+    'https://invidious.materialio.us',
   ];
 
   async function invidiousFetch(path) {
@@ -290,13 +294,28 @@ const SongLearn = (() => {
     return null;
   }
 
+  /* כשחיפוש Invidious נכשל — מטמיעים נגן חיפוש של YouTube + קישור גיבוי */
+  function ytSearchFallback(query) {
+    const q = encodeURIComponent(query);
+    return `
+      <div class="sl-yt-fallback">
+        <div class="sl-searching">שירות החיפוש לא זמין כעת — מציג ישירות מ-YouTube:</div>
+        <div class="sl-yt-embed">
+          <iframe src="https://www.youtube-nocookie.com/embed?listType=search&list=${q}"
+            title="${query}" loading="lazy"
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <a class="sl-yt-openlink" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">לא נטען? פתחו ב-YouTube ↗</a>
+      </div>`;
+  }
+
   async function searchYouTube(query) {
     showError('');
     const grid = document.getElementById('sl-search-results');
     if (grid) grid.innerHTML = '<div class="sl-searching">מחפש...</div>';
     const results = await invidiousFetch(`/api/v1/search?q=${encodeURIComponent(query)}&type=video&fields=videoId,title,author,lengthSeconds,videoThumbnails`);
     if (!results || !results.length) {
-      if (grid) grid.innerHTML = '<div class="sl-searching">לא נמצאו תוצאות. נסו חיפוש אחר.</div>';
+      if (grid) grid.innerHTML = ytSearchFallback(query);
       return;
     }
     if (grid) {
@@ -836,6 +855,10 @@ const SongLearn = (() => {
       .sl-yt-note { font-size:13px; color:var(--aegean,#4fb3d9); margin:8px 0 12px; text-align:center; }
       .sl-search-results { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin:10px 0; max-height:380px; overflow-y:auto; }
       .sl-searching { grid-column:1/-1; text-align:center; color:var(--text-dim,#999); font-size:14px; padding:20px; }
+      .sl-yt-fallback { grid-column:1/-1; }
+      .sl-yt-embed { position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; margin:8px 0; }
+      .sl-yt-embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+      .sl-yt-openlink { display:inline-block; font-size:13px; color:var(--aegean,#4fb3d9); }
       .sl-result-card { background:var(--bg-card,#1a1a2e); border:1px solid var(--line,#333); border-radius:10px; overflow:hidden; cursor:pointer; transition:border-color .2s,transform .1s; }
       .sl-result-card:hover { border-color:var(--gold,#e3b341); transform:translateY(-2px); }
       .sl-result-thumb { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; background:#111; }
