@@ -1764,8 +1764,47 @@ select {
   box-shadow: 0 0 8px rgba(227,179,65,0.5);
 }
 
+/* ---------- טאב: דרומוס על הגריף ---------- */
+.tl-neck-intro h2 { margin: 0 0 6px; }
+.tl-neck-intro p { color: var(--muted); line-height: 1.7; font-size: 14px; }
+
+.tl-dromos-picker { padding: 12px 14px; }
+.tl-picker-label, .tl-pos-label { font-weight: 700; color: var(--gold-soft, #f0cc74); margin-bottom: 8px; }
+.tl-dromos-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tl-dromos-chip {
+  background: rgba(255,255,255,0.05); color: var(--text, #e8e8e8);
+  border: 1px solid rgba(143,166,188,0.3); border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'Heebo', sans-serif; transition: all .15s;
+}
+.tl-dromos-chip:hover { border-color: var(--gold, #e3b341); }
+.tl-dromos-chip.active { background: var(--gold, #e3b341); color: #1a1408; border-color: var(--gold, #e3b341); }
+
+.tl-neck-head { margin-bottom: 10px; }
+.tl-neck-name { font-size: 20px; font-weight: 800; color: var(--gold-soft, #f0cc74); }
+.tl-neck-degrees { font-family: monospace; color: #7fd0ef; font-size: 13px; margin-top: 2px; }
+.tl-neck-mood { color: var(--muted); font-size: 13px; font-style: italic; margin-top: 2px; }
+
+.tl-pos-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.tl-pos-label { margin: 0 4px 0 0; }
+.tl-pos-chip {
+  background: rgba(255,255,255,0.05); color: var(--text, #e8e8e8);
+  border: 1px solid rgba(143,166,188,0.3); border-radius: 6px;
+  padding: 4px 11px; font-size: 13px; font-weight: 700; cursor: pointer;
+  min-width: 38px; font-family: 'Heebo', sans-serif; transition: all .15s;
+}
+.tl-pos-chip:hover { border-color: var(--gold, #e3b341); }
+.tl-pos-chip.active { background: var(--aegean, #2a7fa8); color: #fff; border-color: var(--aegean, #2a7fa8); }
+
+.tl-neck-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 4px 0 12px; }
+.tl-neck-svg { min-width: 560px; width: 100%; height: auto; }
+.tl-neck-dot circle { transition: r .12s, opacity .12s; }
+.tl-neck-active circle { stroke: #fff !important; stroke-width: 3 !important; filter: drop-shadow(0 0 6px rgba(240,204,116,0.9)); }
+.tl-neck-btns { margin-bottom: 8px; }
+
 @media (max-width: 600px) {
   .tl-chord-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
   .tl-chord-svg { max-width: 130px; }
   .tl-chord-card { padding: 10px; }
+  .tl-neck-svg { min-width: 520px; }
 }

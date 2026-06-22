@@ -14,6 +14,13 @@ const TheoryLab = (() => {
   let _pickCells = null;
   let _activeTab = 'chords';
 
+  // מצב טאב "דרומוס על הגריף"
+  let _selDromos = null;   // id הדרומוס הנבחר
+  let _posBase = 0;        // סריג בסיס של חלון הפוזיציה
+  let _seqTimer = null;    // נגן רצף צלילים (סולם/מסלול)
+  let _seqBtn = null;
+  let _seqDots = null;     // מפת נקודות הגריף לפי "ci-fret"
+
   /* ---------- עזרי DOM/SVG ---------- */
   function svgEl(tag, attrs = {}, parent = null) {
     const el = document.createElementNS(SVG_NS, tag);
@@ -48,7 +55,18 @@ const TheoryLab = (() => {
     unregisterLoop();
   }
 
-  function stop() { stopPicking(); }
+  function stopSeq() {
+    if (_seqTimer) { clearInterval(_seqTimer); _seqTimer = null; }
+    if (_seqDots) _seqDots.forEach(d => d.classList.remove('tl-neck-active'));
+    if (_seqBtn) {
+      _seqBtn.textContent = _seqBtn.dataset.playLabel || '▶ נגן';
+      _seqBtn.classList.remove('playing');
+    }
+    _seqBtn = null;
+    unregisterLoop();
+  }
+
+  function stop() { stopPicking(); stopSeq(); }
 
   /* ============================================================
      דיאגרמת אקורד אנכית — 4 מיתרים, אוריינטציה D A F C (כמו chord-tooltip)
@@ -434,8 +452,9 @@ const TheoryLab = (() => {
     const tabs = document.createElement('div');
     tabs.className = 'tl-tabs';
     const tabChords = mkTab('🎸 אקורדים', 'chords');
+    const tabNeck = mkTab('🗺️ דרומוס על הגריף', 'neck');
     const tabPenia = mkTab('🤘 פנייה ופריטה', 'penia');
-    tabs.append(tabChords, tabPenia);
+    tabs.append(tabChords, tabNeck, tabPenia);
     el.appendChild(tabs);
 
     const body = document.createElement('div');
@@ -463,6 +482,7 @@ const TheoryLab = (() => {
   function renderBody(body, edu) {
     body.innerHTML = '';
     if (_activeTab === 'chords') renderChords(body, edu);
+    else if (_activeTab === 'neck') renderDromoi(body, edu);
     else renderPenia(body, edu);
   }
 
@@ -599,6 +619,266 @@ const TheoryLab = (() => {
         body.appendChild(sec);
       });
     }
+  }
+
+  /* ============================================================
+     טאב: דרומוס על הגריף — איך הדרומוס יושב על כל המיתרים
+     מיתרים מסודרים מלמעלה למטה: C · F · A · D (מיתר 1 = D בתחתית).
+     מסלול נגינה ממוספר שעולה מהמיתר העבה עד המיתר הראשון.
+     ============================================================ */
+  const ROOT_PC = 2;            // D = הטוניקה המקובלת על הבוזוקי
+  const NECK_FRETS = 12;        // כמה סריגים להציג
+  const POS_SPAN = 4;           // רוחב חלון הפוזיציה (יד אחת)
+  // סדר תצוגה מלמעלה למטה: C(course3) F(course2) A(course1) D(course0)
+  const ROW_COURSES = [3, 2, 1, 0];
+
+  function scalePcs(dromos) {
+    const set = new Set((dromos.intervals || []).map(iv => ((ROOT_PC + iv) % 12 + 12) % 12));
+    return set;
+  }
+
+  // בונה מסלול נגינה בתוך חלון פוזיציה: מהמיתר העבה (C) אל המיתר הראשון (D),
+  // בתוך כל מיתר מהסריג הנמוך לגבוה — כך הצליל עולה ומסתיים על מיתר 1.
+  function buildPositionPath(dromos, base) {
+    const pcs = scalePcs(dromos);
+    const path = [];
+    // iterate מהקורס הנמוך (C=3) אל הגבוה (D=0)
+    for (let ci = 3; ci >= 0; ci--) {
+      const openMidi = TUNING[ci].midi;
+      for (let fret = base; fret <= base + POS_SPAN && fret <= NUM_FRETS; fret++) {
+        if (fret < 0) continue;
+        const pc = ((openMidi + fret) % 12 + 12) % 12;
+        if (pcs.has(pc)) path.push({ ci, fret });
+      }
+    }
+    return path;
+  }
+
+  function drawDromosNeck(dromos, base) {
+    const pcs = scalePcs(dromos);
+    const path = buildPositionPath(dromos, base);
+    const inPath = new Set(path.map(p => p.ci + '-' + p.fret));
+
+    const padL = 60, padR = 14, padT = 16, padB = 26;
+    const fretW = 46, rowH = 44;
+    const w = padL + fretW * NECK_FRETS + padR;
+    const h = padT + rowH * 3 + padB;
+
+    const svg = svgEl('svg', { class: 'tl-neck-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
+
+    // רקע עץ
+    svgEl('rect', { x: padL - 6, y: padT - 6, width: fretW * NECK_FRETS + 12, height: rowH * 3 + 12, rx: 6, fill: '#2b2014', stroke: '#1a120a', 'stroke-width': 1.5 }, svg);
+
+    // אינליי נקודות
+    [3, 5, 7, 12].forEach(f => {
+      if (f > NECK_FRETS) return;
+      const cx = padL + (f - 0.5) * fretW;
+      svgEl('circle', { cx, cy: padT + rowH * 1.5, r: 4, fill: '#d8c9a0', opacity: 0.35 }, svg);
+    });
+
+    // סריגים אנכיים + מספרים
+    for (let f = 0; f <= NECK_FRETS; f++) {
+      const x = padL + f * fretW;
+      svgEl('line', { x1: x, y1: padT - 4, x2: x, y2: padT + rowH * 3 + 4, stroke: f === 0 ? '#e8d9b0' : '#8a8378', 'stroke-width': f === 0 ? 5 : 1.4, opacity: f === 0 ? 1 : 0.6 }, svg);
+      if (f > 0) {
+        svgEl('text', { x: padL + (f - 0.5) * fretW, y: h - 8, fill: '#7d92a8', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = f;
+      }
+    }
+
+    _seqDots = [];
+    const dotByKey = {};
+
+    ROW_COURSES.forEach((ci, row) => {
+      const y = padT + row * rowH;
+      // קו מיתר
+      svgEl('line', { x1: padL - 4, y1: y, x2: w - padR, y2: y, stroke: '#b8b0a0', 'stroke-width': 1 + (3 - row) * 0.5, opacity: 0.85 }, svg);
+      // תווית מיתר (note + מספר מיתר)
+      const stringNo = TUNING[ci].course; // 1=D ... 4=C
+      svgEl('text', { x: 30, y: y - 4, fill: '#e3b341', 'font-size': 15, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = TUNING[ci].note;
+      svgEl('text', { x: 30, y: y + 11, fill: '#7d92a8', 'font-size': 9, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = 'מיתר ' + stringNo;
+
+      // צלילי הסולם על המיתר
+      const openMidi = TUNING[ci].midi;
+      for (let f = 0; f <= NECK_FRETS; f++) {
+        const midi = openMidi + f;
+        const pc = ((midi % 12) + 12) % 12;
+        if (!pcs.has(pc)) continue;
+        const cx = f === 0 ? padL - 22 : padL + (f - 0.5) * fretW;
+        const isRoot = pc === ROOT_PC;
+        const isIn = inPath.has(ci + '-' + f);
+        const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer' }, svg);
+        svgEl('circle', {
+          cx, cy: y, r: isIn ? 12 : 9,
+          fill: isRoot ? '#e3b341' : '#2a7fa8',
+          stroke: isRoot ? '#fff0c8' : '#7fd0ef',
+          'stroke-width': isIn ? 2 : 1.2,
+          opacity: isIn ? 1 : 0.32,
+        }, g);
+        const lbl = SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc];
+        svgEl('text', {
+          x: cx, y: y + 3.5, fill: isRoot ? '#1a1408' : '#eaf6fc',
+          'font-size': 9.5, 'font-weight': 700, 'text-anchor': 'middle',
+          'font-family': 'Heebo,sans-serif', opacity: isIn ? 1 : 0.5,
+          style: 'pointer-events:none',
+        }, g).textContent = lbl;
+        g.addEventListener('click', () => {
+          ensureAudio();
+          if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(ci, f, 0, 0.55);
+          flashNeckDot(g);
+        });
+        _seqDots.push(g);
+        dotByKey[ci + '-' + f] = g;
+      }
+    });
+
+    // קו מחבר את מסלול הפוזיציה + מספור סדר נגינה
+    if (path.length) {
+      const pts = path.map(p => {
+        const row = ROW_COURSES.indexOf(p.ci);
+        const x = p.fret === 0 ? padL - 22 : padL + (p.fret - 0.5) * fretW;
+        const y = padT + row * rowH;
+        return { x, y };
+      });
+      const poly = pts.map(pt => pt.x + ',' + pt.y).join(' ');
+      svgEl('polyline', { points: poly, fill: 'none', stroke: '#f0cc74', 'stroke-width': 2, 'stroke-dasharray': '4 3', opacity: 0.7 }, svg);
+      pts.forEach((pt, i) => {
+        svgEl('text', { x: pt.x + 11, y: pt.y - 10, fill: '#f0cc74', 'font-size': 10, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'monospace', style: 'pointer-events:none' }, svg).textContent = i + 1;
+      });
+    }
+
+    return { svg, path, dotByKey };
+  }
+
+  function flashNeckDot(g) {
+    if (!g) return;
+    g.classList.add('tl-neck-active');
+    setTimeout(() => g.classList.remove('tl-neck-active'), 260);
+  }
+
+  // נגן רצף [{ci,fret}] — צליל אחרי צליל, מדגיש כל נקודה
+  function playPath(path, dotByKey, bpm, btn) {
+    stop();
+    ensureAudio();
+    if (!Array.isArray(path) || !path.length) return;
+    _seqBtn = btn;
+    if (btn) { btn.textContent = '■ עצור'; btn.classList.add('playing'); }
+    const stepMs = Math.max(180, (60 / Math.max(40, bpm || 90)) * 1000);
+    let i = 0;
+    const tick = () => {
+      _seqDots && _seqDots.forEach(d => d.classList.remove('tl-neck-active'));
+      const p = path[i % path.length];
+      if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.55);
+      const g = dotByKey && dotByKey[p.ci + '-' + p.fret];
+      if (g) g.classList.add('tl-neck-active');
+      i++;
+      if (i >= path.length) {                 // מעבר אחד עולה ואז עצירה
+        clearInterval(_seqTimer); _seqTimer = null;
+        setTimeout(() => stopSeq(), stepMs);
+      }
+    };
+    tick();
+    _seqTimer = setInterval(tick, stepMs);
+    registerLoop();
+  }
+
+  function renderDromoi(body, edu) {
+    if (typeof DROMOI === 'undefined' || !Array.isArray(DROMOI) || !DROMOI.length) {
+      body.innerHTML = '<div class="card">אין נתוני דרומוסים.</div>';
+      return;
+    }
+    if (!_selDromos || !DROMOI.find(d => d.id === _selDromos)) _selDromos = DROMOI[0].id;
+
+    // הסבר
+    const intro = document.createElement('div');
+    intro.className = 'card tl-neck-intro';
+    intro.innerHTML = `<h2>הדרומוס על הגריף — איפה ללחוץ</h2>
+      <p>כל דרומוס פרוס על ארבעת המיתרים. המיתרים מסודרים מלמעלה למטה: <b>C · F · A · D</b> — והמיתר התחתון הוא <b>מיתר 1 (D)</b>.
+      בחרו פוזיציה: הקו המקווקו מראה את מסלול הנגינה — מתחילים על המיתר העבה ועולים עד המיתר הראשון.
+      נקודה זהובה = הטוניקה. לחצו על כל נקודה לשמוע אותה.</p>`;
+    body.appendChild(intro);
+
+    // בורר דרומוס
+    const picker = document.createElement('div');
+    picker.className = 'card tl-dromos-picker';
+    picker.innerHTML = '<div class="tl-picker-label">בחרו דרומוס:</div>';
+    const chips = document.createElement('div');
+    chips.className = 'tl-dromos-chips';
+    DROMOI.forEach(d => {
+      const chip = document.createElement('button');
+      chip.className = 'tl-dromos-chip' + (d.id === _selDromos ? ' active' : '');
+      chip.textContent = d.nameHe || d.id;
+      chip.addEventListener('click', () => {
+        if (_selDromos === d.id) return;
+        _selDromos = d.id; _posBase = 0; stopSeq();
+        renderBody(body, edu);
+      });
+      chips.appendChild(chip);
+    });
+    picker.appendChild(chips);
+    body.appendChild(picker);
+
+    const dromos = DROMOI.find(d => d.id === _selDromos);
+
+    // כרטיס הגריף
+    const card = document.createElement('div');
+    card.className = 'card tl-neck-card';
+
+    const head = document.createElement('div');
+    head.className = 'tl-neck-head';
+    head.innerHTML = `<div class="tl-neck-name">${dromos.nameHe || ''} <span class="tl-chord-gr">${dromos.nameGr || ''}</span></div>
+      ${dromos.degrees ? `<div class="tl-neck-degrees" dir="ltr">${dromos.degrees}</div>` : ''}
+      ${dromos.mood ? `<div class="tl-neck-mood">${dromos.mood}</div>` : ''}`;
+    card.appendChild(head);
+
+    // בורר פוזיציה
+    const posWrap = document.createElement('div');
+    posWrap.className = 'tl-pos-row';
+    posWrap.innerHTML = '<span class="tl-pos-label">פוזיציה (סריג בסיס):</span>';
+    [0, 2, 3, 5, 7, 9].forEach(b => {
+      const pb = document.createElement('button');
+      pb.className = 'tl-pos-chip' + (b === _posBase ? ' active' : '');
+      pb.textContent = b === 0 ? 'פתוח' : b;
+      pb.addEventListener('click', () => {
+        if (_posBase === b) return;
+        _posBase = b; stopSeq();
+        renderBody(body, edu);
+      });
+      posWrap.appendChild(pb);
+    });
+    card.appendChild(posWrap);
+
+    // הגריף עצמו (גלילה אופקית במובייל)
+    const scroll = document.createElement('div');
+    scroll.className = 'tl-neck-scroll';
+    const { svg, path, dotByKey } = drawDromosNeck(dromos, _posBase);
+    scroll.appendChild(svg);
+    card.appendChild(scroll);
+
+    // כפתורי נגינה
+    const btns = document.createElement('div');
+    btns.className = 'tl-chord-btns tl-neck-btns';
+    const bPath = document.createElement('button');
+    bPath.className = 'btn small tl-btn tl-play-btn';
+    bPath.dataset.playLabel = '▶ נגן מסלול (עולה למיתר 1)';
+    bPath.textContent = bPath.dataset.playLabel;
+    bPath.addEventListener('click', () => {
+      if (_seqBtn === bPath) { stopSeq(); return; }
+      playPath(path, dotByKey, dromos.bpmRange ? dromos.bpmRange[0] : 90, bPath);
+    });
+    btns.appendChild(bPath);
+
+    // נגן סולם על מיתר D בלבד (השוואה / צליל אחיד)
+    const bScale = mkBtn('🎵 סולם על מיתר D', () => {
+      ensureAudio();
+      if (AudioEngine.playModeScale) AudioEngine.playModeScale(dromos.intervals, ROOT_PC, { gain: 0.5 });
+    });
+    btns.appendChild(bScale);
+    card.appendChild(btns);
+
+    if (dromos.tips) card.appendChild(infoLine('💡', dromos.tips));
+    if (dromos.chords) card.appendChild(infoLine('🎸', 'אקורדים מתאימים: ' + dromos.chords));
+
+    body.appendChild(card);
   }
 
   return { init, stop };
