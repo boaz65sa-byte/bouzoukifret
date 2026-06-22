@@ -1667,3 +1667,105 @@ select {
 .prog-row-type { color: var(--gold-soft); font-size: 12px; }
 .prog-row-label { color: var(--text); }
 .prog-footer { margin-top: 16px; display: flex; gap: 10px; }
+
+
+/* ============================================================
+   Theory Lab — חומר עיוני (אקורדים + פנייה ופריטה)
+   ============================================================ */
+.tl-intro h2 { margin-bottom: 8px; }
+.tl-intro p { font-size: 14.5px; line-height: 1.7; color: var(--text); margin-bottom: 6px; }
+.tl-intro-hint {
+  font-size: 13px; color: var(--text-dim);
+  background: rgba(79,179,217,0.07); border-right: 3px solid var(--aegean);
+  padding: 8px 11px; border-radius: 8px; margin-top: 6px;
+}
+
+/* טאבים */
+.tl-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tl-tab {
+  padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg-card); color: var(--text); cursor: pointer;
+  font: inherit; font-weight: 700; font-size: 14px;
+}
+.tl-tab:hover { background: var(--bg-elev); }
+.tl-tab.active {
+  background: linear-gradient(180deg, rgba(227,179,65,0.18), transparent), var(--bg-elev);
+  border-color: var(--gold); color: var(--gold-soft);
+}
+
+.tl-group-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tl-group-gr { font-size: 13px; font-weight: 500; color: var(--text-dim); }
+.tl-group-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+
+/* רשת אקורדים */
+.tl-chord-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+}
+.tl-chord-card {
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px;
+}
+.tl-chord-head { text-align: center; margin-bottom: 8px; }
+.tl-chord-name { font-size: 22px; font-weight: 900; color: var(--gold); }
+.tl-chord-subnames { font-size: 12.5px; color: var(--text-dim); }
+.tl-chord-gr { color: var(--aegean); }
+.tl-chord-dia { display: flex; justify-content: center; margin: 6px 0 10px; }
+.tl-chord-svg { width: 100%; max-width: 150px; height: auto; }
+.tl-dot { transition: transform 0.12s ease, fill 0.12s ease; }
+.tl-dot-flash { fill: var(--aegean) !important; transform: scale(1.25); transform-box: fill-box; transform-origin: center; }
+.tl-open.tl-dot-flash { fill: none !important; stroke: var(--aegean) !important; }
+
+.tl-chord-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+.tl-btn { font-size: 12px !important; padding: 6px 10px !important; }
+.tl-chord-note-muted { font-size: 12px; color: var(--text-dim); text-align: center; }
+
+.tl-chord-positions { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.9; }
+.tl-pos-chip {
+  display: inline-block; background: var(--bg-deep); border: 1px solid var(--line);
+  border-radius: 6px; padding: 1px 7px; margin: 1px 2px; color: var(--aegean);
+  font-family: monospace; font-size: 11px;
+}
+
+.tl-info-line { display: flex; gap: 7px; font-size: 12.5px; color: var(--text-dim); line-height: 1.55; margin-bottom: 5px; }
+.tl-info-ico { flex-shrink: 0; }
+.tl-chord-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.tl-tag {
+  font-size: 10.5px; background: rgba(79,179,217,0.12); color: var(--aegean);
+  border-radius: 6px; padding: 2px 8px;
+}
+
+/* פרוגרסיות */
+.tl-prog-item .dlc-prog-name small { color: var(--text-dim); font-weight: 500; }
+.tl-prog-usage { font-size: 12px; color: var(--text-dim); margin-top: 3px; font-style: italic; }
+.tl-prog-item .tl-btn { margin-top: 8px; }
+
+/* פנייה ופריטה */
+.tl-penia-intro p { font-size: 14px; line-height: 1.7; color: var(--text); }
+.tl-rh-section { margin-bottom: 12px; }
+.tl-rh-section-title { font-size: 15px; color: var(--aegean); margin: 12px 0 6px; }
+.tl-rh-points { padding-right: 18px; margin: 0; font-size: 13px; line-height: 1.8; color: var(--text-dim); }
+.tl-level-focus { font-size: 13px; color: var(--ok); margin-bottom: 6px; }
+
+.tl-pick-grid { gap: 12px; }
+.tl-pick-card { display: flex; flex-direction: column; }
+.tl-pick-notation {
+  font-family: monospace; font-size: 12px; color: var(--gold-soft);
+  background: var(--bg-deep); padding: 4px 8px; border-radius: 4px; margin: 6px 0;
+}
+.tl-pick-strip { margin: 8px 0; }
+.tl-pick-meta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.tl-pick-meta b { color: var(--gold-soft); }
+.tl-play-btn { align-self: flex-start; margin-top: 10px; }
+.tl-play-btn.playing { background: var(--gold) !important; color: #1a1408 !important; border-color: var(--gold) !important; }
+
+/* הדגשת תא פעיל ברצועת המהלכים */
+.psm-cell.tl-stroke-active {
+  outline: 2px solid var(--gold); outline-offset: 1px;
+  box-shadow: 0 0 8px rgba(227,179,65,0.5);
+}
+
+@media (max-width: 600px) {
+  .tl-chord-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tl-chord-svg { max-width: 130px; }
+  .tl-chord-card { padding: 10px; }
+}

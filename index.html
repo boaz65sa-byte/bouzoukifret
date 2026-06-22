@@ -70,6 +70,7 @@
       <button class="nav-btn" data-screen="dromos-learn">
         <span class="nav-ico">🌟</span> מסלול לימוד מודוסים
       </button>
+      <button class="nav-btn nav-featured" data-screen="theory-lab"><span class="nav-ico">📚</span> חומר עיוני</button>
       <button class="nav-btn nav-featured" data-screen="song-academy">
         <span class="nav-ico">📀</span> אקדמיית השירים
       </button>
@@ -970,6 +971,15 @@
       <div id="dromos-learn-app"></div>
     </section>
 
+    <!-- ========== מסך: חומר עיוני ========== -->
+    <section class="screen" id="screen-theory-lab">
+      <header class="screen-head">
+        <h1>חומר עיוני</h1>
+        <p class="lead">אקורדים עם אצבוע על הגריף, צורות פריטה ותרגילים מעשיים — רואים איפה ללחוץ ושומעים מיד</p>
+      </header>
+      <div id="theory-lab-app"></div>
+    </section>
+
     <!-- ========== מסך: ספריית תרגילים מעשית ========== -->
     <section class="screen" id="screen-practice-lib">
       <header class="screen-head">
@@ -1087,6 +1097,7 @@
 <script src="js/penia-visuals.js"></script>
 <script src="js/dromos-visuals.js"></script>
 <script src="js/learn.js"></script>
+<script src="js/theory-lab.js"></script>
 <script src="js/song-learn.js"></script>
 <script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
@@ -1120,6 +1131,7 @@ if (typeof LiveAnalyzer !== 'undefined') LiveAnalyzer.init();
 if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
 if (typeof DromosLearn !== 'undefined') DromosLearn.init();
+if (typeof TheoryLab !== 'undefined') TheoryLab.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();

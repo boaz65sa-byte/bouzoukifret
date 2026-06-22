@@ -81,6 +81,7 @@ function stopAllPlayback() {
   if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
   if (typeof PeniaLearn !== 'undefined') PeniaLearn.stop();
   if (typeof DromosLearn !== 'undefined') DromosLearn.stop();
+  if (typeof TheoryLab !== 'undefined') TheoryLab.stop();
   if (typeof SkillsCoach !== 'undefined') SkillsCoach.stop();
   if (typeof SongLearn !== 'undefined') SongLearn.stop();
   if (typeof ModusPath !== 'undefined') ModusPath.stop();
