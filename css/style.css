@@ -1808,3 +1808,89 @@ select {
   .tl-chord-card { padding: 10px; }
   .tl-neck-svg { min-width: 520px; }
 }
+
+/* ============================================================
+   ArpStudio — אולפן ארפג׳ו
+   ============================================================ */
+:root { --arp-line: #3a86c8; }
+
+.arp-topbar { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.arp-title { font-size: 20px; font-weight: 800; color: var(--gold-soft); }
+.arp-meta { color: var(--text-dim); font-size: 13px; }
+.arp-meta #arp-bpm-badge { color: var(--aegean); font-weight: 700; }
+
+/* רצועת TAB מתגלגלת */
+.arp-notation { padding: 10px 12px; overflow: hidden; }
+.arp-tab-scroll { display: flex; flex-direction: row-reverse; gap: 2px; overflow-x: auto; padding: 6px 0; min-height: 92px; align-items: stretch; -webkit-overflow-scrolling: touch; }
+.arp-tab-labels { display: flex; flex-direction: column; justify-content: space-around; padding: 0 6px; border-left: 2px solid var(--bg-elev); position: sticky; right: 0; background: var(--bg-card); z-index: 2; }
+.arp-tab-label { color: var(--gold); font-weight: 800; font-size: 13px; height: 20px; }
+.arp-tab-col { display: flex; flex-direction: column; min-width: 30px; border-radius: 5px; padding: 2px 0; transition: background .12s; }
+.arp-tab-col.active { background: rgba(79,179,217,0.22); box-shadow: inset 0 0 0 2px var(--arp-line); }
+.arp-tab-col.next { background: rgba(227,179,65,0.12); }
+.arp-tab-cell { height: 20px; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 13px; font-weight: 700; color: var(--text-dim); border-bottom: 1px solid rgba(143,166,188,0.18); }
+.arp-tab-cell.bot { border-bottom: none; }
+.arp-tab-cell.has-note { color: var(--text); background: rgba(255,255,255,0.04); border-radius: 4px; }
+.arp-tab-cell.has-note.root { color: #1a1408; background: var(--gold); }
+
+/* גריף */
+.arp-fretboard { padding: 8px; margin-top: 10px; overflow-x: auto; }
+.arp-fretboard .fretboard-svg { width: 100%; min-width: 640px; height: auto; }
+.note-dot.arp-current circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 7px var(--arp-line)); }
+.note-dot.arp-current { transform-box: fill-box; }
+
+/* פקדים */
+.arp-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.arp-controls .arp-play { font-weight: 800; background: var(--gold); color: #1a1408; }
+.arp-controls .arp-play.playing { background: var(--aegean-deep); color: #fff; }
+.arp-controls .btn.active { background: var(--aegean-deep); color: #fff; }
+.arp-panel-btn { opacity: 0.92; }
+
+/* פאנלים */
+.arp-panel-host { margin-top: 12px; }
+.arp-panel { padding: 14px 16px; }
+.arp-panel-title { margin: 0 0 10px; font-size: 17px; color: var(--gold-soft); }
+.arp-hint { color: var(--text-dim); font-size: 13px; line-height: 1.6; margin: 4px 0 12px; }
+.arp-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+.arp-field > span { color: var(--text-dim); font-weight: 600; }
+.arp-field input[type="text"], .arp-field select { background: var(--bg-deep); color: var(--text); border: 1px solid rgba(143,166,188,0.3); border-radius: 6px; padding: 5px 8px; font-family: 'Heebo', sans-serif; }
+.arp-toggle { display: flex; align-items: center; gap: 8px; color: var(--text); cursor: pointer; }
+
+/* ספרייה */
+.arp-lib-group { margin-bottom: 14px; }
+.arp-lib-group-title { font-weight: 800; color: var(--aegean); margin-bottom: 6px; font-size: 14px; }
+.arp-lib-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; background: rgba(255,255,255,0.03); margin-bottom: 4px; }
+.arp-lib-row:hover { background: rgba(79,179,217,0.1); }
+.arp-lib-name { flex: 1; cursor: pointer; font-weight: 600; color: var(--text); }
+.arp-lib-dur { color: var(--text-dim); font-family: monospace; font-size: 13px; }
+.arp-lib-add, .arp-lib-del { padding: 2px 9px !important; }
+.arp-draft-ops { display: flex; gap: 3px; }
+.arp-draft-ops .btn { padding: 2px 8px !important; }
+.arp-draft-empty { color: var(--text-dim); padding: 12px; text-align: center; font-style: italic; }
+.arp-draft-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bg-elev); }
+.arp-draft-foot input { flex: 1; min-width: 140px; }
+
+/* מטרונום */
+.arp-met-grid { display: flex; flex-direction: column; gap: 8px; }
+.arp-met-grid #arp-met-bpm { font-size: 20px; color: var(--gold); }
+
+/* מבחן תזמון */
+.arp-sens.active { background: var(--aegean-deep); color: #fff; }
+.arp-score { margin-top: 12px; font-size: 16px; color: var(--text); }
+.arp-score-num { font-size: 32px; font-weight: 900; color: var(--gold); }
+.arp-prevscore { color: var(--text-dim); font-size: 13px; margin-top: 6px; }
+
+/* הגדרות */
+.arp-set.active { background: var(--aegean-deep); color: #fff; }
+.arp-color-chip { width: 32px; height: 24px; border-radius: 5px; border: 2px solid transparent; cursor: pointer; color: #fff; font-size: 10px; }
+.arp-color-chip.active { border-color: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.5); }
+
+/* דוחות */
+.arp-report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.arp-report-cell { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px; }
+.arp-report-k { color: var(--text-dim); font-size: 12px; }
+.arp-report-v { font-size: 22px; font-weight: 800; color: var(--gold-soft); margin-top: 4px; }
+
+@media (max-width: 600px) {
+  .arp-controls .btn { font-size: 12px; padding: 6px 9px; }
+  .arp-tab-col { min-width: 26px; }
+}

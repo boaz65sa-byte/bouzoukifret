@@ -71,6 +71,7 @@
         <span class="nav-ico">🌟</span> מסלול לימוד מודוסים
       </button>
       <button class="nav-btn nav-featured" data-screen="theory-lab"><span class="nav-ico">📚</span> חומר עיוני</button>
+      <button class="nav-btn nav-featured" data-screen="arp-studio"><span class="nav-ico">🎯</span> אולפן ארפג׳ו</button>
       <button class="nav-btn nav-featured" data-screen="song-academy">
         <span class="nav-ico">📀</span> אקדמיית השירים
       </button>
@@ -980,6 +981,15 @@
       <div id="theory-lab-app"></div>
     </section>
 
+    <!-- ========== מסך: אולפן ארפג׳ו ========== -->
+    <section class="screen" id="screen-arp-studio">
+      <header class="screen-head">
+        <h1>אולפן ארפג׳ו</h1>
+        <p class="lead">נגן רוטינות מקצועי — בחרו ארפג׳ו, לחצו נגן: הגריף מדגיש כל תו בזמן, TAB מתגלגל, מטרונום, מבחן תזמון ודוחות</p>
+      </header>
+      <div id="arp-studio-app"></div>
+    </section>
+
     <!-- ========== מסך: ספריית תרגילים מעשית ========== -->
     <section class="screen" id="screen-practice-lib">
       <header class="screen-head">
@@ -1098,6 +1108,7 @@
 <script src="js/dromos-visuals.js"></script>
 <script src="js/learn.js"></script>
 <script src="js/theory-lab.js"></script>
+<script src="js/arp-studio.js"></script>
 <script src="js/song-learn.js"></script>
 <script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
@@ -1132,6 +1143,7 @@ if (typeof MaqamGuide !== 'undefined') MaqamGuide.init();
 if (typeof PeniaLearn !== 'undefined') PeniaLearn.init();
 if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 if (typeof TheoryLab !== 'undefined') TheoryLab.init();
+if (typeof ArpStudio !== 'undefined') ArpStudio.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();
