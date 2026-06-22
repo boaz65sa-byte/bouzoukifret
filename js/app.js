@@ -83,6 +83,7 @@ function stopAllPlayback() {
   if (typeof DromosLearn !== 'undefined') DromosLearn.stop();
   if (typeof TheoryLab !== 'undefined') TheoryLab.stop();
   if (typeof ArpStudio !== 'undefined') ArpStudio.stop();
+  if (typeof ReferenceCards !== 'undefined') ReferenceCards.stop();
   if (typeof SkillsCoach !== 'undefined') SkillsCoach.stop();
   if (typeof SongLearn !== 'undefined') SongLearn.stop();
   if (typeof ModusPath !== 'undefined') ModusPath.stop();

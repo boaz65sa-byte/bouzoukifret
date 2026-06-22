@@ -1894,3 +1894,124 @@ select {
   .arp-controls .btn { font-size: 12px; padding: 6px 9px; }
   .arp-tab-col { min-width: 26px; }
 }
+
+/* ============================================================
+   Reference Cards — כרטיסי ייחוס לבוזוקי טטרהקורדו
+   ============================================================ */
+.rc-intro h2 { margin-bottom: 8px; }
+.rc-intro p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+.rc-intro-hint {
+  margin-top: 8px; font-size: 12.5px; color: var(--gold-soft);
+  background: rgba(79, 179, 217, 0.07); border-right: 3px solid var(--aegean);
+  padding: 8px 11px; border-radius: 8px;
+}
+
+/* בורר כרטיסים */
+.rc-picker { padding: 14px 16px; }
+.rc-picker-label { color: var(--text-dim); font-size: 13px; margin-bottom: 10px; }
+.rc-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+.rc-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--bg-deep); border: 1px solid rgba(79, 179, 217, 0.25);
+  color: var(--text); border-radius: 11px; padding: 9px 14px; cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.rc-chip:hover { border-color: var(--aegean); transform: translateY(-1px); }
+.rc-chip.active {
+  background: linear-gradient(135deg, rgba(227,179,65,0.18), rgba(42,127,168,0.18));
+  border-color: var(--gold); box-shadow: 0 0 14px rgba(227, 179, 65, 0.22);
+}
+.rc-chip-he { font-size: 15px; font-weight: 800; color: var(--gold-soft); }
+.rc-chip.active .rc-chip-he { color: var(--gold); }
+.rc-chip-tr { font-size: 11px; color: var(--text-dim); direction: ltr; }
+
+/* כרטיס פעיל */
+.rc-card { padding: 18px; }
+.rc-card-header {
+  text-align: center; padding-bottom: 14px; margin-bottom: 16px;
+  border-bottom: 1px solid rgba(227, 179, 65, 0.25);
+}
+.rc-title { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: 0.5px; }
+.rc-translit { font-size: 15px; font-weight: 700; color: var(--gold); direction: ltr; margin-top: 3px; }
+
+.rc-card-body { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+
+/* מפת סולם אנכית */
+.rc-map-wrap {
+  flex: 0 0 auto; max-width: 100%; overflow-x: auto;
+  background: var(--bg-deep); border: 1px solid rgba(79, 179, 217, 0.15);
+  border-radius: 12px; padding: 10px;
+}
+.rc-map-svg { display: block; width: 300px; max-width: 100%; height: auto; }
+.rc-cell-active rect {
+  fill: var(--gold) !important; stroke: var(--gold-soft) !important; opacity: 1 !important;
+}
+.rc-cell-active text { fill: #1a1408 !important; }
+
+/* צד: איות + אקורדים */
+.rc-card-side { flex: 1 1 280px; min-width: 260px; display: flex; flex-direction: column; gap: 18px; }
+
+/* איות סולם */
+.rc-spelling {
+  background: var(--bg-deep); border: 1px solid rgba(79, 179, 217, 0.15);
+  border-radius: 12px; padding: 12px 14px;
+}
+.rc-spell-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.rc-spell-label {
+  flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--gold-soft);
+  background: rgba(227, 179, 65, 0.12); padding: 3px 9px; border-radius: 7px;
+}
+.rc-spell-notes { display: flex; gap: 6px; flex-wrap: wrap; }
+.rc-spell-note {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--bg-card); border: 1px solid rgba(79, 179, 217, 0.2);
+  border-radius: 8px; padding: 4px 8px; min-width: 34px;
+}
+.rc-note-name { font-size: 13px; font-weight: 800; color: var(--aegean); }
+.rc-note-sol { font-size: 10.5px; color: var(--text-dim); }
+.rc-spell-btns { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.rc-btn { background: #1d3850; border: 1px solid rgba(79, 179, 217, 0.3); }
+.rc-btn:hover { border-color: var(--aegean); background: #234059; }
+.rc-btn.playing {
+  background: linear-gradient(135deg, var(--gold), #c79a2e); color: #1a1408;
+  border-color: var(--gold-soft);
+}
+
+/* סט אקורדים */
+.rc-chords { }
+.rc-chord-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;
+}
+.rc-chord-card {
+  background: var(--bg-deep); border: 1px solid rgba(79, 179, 217, 0.18);
+  border-radius: 12px; padding: 10px; display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+}
+.rc-chord-head { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rc-chord-name { font-size: 16px; font-weight: 800; color: var(--gold-soft); direction: ltr; }
+.rc-chord-pos { font-size: 11px; color: var(--text-dim); }
+.rc-chord-dia { min-height: 40px; display: flex; align-items: center; justify-content: center; }
+.rc-chord-dia .chord-svg { width: 92px; height: auto; }
+.rc-chord-poslabel {
+  font-size: 12px; color: var(--aegean); background: rgba(79, 179, 217, 0.1);
+  padding: 6px 10px; border-radius: 8px; direction: ltr;
+}
+.rc-chord-play { padding: 4px 12px; font-size: 15px; }
+
+/* אצבוע */
+.rc-fingering {
+  display: flex; gap: 9px; align-items: flex-start; font-size: 13px;
+  color: var(--text-dim); line-height: 1.55;
+  background: rgba(79, 179, 217, 0.07); border-right: 3px solid var(--aegean);
+  padding: 9px 12px; border-radius: 8px;
+}
+.rc-finger-ico { flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  .rc-card { padding: 12px; }
+  .rc-card-body { gap: 14px; }
+  .rc-card-side { min-width: 0; flex-basis: 100%; }
+  .rc-title { font-size: 23px; }
+  .rc-map-svg { width: 260px; }
+  .rc-chord-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+}
