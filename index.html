@@ -74,6 +74,7 @@
       <button class="nav-btn nav-featured" data-screen="arp-studio"><span class="nav-ico">🎯</span> אולפן ארפג׳ו</button>
       <button class="nav-btn nav-featured" data-screen="reference-cards"><span class="nav-ico">🗂️</span> כרטיסי ייחוס</button>
       <button class="nav-btn nav-featured" data-screen="worksheets"><span class="nav-ico">🖨️</span> דפי עבודה להדפסה</button>
+      <button class="nav-btn nav-featured" data-screen="song-teacher"><span class="nav-ico">🎓</span> למד אותי את השיר</button>
       <button class="nav-btn nav-featured" data-screen="song-academy">
         <span class="nav-ico">📀</span> אקדמיית השירים
       </button>
@@ -1010,6 +1011,15 @@
       <div id="worksheets-app"></div>
     </section>
 
+    <!-- ========== מסך: למד אותי את השיר ========== -->
+    <section class="screen" id="screen-song-teacher">
+      <header class="screen-head">
+        <h1>למד אותי את השיר</h1>
+        <p class="lead">העלו שיר — האפליקציה מחלצת מלודיה ואקורדים ומלמדת לנגן: הגריף מאיר כל תו, האקורד מוצג, עם האטה ולולאה</p>
+      </header>
+      <div id="song-teacher-app"></div>
+    </section>
+
     <!-- ========== מסך: ספריית תרגילים מעשית ========== -->
     <section class="screen" id="screen-practice-lib">
       <header class="screen-head">
@@ -1131,6 +1141,8 @@
 <script src="js/arp-studio.js"></script>
 <script src="js/reference-cards.js"></script>
 <script src="js/worksheets.js"></script>
+<script src="js/basic-pitch-engine.js"></script>
+<script src="js/song-teacher.js"></script>
 <script src="js/song-learn.js"></script>
 <script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
@@ -1168,6 +1180,7 @@ if (typeof TheoryLab !== 'undefined') TheoryLab.init();
 if (typeof ArpStudio !== 'undefined') ArpStudio.init();
 if (typeof ReferenceCards !== 'undefined') ReferenceCards.init();
 if (typeof Worksheets !== 'undefined') Worksheets.init();
+if (typeof SongTeacher !== 'undefined') SongTeacher.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();

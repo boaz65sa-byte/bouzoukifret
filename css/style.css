@@ -2130,3 +2130,56 @@ select {
   .ws-dromos-cols { flex-direction: column; }
   .ws-chord-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
+
+/* ============================================================
+   SongTeacher — למד אותי את השיר
+   ============================================================ */
+.st-h { margin: 0 0 6px; color: var(--gold-soft); }
+.st-hint { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.st-tip { margin-top: 8px; font-size: 12px; }
+.st-load-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0; }
+.st-load-row input[type="file"] { color: var(--text); }
+.st-status { color: var(--aegean); font-size: 13px; }
+.st-prog { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.st-prog-bar { flex: 1; height: 7px; background: var(--bg-deep); border-radius: 4px; overflow: hidden; }
+.st-prog-bar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--aegean-deep), var(--gold)); transition: width .15s; }
+.st-prog-time { font-family: monospace; color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+
+.st-info { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 14px; color: var(--text-dim); font-size: 13px; }
+.st-info b { color: var(--gold-soft); }
+
+.st-chordbox { display: flex; align-items: center; gap: 18px; padding: 14px 16px; }
+.st-chord-cur { text-align: center; min-width: 120px; }
+.st-chord-label { color: var(--text-dim); font-size: 12px; }
+.st-chord-name { font-size: 40px; font-weight: 900; color: var(--gold); line-height: 1.1; }
+.st-chord-dia { min-width: 120px; }
+
+.st-fbwrap, .st-melstrip-wrap { padding: 12px 14px; }
+.st-fb-title { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+.st-fb-scroll { overflow-x: auto; }
+.st-fbwrap .fretboard-svg { width: 100%; min-width: 640px; height: auto; }
+.note-dot.st-active circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 8px var(--gold)); }
+
+.st-melstrip { display: flex; flex-direction: row-reverse; gap: 5px; overflow-x: auto; padding: 6px 0; }
+.st-mel-cell { flex: 0 0 auto; min-width: 42px; text-align: center; background: rgba(255,255,255,0.04); border: 1px solid rgba(143,166,188,0.2); border-radius: 7px; padding: 6px 4px; cursor: pointer; }
+.st-mel-cell:hover { border-color: var(--aegean); }
+.st-mel-cell.st-cell-active { background: var(--gold); border-color: var(--gold); }
+.st-mel-cell.st-cell-active .st-mel-note, .st-mel-cell.st-cell-active .st-mel-pos { color: #1a1408; }
+.st-mel-note { display: block; font-weight: 800; color: var(--text); }
+.st-mel-pos { display: block; font-size: 10px; color: var(--text-dim); font-family: monospace; }
+
+.st-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; }
+.st-play { background: var(--gold); color: #1a1408; font-weight: 800; }
+.st-play.playing { background: var(--aegean-deep); color: #fff; }
+.st-speeds { color: var(--text-dim); font-size: 13px; display: flex; align-items: center; gap: 5px; }
+.st-speed.active { background: var(--aegean-deep); color: #fff; }
+.st-toggle { color: var(--text); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+#st-loop.active { background: var(--gold); color: #1a1408; }
+.st-transport .st-prog { flex-basis: 100%; }
+
+@media (max-width: 600px) {
+  .st-chordbox { flex-direction: column; gap: 10px; }
+  .st-chord-name { font-size: 32px; }
+}
+.st-engine-row { font-size: 13px; color: var(--text-dim); }
+.st-engine.active { background: var(--aegean-deep); color: #fff; }

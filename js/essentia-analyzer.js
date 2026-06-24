@@ -258,11 +258,37 @@ const AudioAnalyzer = (() => {
       }
     }
 
-    onProgress?.('Essentia — גובה צליל (TAB)…', 80);
+    onProgress?.('Essentia — מלודיה (Predominant Pitch)…', 80);
     const pitches = [];
     try {
       const vec = ess.arrayToVector(signal);
-      const mel = ess.PitchMelodia(vec, sampleRate);
+      let mel = null;
+      // PredominantPitchMelodia — בנוי לחילוץ מלודיה מתוך פוליפוניה (מדויק יותר ממיקס מלא).
+      // פרמטרים בסדר אלפביתי (קונבנציית essentia.js); מעבירים sampleRate נכון בסוף.
+      try {
+        mel = ess.PredominantPitchMelodia(
+          vec,
+          10,       // binResolution
+          3,        // filterIterations
+          2048,     // frameSize
+          false,    // guessUnvoiced
+          0.8,      // harmonicWeight
+          128,      // hopSize
+          1,        // magnitudeCompression
+          40,       // magnitudeThreshold
+          8000,     // maxFrequency
+          100,      // minDuration (ms)
+          80,       // minFrequency
+          20,       // numberHarmonics
+          0.9,      // peakDistributionThreshold
+          0.9,      // peakFrameThreshold
+          27.5625,  // pitchContinuity
+          55,       // referenceFrequency
+          sampleRate
+        );
+      } catch (ePre) {
+        mel = ess.PitchMelodia(vec, sampleRate); // נפילה לאלגוריתם הקודם
+      }
       const pitchArr = ess.vectorToArray(mel.pitch);
       const conf = ess.vectorToArray(mel.pitchConfidence);
       const hopMel = mel.hopSize || 128;
@@ -273,6 +299,7 @@ const AudioAnalyzer = (() => {
           if (pos) pitches.push({ time: (i * hopMel) / sampleRate, ...pos, midi });
         }
       });
+      try { ess.delete(vec); } catch (_) {}
     } catch {
       return _fallbackAnalyze(signal, sampleRate, onProgress);
     }
