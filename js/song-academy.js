@@ -364,7 +364,7 @@ const SongAcademy = (() => {
       const src = mic.ctx.createMediaStreamSource(mic.stream);
       mic.analyser = mic.ctx.createAnalyser();
       mic.analyser.fftSize = 8192;
-      src.connect(mic.analyser);
+      AudioEngine.micBoost(src).connect(mic.analyser);
       return true;
     } catch { return false; }
   }

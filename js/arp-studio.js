@@ -701,7 +701,7 @@ const ArpStudio = (() => {
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
-    src.connect(analyser);
+    AudioEngine.micBoost(src).connect(analyser);
     const buf = new Float32Array(analyser.fftSize);
     _mic = { ctx, stream, analyser, buf, raf: null, armed: true };
     const loop = () => {

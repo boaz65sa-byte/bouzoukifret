@@ -124,7 +124,7 @@ const SongAnalyzer = (() => {
       _micSource = _ctx.createMediaStreamSource(_micStream);
       const analyser = _ctx.createAnalyser();
       analyser.fftSize = 2048;
-      _micSource.connect(analyser);
+      AudioEngine.micBoost(_micSource).connect(analyser);
       _ctx._saAnalyser = analyser;
       return true;
     } catch {

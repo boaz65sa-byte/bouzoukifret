@@ -111,7 +111,7 @@ const Game = (() => {
       const src = mic.ctx.createMediaStreamSource(mic.stream);
       mic.analyser = mic.ctx.createAnalyser();
       mic.analyser.fftSize = 2048;
-      src.connect(mic.analyser);
+      AudioEngine.micBoost(src).connect(mic.analyser);
       const buf = new Float32Array(mic.analyser.fftSize);
       mic.timer = setInterval(() => {
         mic.analyser.getFloatTimeDomainData(buf);

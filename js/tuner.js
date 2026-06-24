@@ -327,7 +327,7 @@ const BouzoukiTuner = (() => {
       const src = micCtx.createMediaStreamSource(micStream);
       analyser = micCtx.createAnalyser();
       analyser.fftSize = 4096;
-      src.connect(analyser);
+      AudioEngine.micBoost(src).connect(analyser);
       showError('');
       return true;
     } catch (e) {

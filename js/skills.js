@@ -159,7 +159,7 @@ const SkillsCoach = (() => {
       const src = micCtx.createMediaStreamSource(micStream);
       micAnalyser = micCtx.createAnalyser();
       micAnalyser.fftSize = 2048;
-      src.connect(micAnalyser);
+      AudioEngine.micBoost(src).connect(micAnalyser);
       return true;
     } catch(e) {
       setStatus('אין גישה למיקרופון — אשרו את הבקשה בדפדפן.', 'err');

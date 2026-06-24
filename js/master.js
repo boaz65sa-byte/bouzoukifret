@@ -24,7 +24,7 @@ const MicEngine = (() => {
       const src = ctx.createMediaStreamSource(stream);
       analyser = ctx.createAnalyser();
       analyser.fftSize = 2048;
-      src.connect(analyser);
+      AudioEngine.micBoost(src).connect(analyser);
       timer = setInterval(poll, 25);
       return true;
     } catch (e) { return false; }
