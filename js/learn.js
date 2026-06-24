@@ -320,7 +320,12 @@ const DromosLearn = (() => {
           if (practical?.chords) {
             DromosVisuals.mountChordBoard(fbEl, practical.chords[0]);
           } else if (frets.length) {
-            DromosVisuals.mountFretboard(fbEl, frets, { numbered: !!practical?.phraseFrets });
+            DromosVisuals.mountFretboard(fbEl, frets, {
+              numbered: !!practical?.phraseFrets,
+              scaleFrets: practical?.phraseFrets
+                ? (practical.frets || DromosVisuals.getScaleFrets(dc.dromosId))
+                : undefined,
+            });
           }
           DromosVisuals.renderFretStrip(card.querySelector(`#dpc-strip-${key}`), frets);
           if (practical?.strokes) {
@@ -349,7 +354,14 @@ const DromosLearn = (() => {
           btn.className = 'btn gold';
           btn.textContent = '▶ נגן פראזה (עם הדגשה)';
           btn.addEventListener('click', () => {
-            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playPhraseAnimated(fbContainer, practical.phraseFrets, 320);
+            if (typeof DromosVisuals !== 'undefined') {
+              DromosVisuals.playPhraseAnimated(
+                fbContainer,
+                practical.phraseFrets,
+                practical.frets || DromosVisuals.getScaleFrets(dc.dromosId),
+                320,
+              );
+            }
           });
           actions.appendChild(btn);
         }

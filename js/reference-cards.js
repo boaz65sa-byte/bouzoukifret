@@ -98,7 +98,7 @@ const ReferenceCards = (() => {
     const colW = 64, rowH = 26, padT = 30, padL = 8, padR = 34, padB = 8;
     const numFrets = NUM_FRETS;
     const w = padL + colW * 4 + padR;
-    const h = padT + rowH * numFrets + padB;
+    const h = padT + rowH * (numFrets + 1) + padB;
 
     const svg = svgEl('svg', { class: 'rc-map-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
 
@@ -113,8 +113,8 @@ const ReferenceCards = (() => {
 
     const cells = []; // תאים לחיצים: {el, courseIdx, fret}
 
-    for (let fret = 1; fret <= numFrets; fret++) {
-      const y = padT + (fret - 1) * rowH;
+    for (let fret = 0; fret <= numFrets; fret++) {
+      const y = padT + fret * rowH;
       // מספר סריג בקצה (ימין ב-RTL — נציב בצד ימני של ה-SVG)
       svgEl('text', {
         x: w - padR + 16, y: y + rowH / 2 + 4, fill: 'var(--text-dim)',
@@ -383,6 +383,19 @@ const ReferenceCards = (() => {
   /* ============================================================
      רינדור כרטיס פעיל
      ============================================================ */
+  function dfretsFromCard(card) {
+    const openPc = TUNING[0].midi % 12;
+    const seen = new Set();
+    const frets = [];
+    (card.scaleAsc || []).forEach(name => {
+      const pc = pcOf(name);
+      if (pc == null || seen.has(pc)) return;
+      seen.add(pc);
+      frets.push(((pc - openPc) % 12 + 12) % 12);
+    });
+    return frets.sort((a, b) => a - b);
+  }
+
   function renderCard(host, card) {
     host.innerHTML = '';
 
@@ -403,6 +416,17 @@ const ReferenceCards = (() => {
     const { svg, cells } = buildScaleMap(card);
     mapWrap.appendChild(svg);
     body.appendChild(mapWrap);
+
+    if (typeof FretboardScale !== 'undefined') {
+      const neckWrap = document.createElement('div');
+      neckWrap.className = 'rc-neck-wrap';
+      neckWrap.innerHTML = '<h3 class="rc-neck-title">מסלול על הגריף — כל המיתרים</h3>';
+      const neckHost = document.createElement('div');
+      neckHost.className = 'rc-neck-host';
+      neckWrap.appendChild(neckHost);
+      FretboardScale.mountWithPositions(neckHost, { frets: dfretsFromCard(card), bases: [0, 2, 5, 7, 9] });
+      body.appendChild(neckWrap);
+    }
 
     const cellsByKey = {};
     cells.forEach(c => { cellsByKey[c.courseIdx + '-' + c.fret] = c.el; });

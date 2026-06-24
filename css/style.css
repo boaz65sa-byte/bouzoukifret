@@ -339,6 +339,13 @@ select {
 
 /* ===================== דרומוסים ===================== */
 .dromoi-layout { display: grid; grid-template-columns: 235px 1fr; gap: 22px; align-items: start; }
+.fs-pos-bar, #dromoi-pos-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 14px; }
+.fs-pos-label { font-size: 0.85rem; color: var(--text-dim); margin-left: 4px; }
+.fs-pos-chip { padding: 5px 10px !important; font-size: 0.8rem !important; }
+.fs-pos-chip.active { background: var(--gold) !important; color: #1a1208 !important; border-color: var(--gold) !important; }
+.fs-neck-board { width: 100%; }
+.mp-neck-host, .rc-neck-host { margin: 12px 0; overflow-x: auto; }
+.rc-neck-title { font-size: 0.95rem; margin: 0 0 8px; color: var(--gold); }
 .dromoi-sidebar { display: flex; flex-direction: column; gap: 10px; }
 .dromoi-filter { display: flex; flex-wrap: wrap; gap: 6px; }
 .dromoi-filter .btn { padding: 6px 10px; font-size: 0.82rem; }

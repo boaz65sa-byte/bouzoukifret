@@ -286,16 +286,54 @@ const SongAcademy = (() => {
     return el;
   }
 
-  /** סולם דרומוס על מיתר רה (קורס 0) */
+  /** סולם דרומוס — כל המיתרים + פוזיציות */
   function drawScaleBoard(svgId, scaleFrets) {
+    const el = document.getElementById(svgId);
+    if (!el) return;
+    const wrap = el.parentElement;
+    if (typeof FretboardScale !== 'undefined' && wrap) {
+      FretboardScale.mountWithPositions(wrap, { frets: scaleFrets, bases: [0, 2, 5, 7, 9] });
+      return;
+    }
     const svg = _mountFretboard(svgId);
     if (!svg) return;
     const set = new Set(scaleFrets);
+    const pcs = typeof FretboardScale !== 'undefined'
+      ? FretboardScale.pcsFromDFrets(scaleFrets)
+      : new Set(scaleFrets.map(f => (TUNING[0].midi + f) % 12));
     drawFretboard(svg, (ci, f, midi) => {
-      if (ci !== 0 || !set.has(f)) return null;
-      const name = typeof midiToName === 'function' ? midiToName(midi) : String(f);
-      const sol = typeof SOLFEGE !== 'undefined' ? SOLFEGE[name] : name;
-      return { type: f === 0 ? 'root' : 'note', label: f === 0 ? 'רה' : (sol || String(f)) };
+      if (!pcs.has(midi % 12)) return null;
+      const isRoot = (midi % 12) === (TUNING[0].midi % 12);
+      return { type: isRoot ? 'root' : 'note', label: NOTE_NAMES[midi % 12] };
+    });
+  }
+
+  /** פראזה — סולם מלא על כל המיתרים, מסלול ממוספר על D */
+  function drawPhraseBoard(svgId, phraseFrets, scaleFrets, activeIdx = -1) {
+    const el = document.getElementById(svgId);
+    const wrap = el?.parentElement;
+    if (typeof FretboardScale !== 'undefined' && wrap) {
+      const activeFret = activeIdx >= 0 ? phraseFrets[activeIdx] : undefined;
+      FretboardScale.mount(wrap, {
+        frets: scaleFrets || phraseFrets,
+        phraseFrets,
+        activeCi: activeFret != null ? 0 : undefined,
+        activeFret,
+        pathLabels: true,
+      });
+      return;
+    }
+    const svg = _mountFretboard(svgId);
+    if (!svg) return;
+    drawFretboard(svg, (ci, f) => {
+      if (ci !== 0) return null;
+      const idx = phraseFrets.indexOf(f);
+      if (idx < 0) return null;
+      const active = idx === activeIdx;
+      return {
+        type: (f === 0 || active) ? 'root' : 'note',
+        label: active ? '▶' : String(idx + 1),
+      };
     });
   }
 
@@ -314,34 +352,22 @@ const SongAcademy = (() => {
     });
   }
 
-  /** פראזה על מיתר רה — מספרי סדר + הדגשת תו פעיל */
-  function drawPhraseBoard(svgId, phraseFrets, activeIdx = -1) {
-    const svg = _mountFretboard(svgId);
-    if (!svg) return;
-    drawFretboard(svg, (ci, f) => {
-      if (ci !== 0) return null;
-      const idx = phraseFrets.indexOf(f);
-      if (idx < 0) return null;
-      const active = idx === activeIdx;
-      return {
-        type: (f === 0 || active) ? 'root' : 'note',
-        label: active ? '▶' : String(idx + 1),
-      };
-    });
-  }
-
-  function playPhraseAnimated(frets, gap = 320) {
+  function playPhraseAnimated(frets, scaleFrets, gap = 320) {
+    if (typeof scaleFrets === 'number') {
+      gap = scaleFrets;
+      scaleFrets = null;
+    }
     if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
     if (typeof AudioEngine === 'undefined') return;
     AudioEngine.ensureCtx();
     let i = 0;
     const step = () => {
       if (i >= frets.length) {
-        drawPhraseBoard('sa-fb-phrase', frets, -1);
+        drawPhraseBoard('sa-fb-phrase', frets, scaleFrets, -1);
         if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
         return;
       }
-      drawPhraseBoard('sa-fb-phrase', frets, i);
+      drawPhraseBoard('sa-fb-phrase', frets, scaleFrets, i);
       const f = frets[i];
       AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.55);
       if (typeof flashDot === 'function') {
@@ -503,7 +529,7 @@ const SongAcademy = (() => {
         <b>טביעת האצבע של ${dr.he}:</b> ${dr.fp}
       </div>
       <div class="sa-fb-section">
-        <h3 class="sa-fb-title">תצוגה מהירה — פראזה על מיתר רה</h3>
+        <h3 class="sa-fb-title">תצוגה מהירה — פראזה + סולם על כל המיתרים</h3>
         <p class="sa-hint">${s.phrase.desc}</p>
         <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-overview" class="fretboard"></svg></div>
       </div>
@@ -512,7 +538,7 @@ const SongAcademy = (() => {
         <button class="btn" id="sa-ov-yt">▶️ נגן מ-YouTube</button>
       </div>
       <div id="sa-yt"></div>`;
-    drawPhraseBoard('sa-fb-overview', s.phrase.frets);
+    drawPhraseBoard('sa-fb-overview', s.phrase.frets, dr.frets);
     document.getElementById('sa-ov-next').addEventListener('click', () => { activeTab='chords'; renderSong(); });
     document.getElementById('sa-ov-yt').addEventListener('click', () => showYouTube(s));
   }
@@ -665,12 +691,12 @@ const SongAcademy = (() => {
         <div class="sa-dr-fp">👂 <b>איך מזהים:</b> ${dr.fp}</div>
         <div class="sa-dr-tell">🔑 ${dr.tell}</div>
 
-        <h3 class="sa-fb-title">לוח סריגים — סולם ${dr.he} על מיתר רה</h3>
+        <h3 class="sa-fb-title">לוח סריגים — סולם ${dr.he} על כל המיתרים</h3>
         <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-scale" class="fretboard"></svg></div>
-        <p class="sa-hint">כל הנקודות על מיתר <b>רה (D)</b> — כך נלמדים דרומוסים בבוזוקי יווני. לחצו לשמיעה.</p>
+        <p class="sa-hint">כל הנקודות = צלילי הסולם בכל הפוזיציות · בחרו פוזיציה על הצוואר</p>
         ${tabSvg(dr.frets, dr.color)}
 
-        <h3 class="sa-fb-title">פראזת השיר — איפה ללחוץ (מיתר רה)</h3>
+        <h3 class="sa-fb-title">פראזת השיר — מסלול ממוספר (מיתר D מודגש)</h3>
         <p class="sa-hint">${s.phrase.desc} · המספרים = סדר הנגינה</p>
         <div class="sa-fb-wrap" dir="ltr"><svg id="sa-fb-phrase" class="fretboard"></svg></div>
 
@@ -680,9 +706,9 @@ const SongAcademy = (() => {
         </div>
       </div>`;
     drawScaleBoard('sa-fb-scale', dr.frets);
-    drawPhraseBoard('sa-fb-phrase', s.phrase.frets);
+    drawPhraseBoard('sa-fb-phrase', s.phrase.frets, dr.frets);
     document.getElementById('sa-dr-scale').addEventListener('click', () => playFrets([...dr.frets, ...[...dr.frets].reverse().slice(1)], 300));
-    document.getElementById('sa-dr-phrase').addEventListener('click', () => playPhraseAnimated(s.phrase.frets, 320));
+    document.getElementById('sa-dr-phrase').addEventListener('click', () => playPhraseAnimated(s.phrase.frets, dr.frets, 320));
   }
 
   function tabSvg(frets, color) {

@@ -310,15 +310,26 @@ const ModusPath = (() => {
 
   function tabSvg(frets, color) {
     const w = Math.max(220, frets.length * 40 + 40), h = 60;
-    let cells = frets.map((f, i) => {
-      const x = 30 + i * 40;
-      return `<line x1="${x}" y1="28" x2="${x}" y2="28" /><circle cx="${x}" cy="28" r="13" fill="${color}22" stroke="${color}"/><text x="${x}" y="33" text-anchor="middle" fill="${color}" font-size="13" font-weight="700">${f}</text>`;
+    const cells = frets.map((f) => {
+      const x = 30 + frets.indexOf(f) * 40;
+      return `<circle cx="${x}" cy="28" r="13" fill="${color}22" stroke="${color}"/><text x="${x}" y="33" text-anchor="middle" fill="${color}" font-size="13" font-weight="700">${f}</text>`;
     }).join('');
     return `<svg viewBox="0 0 ${w} ${h}" class="mp-tab-svg" dir="ltr">
       <line x1="15" y1="28" x2="${w-15}" y2="28" stroke="var(--line,#444)" stroke-width="1"/>
-      <text x="6" y="32" fill="var(--text-dim)" font-size="11">D</text>
+      <text x="6" y="32" fill="var(--text-dim)" font-size="11">D (מיתר 1)</text>
       ${cells}
     </svg>`;
+  }
+
+  function mountNeck(host, frets, color, phraseFrets) {
+    if (!host || typeof FretboardScale === 'undefined') return;
+    FretboardScale.mountWithPositions(host, {
+      frets: phraseFrets ? (frets.length ? frets : phraseFrets) : frets,
+      phraseFrets,
+      color: color || '#e3b341',
+      bases: [0, 2, 5, 7, 9],
+      pathLabels: !!phraseFrets,
+    });
   }
 
   function feedback(msg, cls) {
@@ -350,6 +361,8 @@ const ModusPath = (() => {
     const notes = p.scale.frets.map(f => midiName(D_OPEN + f));
     body.innerHTML = `
       <div class="mp-note">💡 ${p.scale.note}</div>
+      <div class="mp-neck-host" id="mp-neck-host"></div>
+      <p class="hint">כל הנקודות = צלילי הסולם על כל 4 המיתרים · הקו המקווקו = מסלול בפוזיציה</p>
       ${tabSvg(p.scale.frets, p.color)}
       <div class="mp-note-names">${p.scale.frets.map((f,i) => `<span style="color:${p.color}">${notes[i]}</span>`).join(' · ')}</div>
       <div class="mp-btn-row">
@@ -359,6 +372,7 @@ const ModusPath = (() => {
       <div class="mp-listen-status" id="mp-listen-status"></div>
       ${stageNav()}
     `;
+    mountNeck(document.getElementById('mp-neck-host'), p.scale.frets, p.color);
     document.getElementById('mp-play').addEventListener('click', () => playFrets([...p.scale.frets, ...[...p.scale.frets].reverse().slice(1)]));
     document.getElementById('mp-listen').addEventListener('click', () => startScaleListen(p.scale.frets));
     wireNav();
@@ -386,6 +400,8 @@ const ModusPath = (() => {
     body.innerHTML = `
       <div class="mp-sub-title">${p.phrase.title}</div>
       <div class="mp-note">💡 ${p.phrase.desc}</div>
+      <div class="mp-neck-host" id="mp-neck-host"></div>
+      <p class="hint">סולם מלא על כל המיתרים · המספרים = פראזה על מיתר D</p>
       ${tabSvg(p.phrase.frets, p.color)}
       <div class="mp-btn-row">
         <button class="btn gold" id="mp-play">🔊 שמעו את הפראזה</button>
@@ -394,6 +410,7 @@ const ModusPath = (() => {
       <div class="mp-listen-status" id="mp-listen-status"></div>
       ${stageNav()}
     `;
+    mountNeck(document.getElementById('mp-neck-host'), p.scale.frets, p.color, p.phrase.frets);
     document.getElementById('mp-play').addEventListener('click', () => playFrets(p.phrase.frets, 320));
     document.getElementById('mp-listen').addEventListener('click', () => startPhraseListen(p.phrase.frets));
     wireNav();

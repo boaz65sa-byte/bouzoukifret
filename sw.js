@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v5';
+const CACHE_STATIC = 'bouzouki-static-v6';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -19,6 +19,7 @@ const PRECACHE = [
   './js/chord-tooltip.js',
   './js/course.js',
   './js/app.js',
+  './js/fretboard-scale.js',
   './js/exercises.js',
   './js/listen.js',
   './js/game.js',

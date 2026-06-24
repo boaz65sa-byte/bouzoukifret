@@ -311,22 +311,30 @@ const DromosVisuals = (() => {
   }
 
   function mountFretboard(container, frets, opts = {}) {
-    if (!container || typeof drawFretboard !== 'function') return;
+    if (!container) return null;
+    const phraseFrets = opts.numbered ? frets : undefined;
+    const scaleFrets = opts.scaleFrets || frets;
+    if (typeof FretboardScale !== 'undefined') {
+      return FretboardScale.mount(container, {
+        frets: scaleFrets,
+        phraseFrets,
+        activeCi: opts.activeFret != null ? 0 : undefined,
+        activeFret: opts.activeFret,
+        pathLabels: !!opts.numbered || opts.pathLabels,
+        base: opts.base ?? 0,
+        drawPath: opts.drawPath !== false,
+      });
+    }
+    if (typeof drawFretboard !== 'function') return null;
     container.innerHTML = '';
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('fretboard', 'dpc-fretboard');
     container.appendChild(svg);
     const set = new Set(frets);
-    const active = opts.activeFret;
     drawFretboard(svg, (ci, f, midi) => {
-      if (ci !== 0) return null;
-      if (active != null && f !== active) return null;
-      if (!set.has(f)) return null;
-      const name = typeof midiToName === 'function' ? midiToName(midi) : String(f);
-      const sol = typeof SOLFEGE !== 'undefined' ? SOLFEGE[name] : name;
-      const idx = frets.indexOf(f);
-      const label = opts.numbered && idx >= 0 ? String(idx + 1) : (f === 0 ? 'רה' : (sol || String(f)));
-      return { type: f === 0 || f === active ? 'root' : 'note', label };
+      const pc = midi % 12;
+      if (!set.has(pc) && !set.has(f)) return null;
+      return { type: f === 0 ? 'root' : 'note', label: String(f) };
     });
     return svg;
   }
@@ -385,24 +393,32 @@ const DromosVisuals = (() => {
           AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.52);
         }
         const svg = mountFretboard(container, frets, { activeFret: f });
-        if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
+        if (svg && typeof FretboardScale !== 'undefined') {
+          FretboardScale.flashMidi(svg, D_OPEN + f);
+        } else if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
       }, i * gap);
     });
     setTimeout(() => mountFretboard(container, frets), seq.length * gap + 100);
   }
 
-  function playPhraseAnimated(container, frets, gap = 320) {
+  function playPhraseAnimated(container, frets, scaleFrets, gap = 320) {
+    if (typeof scaleFrets === 'number') {
+      gap = scaleFrets;
+      scaleFrets = undefined;
+    }
     frets.forEach((f, i) => {
       setTimeout(() => {
         if (typeof AudioEngine !== 'undefined') {
           AudioEngine.ensureCtx();
           AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.52);
         }
-        const svg = mountFretboard(container, frets, { numbered: true, activeFret: f });
-        if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
+        const svg = mountFretboard(container, frets, { numbered: true, activeFret: f, scaleFrets });
+        if (svg && typeof FretboardScale !== 'undefined') {
+          FretboardScale.flashMidi(svg, D_OPEN + f);
+        } else if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
       }, i * gap);
     });
-    setTimeout(() => mountFretboard(container, frets, { numbered: true }), frets.length * gap + 100);
+    setTimeout(() => mountFretboard(container, frets, { numbered: true, scaleFrets }), frets.length * gap + 100);
   }
 
   function mountIllustration(container, kind, color = '#e3b341') {

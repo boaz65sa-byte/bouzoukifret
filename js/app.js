@@ -369,6 +369,7 @@ function drawAnatomy() {
 let currentDromos = DROMOI[0];
 let currentRoot = 2; // D = pitch class 2
 let dromoiFilter = 'all';
+let _dromoiPosBase = 0;
 
 function setDromoiFilter(filter) {
   dromoiFilter = filter || 'all';
@@ -480,6 +481,29 @@ function initDromoi() {
   $('#dr-play-single').addEventListener('click', playSingleString);
   $('#dr-drone').addEventListener('click', toggleDrone);
 
+  if (!$('#dromoi-pos-bar')) {
+    const bar = document.createElement('div');
+    bar.id = 'dromoi-pos-bar';
+    bar.className = 'fs-pos-bar';
+    bar.innerHTML = '<span class="fs-pos-label">פוזיציה על הצוואר:</span>';
+    [0, 2, 3, 5, 7, 9].forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip' + (b === _dromoiPosBase ? ' active' : '');
+      btn.textContent = b === 0 ? 'פתוח' : String(b);
+      btn.dataset.base = String(b);
+      btn.addEventListener('click', () => {
+        _dromoiPosBase = b;
+        bar.querySelectorAll('.fs-pos-chip').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.base) === b);
+        });
+        renderDromos();
+      });
+      bar.appendChild(btn);
+    });
+    $('#dromos-detail')?.insertBefore(bar, $('#dr-degrees'));
+  }
+
   renderDromos();
   renderAjnas();
 }
@@ -555,17 +579,23 @@ function renderDromos() {
     degRow.appendChild(cell);
   });
 
-  // לוח סריגים — צלילי הדרומוס
+  // לוח סריגים — כל צלילי הדרומוס על כל המיתרים + מסלול בפוזיציה
   const pcs = d.intervals.map(iv => (currentRoot + iv) % 12);
+  const pcsSet = new Set(pcs);
+  if (!_dromoiPosBase && _dromoiPosBase !== 0) _dromoiPosBase = 0;
   drawFretboard($('#fb-dromos'), (ci, f, midi) => {
     const pc = midi % 12;
+    if (!pcsSet.has(pc)) return null;
     const idx = pcs.indexOf(pc);
-    if (idx === -1) return null;
     return {
       type: idx === 0 ? 'root' : 'note',
       label: NOTE_NAMES[pc],
     };
   });
+  if (typeof FretboardScale !== 'undefined') {
+    const path = FretboardScale.buildBoxPath(pcsSet, _dromoiPosBase);
+    FretboardScale.drawPathOverlay($('#fb-dromos'), path);
+  }
   if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
 
   // תרגיל מיתר בודד
@@ -601,7 +631,11 @@ function playScale(msPerNote) {
   AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
     gapMs: msPerNote,
     gain: 0.52,
-    onStep(fret) { flashDot(svg, 0, fret); },
+    onStep(fret) {
+      const midi = TUNING[0].midi + fret;
+      if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
+      else flashDot(svg, 0, fret);
+    },
   });
 }
 
