@@ -17,6 +17,7 @@ const TheoryLab = (() => {
   // מצב טאב "דרומוס על הגריף"
   let _selDromos = null;   // id הדרומוס הנבחר
   let _posBase = 0;        // סריג בסיס של חלון הפוזיציה
+  let _neckMode = '4';     // '4' = מסלול על 4 מיתרים · '2' = על 2 מיתרים (A,D)
   let _seqTimer = null;    // נגן רצף צלילים (סולם/מסלול)
   let _seqBtn = null;
   let _seqDots = null;     // מפת נקודות הגריף לפי "ci-fret"
@@ -637,12 +638,30 @@ const TheoryLab = (() => {
     return set;
   }
 
-  // בונה מסלול נגינה בתוך חלון פוזיציה: מהמיתר העבה (C) אל המיתר הראשון (D),
-  // בתוך כל מיתר מהסריג הנמוך לגבוה — כך הצליל עולה ומסתיים על מיתר 1.
-  function buildPositionPath(dromos, base) {
+  // בונה מסלול נגינה בתוך חלון פוזיציה.
+  // mode '4': תיבת פוזיציה על כל 4 המיתרים (C→D), עולה עד המיתר הראשון.
+  // mode '2': מסלול מלודי רציף על 2 מיתרים בלבד (A ואז D) — עולה בגובה.
+  function buildPositionPath(dromos, base, mode) {
     const pcs = scalePcs(dromos);
+    if (mode === '2') {
+      const path = [];
+      let lastMidi = -Infinity;
+      for (const ci of [1, 0]) {               // A (מיתר 2) ואז D (מיתר 1)
+        const openMidi = TUNING[ci].midi;
+        for (let fret = base; fret <= base + 7 && fret <= NUM_FRETS; fret++) {
+          if (fret < 0) continue;
+          const midi = openMidi + fret;
+          const pc = ((midi % 12) + 12) % 12;
+          if (!pcs.has(pc)) continue;
+          if (midi <= lastMidi) continue;       // רק עלייה — מסלול מלודי רציף
+          path.push({ ci, fret });
+          lastMidi = midi;
+        }
+      }
+      return path;
+    }
+    // mode '4' — תיבת פוזיציה: מהקורס הנמוך (C=3) אל הגבוה (D=0)
     const path = [];
-    // iterate מהקורס הנמוך (C=3) אל הגבוה (D=0)
     for (let ci = 3; ci >= 0; ci--) {
       const openMidi = TUNING[ci].midi;
       for (let fret = base; fret <= base + POS_SPAN && fret <= NUM_FRETS; fret++) {
@@ -654,10 +673,11 @@ const TheoryLab = (() => {
     return path;
   }
 
-  function drawDromosNeck(dromos, base) {
+  function drawDromosNeck(dromos, base, mode) {
     const pcs = scalePcs(dromos);
-    const path = buildPositionPath(dromos, base);
+    const path = buildPositionPath(dromos, base, mode);
     const inPath = new Set(path.map(p => p.ci + '-' + p.fret));
+    const activeCourses = (mode === '2') ? new Set([1, 0]) : new Set([3, 2, 1, 0]);
 
     const padL = 60, padR = 14, padT = 16, padB = 26;
     const fretW = 46, rowH = 44;
@@ -668,6 +688,14 @@ const TheoryLab = (() => {
 
     // רקע עץ
     svgEl('rect', { x: padL - 6, y: padT - 6, width: fretW * NECK_FRETS + 12, height: rowH * 3 + 12, rx: 6, fill: '#2b2014', stroke: '#1a120a', 'stroke-width': 1.5 }, svg);
+
+    // הדגשת המיתרים הפעילים במצב 2-מיתרים
+    if (mode === '2') {
+      ROW_COURSES.forEach((ci, row) => {
+        if (!activeCourses.has(ci)) return;
+        svgEl('rect', { x: padL - 6, y: padT + row * rowH - rowH / 2 + 6, width: fretW * NECK_FRETS + 12, height: rowH, fill: '#e3b341', opacity: 0.1 }, svg);
+      });
+    }
 
     // אינליי נקודות
     [3, 5, 7, 12].forEach(f => {
@@ -706,19 +734,20 @@ const TheoryLab = (() => {
         const cx = f === 0 ? padL - 22 : padL + (f - 0.5) * fretW;
         const isRoot = pc === ROOT_PC;
         const isIn = inPath.has(ci + '-' + f);
+        const dim = (mode === '2' && !activeCourses.has(ci));   // מיתר לא-פעיל במצב 2
         const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer' }, svg);
         svgEl('circle', {
           cx, cy: y, r: isIn ? 12 : 9,
           fill: isRoot ? '#e3b341' : '#2a7fa8',
           stroke: isRoot ? '#fff0c8' : '#7fd0ef',
           'stroke-width': isIn ? 2 : 1.2,
-          opacity: isIn ? 1 : 0.32,
+          opacity: isIn ? 1 : (dim ? 0.12 : 0.32),
         }, g);
         const lbl = SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc];
         svgEl('text', {
           x: cx, y: y + 3.5, fill: isRoot ? '#1a1408' : '#eaf6fc',
           'font-size': 9.5, 'font-weight': 700, 'text-anchor': 'middle',
-          'font-family': 'Heebo,sans-serif', opacity: isIn ? 1 : 0.5,
+          'font-family': 'Heebo,sans-serif', opacity: isIn ? 1 : (dim ? 0.18 : 0.5),
           style: 'pointer-events:none',
         }, g).textContent = lbl;
         g.addEventListener('click', () => {
@@ -781,6 +810,57 @@ const TheoryLab = (() => {
     registerLoop();
   }
 
+  /* ---------- פירוק הדרומוס לג'ינסים (טטרקורדים) ---------- */
+  const JINS_NAMES = {
+    '1,3,1': 'חיג׳אז', '2,2,1': 'ראסט / מז׳ור', '2,1,2': 'ניהאוונד / מינור',
+    '1,2,2': 'כורד', '2,2,2': 'מוגבר (טונים שלמים)', '2,1,3': 'ניקריז',
+    '3,1,1': 'חיג׳אז הפוך', '1,2,1': 'סabah', '2,3,1': 'מוסתאר',
+  };
+  function stepName(s) {
+    return s === 1 ? '½' : s === 2 ? '1' : s === 3 ? '1½' : (s / 2).toString();
+  }
+  function noteAt(iv) { return SOLFEGE[NOTE_NAMES[(ROOT_PC + iv) % 12]] || NOTE_NAMES[(ROOT_PC + iv) % 12]; }
+
+  function dromosComposition(dromos) {
+    const ivs = (dromos.intervals || []).slice();
+    if (ivs.length < 5) return null;
+    const full = ivs.concat([12]);
+    const steps = [];
+    for (let i = 0; i < full.length - 1; i++) steps.push(full[i + 1] - full[i]);
+    const lowerSteps = steps.slice(0, 3);
+    const upperSteps = steps.slice(4, 7);
+    const lowerKey = lowerSteps.join(',');
+    const upperKey = upperSteps.join(',');
+    const lowerNotes = [0, 1, 2, 3].map(i => ivs[i] != null ? noteAt(ivs[i]) : '').filter(Boolean);
+    const upperNotes = [4, 5, 6].map(i => ivs[i] != null ? noteAt(ivs[i]) : '').concat(['רה']);
+    // המרווח המאפיין = הגדול ביותר (לרוב טון וחצי / מוגדל)
+    let charIdx = -1, charMax = 0;
+    steps.forEach((s, i) => { if (s > charMax) { charMax = s; charIdx = i; } });
+    const charInterval = charMax >= 3
+      ? { from: noteAt(ivs[charIdx]), to: noteAt(full[charIdx + 1] === 12 ? 0 : full[charIdx + 1]), size: charMax }
+      : null;
+    return {
+      lowerNotes, lowerJins: JINS_NAMES[lowerKey] || ('תבנית ' + lowerSteps.map(stepName).join('-')),
+      upperNotes, upperJins: JINS_NAMES[upperKey] || ('תבנית ' + upperSteps.map(stepName).join('-')),
+      connector: steps[3] != null ? stepName(steps[3]) : null,
+      stepsText: steps.map(stepName).join(' · '),
+      charInterval,
+    };
+  }
+
+  function dromosExercises(dromos, comp) {
+    const bpm = dromos.bpmRange ? dromos.bpmRange[0] : 60;
+    const list = [
+      `נגנו את המסלול עולה ויורד 4 פעמים, ♩=${bpm}. דייקו בכל מעבר בין מיתרים.`,
+      'מצאו את הטוניקה (רה האדומה) בכל ארבעת המיתרים — נגנו רק אותה.',
+      'נגנו רק את 4 הצלילים הראשונים (הג׳ינס התחתון) הלוך ושוב, עד שהם "בגוף".',
+    ];
+    if (comp && comp.charInterval) {
+      list.splice(1, 0, `הדגישו את המרווח המאפיין ${comp.charInterval.from}→${comp.charInterval.to} (טון וחצי) — זה הצבע של הדרומוס.`);
+    }
+    return list;
+  }
+
   function renderDromoi(body, edu) {
     if (typeof DROMOI === 'undefined' || !Array.isArray(DROMOI) || !DROMOI.length) {
       body.innerHTML = '<div class="card">אין נתוני דרומוסים.</div>';
@@ -792,9 +872,9 @@ const TheoryLab = (() => {
     const intro = document.createElement('div');
     intro.className = 'card tl-neck-intro';
     intro.innerHTML = `<h2>הדרומוס על הגריף — איפה ללחוץ</h2>
-      <p>כל דרומוס פרוס על ארבעת המיתרים. המיתרים מסודרים מלמעלה למטה: <b>C · F · A · D</b> — והמיתר התחתון הוא <b>מיתר 1 (D)</b>.
-      בחרו פוזיציה: הקו המקווקו מראה את מסלול הנגינה — מתחילים על המיתר העבה ועולים עד המיתר הראשון.
-      נקודה זהובה = הטוניקה. לחצו על כל נקודה לשמוע אותה.</p>`;
+      <p>כל דרומוס פרוס על המיתרים (מלמעלה למטה: <b>C · F · A · D</b>, התחתון = <b>מיתר 1 (D)</b>).
+      בחרו <b>מסלול על 4 מיתרים</b> (תיבת פוזיציה) או <b>על 2 מיתרים</b> (מסלול מלודי רציף A→D).
+      הקו המקווקו והמספרים = סדר הנגינה. נקודה זהובה = הטוניקה. לחצו "נגן מסלול" לשמוע ממש, או על כל נקודה בנפרד.</p>`;
     body.appendChild(intro);
 
     // בורר דרומוס
@@ -830,6 +910,23 @@ const TheoryLab = (() => {
       ${dromos.mood ? `<div class="tl-neck-mood">${dromos.mood}</div>` : ''}`;
     card.appendChild(head);
 
+    // מתג מצב: 4 מיתרים / 2 מיתרים
+    const modeWrap = document.createElement('div');
+    modeWrap.className = 'tl-pos-row tl-mode-row';
+    modeWrap.innerHTML = '<span class="tl-pos-label">מסלול:</span>';
+    [['4', '🎸 4 מיתרים (פוזיציה)'], ['2', '🎻 2 מיתרים (מלודי)']].forEach(([m, label]) => {
+      const mb = document.createElement('button');
+      mb.className = 'tl-pos-chip tl-mode-chip' + (m === _neckMode ? ' active' : '');
+      mb.textContent = label;
+      mb.addEventListener('click', () => {
+        if (_neckMode === m) return;
+        _neckMode = m; stopSeq();
+        renderBody(body, edu);
+      });
+      modeWrap.appendChild(mb);
+    });
+    card.appendChild(modeWrap);
+
     // בורר פוזיציה
     const posWrap = document.createElement('div');
     posWrap.className = 'tl-pos-row';
@@ -850,7 +947,7 @@ const TheoryLab = (() => {
     // הגריף עצמו (גלילה אופקית במובייל)
     const scroll = document.createElement('div');
     scroll.className = 'tl-neck-scroll';
-    const { svg, path, dotByKey } = drawDromosNeck(dromos, _posBase);
+    const { svg, path, dotByKey } = drawDromosNeck(dromos, _posBase, _neckMode);
     scroll.appendChild(svg);
     card.appendChild(scroll);
 
@@ -861,11 +958,24 @@ const TheoryLab = (() => {
     bPath.className = 'btn small tl-btn tl-play-btn';
     bPath.dataset.playLabel = '▶ נגן מסלול (עולה למיתר 1)';
     bPath.textContent = bPath.dataset.playLabel;
+    const bpm = dromos.bpmRange ? dromos.bpmRange[0] : 90;
     bPath.addEventListener('click', () => {
       if (_seqBtn === bPath) { stopSeq(); return; }
-      playPath(path, dotByKey, dromos.bpmRange ? dromos.bpmRange[0] : 90, bPath);
+      playPath(path, dotByKey, bpm, bPath);
     });
     btns.appendChild(bPath);
+
+    // נגן הלוך-חזור (עולה ויורד)
+    const bRound = document.createElement('button');
+    bRound.className = 'btn small tl-btn tl-play-btn';
+    bRound.dataset.playLabel = '🔁 נגן הלוך-חזור';
+    bRound.textContent = bRound.dataset.playLabel;
+    bRound.addEventListener('click', () => {
+      if (_seqBtn === bRound) { stopSeq(); return; }
+      const round = path.concat(path.slice(0, -1).reverse());
+      playPath(round, dotByKey, bpm, bRound);
+    });
+    btns.appendChild(bRound);
 
     // נגן סולם על מיתר D בלבד (השוואה / צליל אחיד)
     const bScale = mkBtn('🎵 סולם על מיתר D', () => {
@@ -879,6 +989,38 @@ const TheoryLab = (() => {
     if (dromos.chords) card.appendChild(infoLine('🎸', 'אקורדים מתאימים: ' + dromos.chords));
 
     body.appendChild(card);
+
+    // ממה מורכב הדרומוס — ג'ינסים + תרגילים
+    const comp = dromosComposition(dromos);
+    const compCard = document.createElement('div');
+    compCard.className = 'card tl-comp-card';
+    let html = `<h3 class="tl-comp-title">ממה מורכב ${dromos.nameHe || ''}?</h3>`;
+    if (comp) {
+      html += `<div class="tl-jins">
+          <div class="tl-jins-box">
+            <div class="tl-jins-label">ג׳ינס תחתון</div>
+            <div class="tl-jins-notes">${comp.lowerNotes.join(' · ')}</div>
+            <div class="tl-jins-name">${comp.lowerJins}</div>
+          </div>
+          <div class="tl-jins-link">${comp.connector ? 'חיבור: ' + comp.connector : ''}</div>
+          <div class="tl-jins-box">
+            <div class="tl-jins-label">ג׳ינס עליון</div>
+            <div class="tl-jins-notes">${comp.upperNotes.join(' · ')}</div>
+            <div class="tl-jins-name">${comp.upperJins}</div>
+          </div>
+        </div>
+        <div class="tl-steps">מבנה המרווחים: ${comp.stepsText} (בטונים)</div>`;
+      if (comp.charInterval) {
+        html += `<div class="tl-char-int">🎯 המרווח המאפיין: <b>${comp.charInterval.from}→${comp.charInterval.to}</b> (טון וחצי — הצבע המזרחי)</div>`;
+      }
+    }
+    if (dromos.desc) html += `<p class="tl-comp-desc">${dromos.desc}</p>`;
+    // תרגילים
+    html += '<h3 class="tl-comp-title" style="margin-top:14px">תרגילים על המסלול</h3><ol class="tl-ex-ol">';
+    dromosExercises(dromos, comp).forEach(ex => { html += `<li>${ex}</li>`; });
+    html += '</ol>';
+    compCard.innerHTML = html;
+    body.appendChild(compCard);
   }
 
   return { init, stop };
