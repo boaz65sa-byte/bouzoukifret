@@ -21,6 +21,13 @@ const BouzoukiStudio = (() => {
   let _nextIdx = 0;
   let _fbHost = null;
   let _activeBackingIdx = null;
+  let _learnMode = 'd';       // 'd' = מיתר D קלאסי | 'box' = תיבת פוזיציה
+  let _posBase = 0;
+  let _phraseIdx = 0;
+  let _phrases = [];
+  let _phrasePlay = [];
+  let _phraseDur = 0;
+  let _fbSvg = null;
 
   const STEPS = [
     { id: 'source', label: 'מקור' },
@@ -69,8 +76,50 @@ const BouzoukiStudio = (() => {
     const lastC = _chords.length ? _chords[_chords.length - 1].time + 1 : 0;
     _duration = Math.max(lastM, lastC, 1);
     _dromosIds = guessDromoi(_chords);
+    rebuildPhrases();
     setStep('fretboard');
     render();
+  }
+
+  function rebuildPhrases() {
+    if (!_melody.length || typeof FretboardScale === 'undefined') {
+      _phrases = [];
+      _phraseIdx = 0;
+      return;
+    }
+    if (_learnMode === 'box' && !_posBase) {
+      _posBase = FretboardScale.findBestBase(_melody, 'box');
+    }
+    const { notes: mapped } = FretboardScale.remapMelody(_melody, {
+      mode: _learnMode,
+      base: _posBase,
+    });
+    _phrases = FretboardScale.splitPhrases(mapped);
+    if (_phraseIdx >= _phrases.length) _phraseIdx = 0;
+    setPhrasePlay();
+  }
+
+  function setPhrasePlay() {
+    _phrasePlay = _phrases[_phraseIdx] || [];
+    if (!_phrasePlay.length) {
+      _phraseDur = 0;
+      return;
+    }
+    const t0 = _phrasePlay[0].time;
+    const last = _phrasePlay[_phrasePlay.length - 1];
+    _phraseDur = Math.max(0.5, (last.time + (last.duration || 0.3)) - t0);
+  }
+
+  function currentPhraseLabel() {
+    if (!_phrases.length) return 'אין משפטים';
+    return `משפט ${_phraseIdx + 1} מתוך ${_phrases.length} · ${_phrasePlay.length} תווים`;
+  }
+
+  function learnModeHint() {
+    if (_learnMode === 'd') {
+      return 'מיתר D (מיתר 1) — כמו במורה יווני: המלודיה נשארת על מיתר אחד, משפט-משפט.';
+    }
+    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} — היד לא זזה על כל הצוואר.`;
   }
 
   async function analyzeBlob(blob) {
@@ -119,37 +168,37 @@ const BouzoukiStudio = (() => {
     }
   }
 
-  function melodyPath() {
-    return _melody.map(n => ({ ci: n.course, fret: n.fret }));
-  }
-
   function renderFretboard() {
     const host = $('#bzs-fretboard');
-    if (!host || !_melody.length) return;
-    const fretsOnD = [...new Set(_melody.map(n => n.fret))].sort((a, b) => a - b);
-    if (typeof FretboardScale !== 'undefined') {
-      FretboardScale.mount(host, {
-        frets: fretsOnD.length ? fretsOnD : [0, 2, 4, 5, 7],
-        path: melodyPath(),
-        pathLabels: true,
-        drawPath: true,
-      });
-      _fbHost = host;
-      return;
-    }
-    host.innerHTML = '<p class="hint">טוען לוח סריגים…</p>';
+    if (!host || !_melody.length || typeof FretboardScale === 'undefined') return;
+
+    const phraseNotes = _phrasePlay.length ? _phrasePlay : _melody.slice(0, 14);
+    _fbHost = host;
+    FretboardScale.mountMelodyLesson(host, {
+      notes: phraseNotes,
+      mode: _learnMode,
+      base: _posBase,
+      onBaseChange: b => { _posBase = b; rebuildPhrases(); render(); },
+      onMount: res => { _fbSvg = res.svg; },
+    });
   }
 
   function flashNote(n) {
     if (!n) return;
-    const svg = _fbHost?.querySelector('svg');
-    if (svg && typeof FretboardScale !== 'undefined') {
-      FretboardScale.flashMidi(svg, n.midi || (TUNING[n.course].midi + n.fret));
+    const svg = _fbSvg || _fbHost?.querySelector('svg');
+    if (!svg) return;
+    svg.querySelectorAll('.bzs-active-note').forEach(d => d.classList.remove('bzs-active-note'));
+    const dot = svg.querySelector(`.note-dot[data-course="${n.course}"][data-fret="${n.fret}"]`);
+    if (dot) {
+      dot.classList.add('bzs-active-note');
+      const lbl = dot.querySelector('text');
+      if (lbl) lbl.textContent = '▶';
     }
+    if (typeof flashDot === 'function') flashDot(svg, n.course, n.fret);
   }
 
   function playAlong() {
-    if (!_melody.length) return;
+    if (!_phrasePlay.length) return;
     stopPlay();
     _playing = true;
     _nextIdx = 0;
@@ -157,15 +206,18 @@ const BouzoukiStudio = (() => {
       ? AudioEngine.ctx.currentTime : 0;
     if (typeof AudioEngine !== 'undefined') AudioEngine.ensureCtx();
     if (typeof registerPlayback === 'function') registerPlayback('bouzouki-studio', stopPlay);
+    const btn = $('#bzs-play-melody');
+    if (btn) btn.textContent = '■ עצור משפט';
     tickPlay();
   }
 
   function tickPlay() {
-    if (!_playing) return;
+    if (!_playing || !_phrasePlay.length) return;
     const t0 = (typeof AudioEngine !== 'undefined' && AudioEngine.ctx) ? AudioEngine.ctx.currentTime : 0;
     const elapsed = (t0 - _playStart) * _speed;
-    while (_nextIdx < _melody.length && _melody[_nextIdx].time <= elapsed) {
-      const n = _melody[_nextIdx];
+    const phraseT0 = _phrasePlay[0].time;
+    while (_nextIdx < _phrasePlay.length && (_phrasePlay[_nextIdx].time - phraseT0) <= elapsed) {
+      const n = _phrasePlay[_nextIdx];
       if (typeof AudioEngine !== 'undefined') {
         AudioEngine.pluckCourse(n.course, n.fret, 0, 0.55);
       }
@@ -173,20 +225,23 @@ const BouzoukiStudio = (() => {
       _nextIdx++;
     }
     const prog = $('#bzs-play-prog');
-    if (prog) prog.style.width = `${Math.min(100, (elapsed / _duration) * 100)}%`;
-    if (elapsed >= _duration) {
+    if (prog) prog.style.width = `${Math.min(100, (elapsed / _phraseDur) * 100)}%`;
+    if (elapsed >= _phraseDur) {
       stopPlay();
+      renderFretboard();
       return;
     }
     _raf = requestAnimationFrame(tickPlay);
   }
 
   function stopPlay() {
+    const wasPlaying = _playing;
     _playing = false;
     if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
     if (typeof unregisterPlayback === 'function') unregisterPlayback('bouzouki-studio');
     const btn = $('#bzs-play-melody');
-    if (btn) btn.textContent = '▶ נגן מלודיה על הגריף';
+    if (btn) btn.textContent = '▶ נגן משפט זה';
+    if (wasPlaying && _step === 'fretboard') renderFretboard();
   }
 
   function stopBacking() {
@@ -296,12 +351,23 @@ const BouzoukiStudio = (() => {
       </div>
 
       <div class="card bzs-panel" data-panel="fretboard" ${ _step !== 'fretboard' ? 'hidden' : ''}>
-        <h2>4 · המלודיה על כל המיתרים</h2>
-        ${_analysis ? `<p class="bzs-meta">BPM <b>${_analysis.bpm || '—'}</b> · ${_melody.length} תווים · ${_chords.length} אקורדים</p>
-          ${_dromosIds.length ? `<p>דרומוסים משוערים: ${dromosChips}</p>` : ''}` : '<p class="hint">הריצו ניתוח קודם</p>'}
+        <h2>4 · למד את המלודיה — משפט-משפט</h2>
+        ${_analysis ? `<p class="bzs-meta">BPM <b>${_analysis.bpm || '—'}</b> · ${_melody.length} תווים בשיר · ${_chords.length} אקורדים</p>
+          <p class="hint bzs-teach-hint">${esc(learnModeHint())}</p>
+          ${_dromosIds.length ? `<p>דרומוסים משוערים: ${dromosChips}</p>` : ''}
+          <div class="bzs-row bzs-learn-modes">
+            <span>אופן לימוד:</span>
+            <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D (קלאסי)</button>
+            <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת פוזיציה</button>
+          </div>
+          <div class="bzs-row bzs-phrase-nav">
+            <button type="button" class="btn secondary" id="bzs-phrase-prev" ${_phraseIdx <= 0 ? 'disabled' : ''}>◀ משפט קודם</button>
+            <span id="bzs-phrase-label" class="bzs-phrase-label">${esc(currentPhraseLabel())}</span>
+            <button type="button" class="btn secondary" id="bzs-phrase-next" ${_phraseIdx >= _phrases.length - 1 ? 'disabled' : ''}>משפט הבא ▶</button>
+          </div>` : '<p class="hint">הריצו ניתוח קודם</p>'}
         <div id="bzs-fretboard" class="bzs-fretboard" dir="ltr"></div>
         <div class="bzs-row">
-          <button type="button" class="btn gold" id="bzs-play-melody">▶ נגן מלודיה על הגריף</button>
+          <button type="button" class="btn gold" id="bzs-play-melody" ${_phrasePlay.length ? '' : 'disabled'}>▶ נגן משפט זה</button>
           <div class="bzs-prog-wrap"><div id="bzs-play-prog" class="bzs-play-prog"></div></div>
         </div>
         <button type="button" class="btn secondary" id="bzs-to-practice">המשך → תרגול עם ליווי</button>
@@ -382,6 +448,23 @@ const BouzoukiStudio = (() => {
     $('#bzs-analyze')?.addEventListener('click', () => analyzeBlob(_stemBlob || _blob));
 
     if (_step === 'fretboard' && _analysis) renderFretboard();
+
+    app.querySelectorAll('.bzs-learn-mode').forEach(b => b.addEventListener('click', () => {
+      _learnMode = b.dataset.m;
+      if (_learnMode === 'box' && typeof FretboardScale !== 'undefined') {
+        _posBase = FretboardScale.findBestBase(_melody, 'box');
+      }
+      _phraseIdx = 0;
+      rebuildPhrases();
+      render();
+    }));
+    $('#bzs-phrase-prev')?.addEventListener('click', () => {
+      if (_phraseIdx > 0) { _phraseIdx--; setPhrasePlay(); render(); }
+    });
+    $('#bzs-phrase-next')?.addEventListener('click', () => {
+      if (_phraseIdx < _phrases.length - 1) { _phraseIdx++; setPhrasePlay(); render(); }
+    });
+
     $('#bzs-play-melody')?.addEventListener('click', () => {
       if (_playing) stopPlay();
       else playAlong();
@@ -412,6 +495,10 @@ const BouzoukiStudio = (() => {
     _blob = null;
     _stemBlob = null;
     _analysis = null;
+    _learnMode = 'd';
+    _posBase = 0;
+    _phraseIdx = 0;
+    _phrases = [];
     _step = 'source';
     render();
   }

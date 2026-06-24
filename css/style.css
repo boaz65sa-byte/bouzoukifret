@@ -2282,6 +2282,12 @@ select {
 #bzs-status { min-height: 1.2em; }
 
 .bzs-engine.active { background: var(--aegean-deep); color: #fff; }
+.bzs-learn-mode.active { background: var(--aegean-deep); color: #fff; }
+.bzs-teach-hint { color: var(--gold-soft); font-size: 13px; margin: 4px 0 10px; }
+.bzs-phrase-nav { justify-content: center; gap: 12px; }
+.bzs-phrase-label { font-weight: 700; color: var(--text); font-size: 14px; min-width: 180px; text-align: center; }
+.note-dot.bzs-active-note circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 8px var(--gold)); }
+.fs-melody-board .note-dot { opacity: 1; }
 
 @media (max-width: 600px) {
   .bzs-step { min-width: 58px; font-size: 12px; padding: 7px 6px; }

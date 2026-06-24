@@ -118,6 +118,197 @@ const FretboardScale = (() => {
     });
   }
 
+  const MELODY_POS_SPAN = 4;
+  const MELODY_BASES = [0, 2, 3, 5, 7, 9, 12];
+
+  function noteMidi(n) {
+    return n.midi ?? (TUNING[n.course].midi + n.fret);
+  }
+
+  function placementsForMidi(midi) {
+    const out = [];
+    TUNING.forEach((c, ci) => {
+      const f = midi - c.midi;
+      if (f >= 0 && f <= NUM_FRETS) out.push({ ci, fret: f, midi });
+    });
+    return out;
+  }
+
+  function pickPlacement(candidates, prev) {
+    if (!candidates.length) return null;
+    let best = candidates[0];
+    let bestScore = Infinity;
+    candidates.forEach(p => {
+      let s = p.ci === 0 ? 0 : 3;
+      if (prev) {
+        s += Math.abs(p.fret - prev.fret) * 2;
+        if (p.ci !== prev.ci) s += 4;
+        if (Math.abs(p.fret - prev.fret) > 3) s += 12;
+      }
+      if (s < bestScore) { bestScore = s; best = p; }
+    });
+    return best;
+  }
+
+  function remapMelody(notes, opts = {}) {
+    const mode = opts.mode || 'd';
+    const base = opts.base ?? 0;
+    const remapped = [];
+    let prev = null;
+    for (const n of notes) {
+      const midi = noteMidi(n);
+      let candidates = placementsForMidi(midi);
+      if (mode === 'd') candidates = candidates.filter(p => p.ci === 0);
+      else candidates = candidates.filter(p => p.fret >= base && p.fret <= base + MELODY_POS_SPAN);
+      const pick = pickPlacement(candidates, prev);
+      if (!pick) continue;
+      remapped.push({ ...n, course: pick.ci, fret: pick.fret, midi: pick.midi });
+      prev = pick;
+    }
+    return { notes: remapped, base, mode };
+  }
+
+  function scoreRemapped(remapped) {
+    let s = 0;
+    let prev = null;
+    remapped.forEach(n => {
+      if (prev) s += Math.abs(n.fret - prev.fret) + (n.course !== prev.course ? 3 : 0);
+      prev = n;
+    });
+    return s + (remapped.length ? 0 : 9999);
+  }
+
+  function findBestBase(notes, mode = 'box') {
+    let best = MELODY_BASES[0];
+    let bestScore = Infinity;
+    MELODY_BASES.forEach(b => {
+      const { notes: remapped } = remapMelody(notes, { mode, base: b });
+      const coverage = remapped.length / Math.max(1, notes.length);
+      if (coverage < 0.55) return;
+      const score = scoreRemapped(remapped) + (1 - coverage) * 200;
+      if (score < bestScore) { bestScore = score; best = b; }
+    });
+    return best;
+  }
+
+  function splitPhrases(notes, gapSec = 0.35, maxSize = 14) {
+    if (!notes.length) return [];
+    const phrases = [];
+    let cur = [notes[0]];
+    for (let i = 1; i < notes.length; i++) {
+      const prev = notes[i - 1];
+      const gap = notes[i].time - (prev.time + (prev.duration || 0.15));
+      if (gap > gapSec || cur.length >= maxSize) {
+        phrases.push(cur);
+        cur = [];
+      }
+      cur.push(notes[i]);
+    }
+    if (cur.length) phrases.push(cur);
+    return phrases;
+  }
+
+  function drawMelodyConnections(svg, path, color = '#f0cc74') {
+    if (!svg || path.length < 2) return;
+    svg.querySelectorAll('.fs-melody-seg').forEach(el => el.remove());
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1];
+      const b = path[i];
+      const df = Math.abs(a.fret - b.fret);
+      const dc = Math.abs(a.ci - b.ci);
+      if (dc > 1 || df > 3) continue;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', fretCenterX(a.fret));
+      line.setAttribute('y1', courseY(a.ci));
+      line.setAttribute('x2', fretCenterX(b.fret));
+      line.setAttribute('y2', courseY(b.ci));
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-dasharray', '5 3');
+      line.setAttribute('opacity', '0.75');
+      line.setAttribute('class', 'fs-melody-seg');
+      line.style.pointerEvents = 'none';
+      svg.appendChild(line);
+    }
+  }
+
+  function mountMelody(container, opts = {}) {
+    if (!container || typeof drawFretboard !== 'function') return { svg: null, remapped: [], path: [] };
+    const mode = opts.mode || 'd';
+    const base = opts.base ?? (mode === 'box' ? findBestBase(opts.notes || [], mode) : 0);
+    const { notes: remapped } = remapMelody(opts.notes || [], { mode, base });
+    const path = remapped.map(n => ({ ci: n.course, fret: n.fret }));
+    const stepByKey = new Map();
+    remapped.forEach((n, i) => stepByKey.set(`${n.course}-${n.fret}`, i + 1));
+
+    container.innerHTML = '';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('fretboard', 'fs-neck-board', 'fs-melody-board');
+    svg.setAttribute('dir', 'ltr');
+    container.appendChild(svg);
+
+    drawFretboard(svg, (ci, f) => {
+      const step = stepByKey.get(`${ci}-${f}`);
+      if (step == null) return null;
+      const active = opts.activeCi === ci && opts.activeFret === f;
+      return {
+        type: (step === 1 || active) ? 'root' : 'note',
+        label: active ? '▶' : String(step),
+      };
+    });
+
+    if (opts.drawPath !== false) drawMelodyConnections(svg, path, opts.color || '#f0cc74');
+    return { svg, remapped, path, base };
+  }
+
+  function mountMelodyLesson(container, opts = {}) {
+    if (!container) return null;
+    const mode = opts.mode || 'd';
+    let base = opts.base ?? (mode === 'box' ? findBestBase(opts.notes || [], mode) : 0);
+    const wrap = document.createElement('div');
+    wrap.className = 'fs-melody-lesson';
+
+    const bar = document.createElement('div');
+    bar.className = 'fs-pos-bar';
+    bar.hidden = mode !== 'box';
+    bar.innerHTML = '<span class="fs-pos-label">פוזיציה (סריג בסיס):</span>';
+
+    const board = document.createElement('div');
+    board.className = 'fs-pos-board';
+
+    function renderBoard() {
+      const res = mountMelody(board, { ...opts, mode, base, notes: opts.notes });
+      opts.onMount?.(res);
+      return res;
+    }
+
+    if (mode === 'box') {
+      MELODY_BASES.forEach(b => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn secondary fs-pos-chip' + (b === base ? ' active' : '');
+        btn.textContent = b === 0 ? 'פתוח' : String(b);
+        btn.dataset.base = String(b);
+        btn.addEventListener('click', () => {
+          base = b;
+          bar.querySelectorAll('.fs-pos-chip').forEach(x => {
+            x.classList.toggle('active', Number(x.dataset.base) === b);
+          });
+          renderBoard();
+          opts.onBaseChange?.(b);
+        });
+        bar.appendChild(btn);
+      });
+    }
+
+    wrap.appendChild(bar);
+    wrap.appendChild(board);
+    container.innerHTML = '';
+    container.appendChild(wrap);
+    const res = renderBoard();
+    return res.svg;
+  }
+
   /**
    * @param {HTMLElement} container
    * @param {{ frets?: number[], intervals?: number[], rootPc?: number, base?: number,
@@ -210,6 +401,8 @@ const FretboardScale = (() => {
 
   return {
     POSITION_BASES,
+    MELODY_BASES,
+    MELODY_POS_SPAN,
     pcsFromDFrets,
     pcsFromIntervals,
     allPositions,
@@ -219,6 +412,12 @@ const FretboardScale = (() => {
     mount,
     mountWithPositions,
     drawPathOverlay,
+    drawMelodyConnections,
+    remapMelody,
+    findBestBase,
+    splitPhrases,
+    mountMelody,
+    mountMelodyLesson,
     flashMidi,
   };
 })();
