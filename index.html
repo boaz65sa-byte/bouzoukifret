@@ -44,6 +44,9 @@
       <button class="nav-btn nav-featured" data-screen="learn-lib" data-nav-priority="1b">
         <span class="nav-ico">📥</span> ספריית לימוד
       </button>
+      <button class="nav-btn nav-featured" data-screen="bouzouki-studio" data-nav-priority="1c">
+        <span class="nav-ico">🎛️</span> אולפן בוזוקי
+      </button>
       <button class="nav-btn nav-featured" data-screen="progress" data-nav-priority="2">
         <span class="nav-ico">📊</span> התקדמות
       </button>
@@ -1018,6 +1021,15 @@
       <div id="worksheets-app"></div>
     </section>
 
+    <!-- ========== מסך: אולפן בוזוקי ========== -->
+    <section class="screen" id="screen-bouzouki-studio">
+      <header class="screen-head">
+        <h1>אולפן בוזוקי 🎛️</h1>
+        <p class="lead">מקור → הפרדת stems → ניתוח מלודיה → גריף על כל המיתרים → תרגול עם ליווי לפי דרומוס (בסגנון ACE Studio, מותאם לבוזוקי)</p>
+      </header>
+      <div id="bouzouki-studio-app"></div>
+    </section>
+
     <!-- ========== מסך: למד אותי את השיר ========== -->
     <section class="screen" id="screen-song-teacher">
       <header class="screen-head">
@@ -1167,6 +1179,7 @@
 <script src="js/daily-streak.js"></script>
 <script src="js/progress-db.js"></script>
 <script src="js/features.js"></script>
+<script src="js/bouzouki-studio.js"></script>
 <script src="js/progress-dashboard.js"></script>
 <script src="js/features2.js"></script>
 <script>
@@ -1195,6 +1208,7 @@ if (typeof ArpStudio !== 'undefined') ArpStudio.init();
 if (typeof ReferenceCards !== 'undefined') ReferenceCards.init();
 if (typeof Worksheets !== 'undefined') Worksheets.init();
 if (typeof SongTeacher !== 'undefined') SongTeacher.init();
+if (typeof BouzoukiStudio !== 'undefined') BouzoukiStudio.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();

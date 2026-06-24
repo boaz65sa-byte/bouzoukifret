@@ -2196,3 +2196,94 @@ select {
 }
 .st-engine-row { font-size: 13px; color: var(--text-dim); }
 .st-engine.active { background: var(--aegean-deep); color: #fff; }
+
+/* ============================================================
+   Bouzouki Studio — אולפן בוזוקי
+   ============================================================ */
+.bzs-steps {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+}
+.bzs-step {
+  flex: 1; min-width: 72px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid rgba(143,166,188,0.25); background: rgba(255,255,255,0.03);
+  color: var(--text-dim); font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+}
+.bzs-step:hover { border-color: var(--aegean); color: var(--text); }
+.bzs-step.active {
+  background: var(--aegean-deep); border-color: var(--aegean); color: #fff;
+}
+.bzs-step.done:not(.active) {
+  border-color: rgba(227,179,65,0.45); color: var(--gold-soft);
+}
+
+.bzs-panel h2 { margin: 0 0 8px; font-size: 18px; color: var(--gold-soft); }
+.bzs-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0;
+}
+.bzs-row input[type="file"] { color: var(--text); max-width: 100%; }
+.bzs-row select {
+  background: var(--bg-deep); color: var(--text);
+  border: 1px solid rgba(143,166,188,0.3); border-radius: 6px; padding: 5px 8px;
+  font-family: 'Heebo', sans-serif;
+}
+.bzs-lib-pick {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;
+}
+.bzs-meta { color: var(--text-dim); font-size: 14px; margin: 6px 0 10px; }
+.bzs-meta b { color: var(--gold-soft); }
+.bzs-dromos-chip {
+  display: inline-block; padding: 3px 10px; margin: 0 4px 4px 0;
+  border-radius: 999px; background: rgba(79,179,217,0.15); color: var(--aegean);
+  font-size: 12px; font-weight: 700;
+}
+
+.bzs-fretboard {
+  padding: 10px 8px; margin: 10px 0; overflow-x: auto;
+  background: rgba(0,0,0,0.15); border-radius: 10px;
+}
+.bzs-fretboard .fretboard-svg { width: 100%; min-width: 640px; height: auto; }
+
+.bzs-prog-wrap {
+  flex: 1; min-width: 120px; height: 7px; background: var(--bg-deep);
+  border-radius: 4px; overflow: hidden;
+}
+.bzs-play-prog {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--aegean-deep), var(--gold));
+  transition: width .08s linear;
+}
+
+.bzs-backing-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px; margin: 10px 0;
+}
+.bzs-bt-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  border: 1px solid rgba(143,166,188,0.2); transition: border-color .15s, box-shadow .15s;
+}
+.bzs-bt-card.active {
+  border-color: var(--gold); box-shadow: 0 0 0 1px rgba(227,179,65,0.35);
+}
+.bzs-bt-card .hint { font-size: 12px; }
+.bzs-bt-steps { margin: 8px 0 12px; }
+
+.bzs-status-row {
+  margin-top: 14px; display: flex; flex-direction: column; gap: 6px;
+}
+.bzs-prog {
+  height: 6px; background: var(--bg-deep); border-radius: 4px; overflow: hidden;
+}
+.bzs-prog > div {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--aegean-deep), var(--gold));
+  transition: width .2s;
+}
+#bzs-status { min-height: 1.2em; }
+
+.bzs-engine.active { background: var(--aegean-deep); color: #fff; }
+
+@media (max-width: 600px) {
+  .bzs-step { min-width: 58px; font-size: 12px; padding: 7px 6px; }
+  .bzs-backing-list { grid-template-columns: 1fr; }
+}

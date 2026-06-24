@@ -697,17 +697,16 @@ const BackingTracks = (() => {
     });
   }
 
-  function startTrack(idx) {
+  function startTrack(idx, options = {}) {
     stop();
     activeTrack = TRACKS[idx];
     const t = activeTrack;
-    const mixer = document.querySelector('#bt-mixer');
-    if (mixer) mixer.style.display = '';
-    const nowEl = document.querySelector('#bt-now');
+    const mixer = options.mixerEl || document.querySelector('#bt-mixer');
+    if (mixer) mixer.style.display = options.hideMixer ? 'none' : '';
+    const nowEl = options.nowEl || document.querySelector('#bt-now');
     if (nowEl) nowEl.textContent = t.name + ' — ' + t.meter + ' ' + Math.round(t.bpm * tempoMul) + ' BPM';
 
-    // render step indicators
-    const stepsEl = document.querySelector('#bt-steps');
+    const stepsEl = options.stepsEl || document.querySelector('#bt-steps');
     if (stepsEl) {
       stepsEl.innerHTML = t.drums.map((_, i) => `<span class="bt-step" data-i="${i}"></span>`).join('');
     }
@@ -729,7 +728,8 @@ const BackingTracks = (() => {
       },
       (step) => {
         const i = step % t.cells;
-        const dots = document.querySelectorAll('.bt-step');
+        const scope = stepsEl || document;
+        const dots = scope.querySelectorAll ? scope.querySelectorAll('.bt-step') : [];
         dots.forEach((d, j) => d.classList.toggle('active', j === i));
       }
     );
@@ -746,7 +746,12 @@ const BackingTracks = (() => {
     if (mixer) mixer.style.display = 'none';
   }
 
-  return { init, stop };
+  return {
+    init, stop, startTrack,
+    getTracks: () => TRACKS.slice(),
+    listByDromos: (dromosId) => TRACKS.map((t, idx) => ({ ...t, idx })).filter(t => t.dromos === dromosId),
+    trackIndexById: (id) => TRACKS.findIndex(t => t.id === id),
+  };
 })();
 
 
