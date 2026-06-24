@@ -496,7 +496,7 @@ const MelodyRecorder = (() => {
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
-    src.connect(analyser);
+    AudioEngine.micBoost(src).connect(analyser);
 
     recording = true;
     startTime = performance.now();
@@ -764,7 +764,7 @@ const SightReading = (() => {
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
-    src.connect(analyser);
+    AudioEngine.micBoost(src).connect(analyser);
 
     running = true;
     $('#sr-start').disabled = true;
@@ -1210,7 +1210,7 @@ const LiveAnalyzer = (() => {
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
-    src.connect(analyser);
+    AudioEngine.micBoost(src).connect(analyser);
 
     const duration = +$('#la-duration').value;
     recording = true;

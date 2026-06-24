@@ -54,6 +54,19 @@ const BouzoukiTuner = (() => {
   let history = [];
   let referencePlaying = null;
 
+  /* ---------- ייצוב קריאות ---------- */
+  const FREQ_BUF = 7;          // חלון חציון לתדר
+  const STABLE_FRAMES = 3;     // כמה פריימים יציבים לפני התחייבות לתו
+  let _freqBuf = [];
+  let _emaCents = null;        // החלקת המחט
+  let _noteCommit = { name: null, count: 0 };
+  function median(arr) {
+    const s = arr.slice().sort((a, b) => a - b);
+    const m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function resetStable() { _freqBuf = []; _emaCents = null; _noteCommit = { name: null, count: 0 }; }
+
   /* ---------- עזר ---------- */
   function freqToMidiFloat(f) { return 69 + 12 * Math.log2(f / A4); }
   function midiToFreq(m) { return A4 * Math.pow(2, (m - 69) / 12); }
@@ -177,16 +190,19 @@ const BouzoukiTuner = (() => {
       needle.style.left = pct + '%';
 
       const absCents = Math.abs(cents);
+      // cents>0 = הצליל גבוה מדי → צריך להנמיך (לשחרר). cents<0 = נמוך → להגביה (למתוח).
+      const sharp = cents > 0;
+      const dir = sharp ? 'הנמך 🔽 (שחרר)' : 'הגבה 🔼 (מתח)';
       if (absCents <= IN_TUNE_CENTS) {
-        status.textContent = 'מכוון!';
+        status.textContent = '✓ מכוון!';
         status.className = 'ct-status ct-intune';
         needle.className = 'ct-needle ct-needle-green';
       } else if (absCents <= CLOSE_CENTS) {
-        status.textContent = cents > 0 ? 'גבוה מעט ↑' : 'נמוך מעט ↓';
+        status.textContent = 'כמעט — ' + dir;
         status.className = 'ct-status ct-close';
         needle.className = 'ct-needle ct-needle-yellow';
       } else {
-        status.textContent = cents > 0 ? 'גבוה מדי ↑↑' : 'נמוך מדי ↓↓';
+        status.textContent = (sharp ? 'גבוה מדי — ' : 'נמוך מדי — ') + dir;
         status.className = 'ct-status ct-off';
         needle.className = 'ct-needle ct-needle-red';
       }
@@ -273,39 +289,48 @@ const BouzoukiTuner = (() => {
     const { freq, rms } = Listen.detectPitch(buf, micCtx.sampleRate);
 
     if (!freq) {
+      resetStable();
       updateDisplay(null, null, null, null, rms || 0, null);
       return;
     }
 
-    const mf = freqToMidiFloat(freq);
+    // תיקון שגיאות אוקטבה מול החציון הרץ (מקור עיקרי לקפיצות)
+    let f = freq;
+    if (_freqBuf.length >= 3) {
+      const med = median(_freqBuf);
+      if (f > med * 1.6) f /= 2;
+      else if (f < med * 0.625) f *= 2;
+    }
+    _freqBuf.push(f);
+    if (_freqBuf.length > FREQ_BUF) _freqBuf.shift();
+    const sf = median(_freqBuf);     // תדר מוחלק (עמיד לרעש ולקפיצות)
+
+    const mf = freqToMidiFloat(sf);
     const midi = Math.round(mf);
     const pc = ((midi % 12) + 12) % 12;
     const name = NOTE_NAMES[pc];
     const solfege = SOLFEGE[name] || '';
 
-    // חשב סטייה: מצא את הקורס הקרוב ביותר בכיוונון,
-    // אחרת חשב סטייה מהתו הכרומטי הקרוב ביותר
-    const nearestTarget = getNearestTarget(freq);
+    // חשב סטייה מהקורס הקרוב ביותר, אחרת מהתו הכרומטי
+    const nearestTarget = getNearestTarget(sf);
     let cents;
-    if (nearestTarget && Math.abs(1200 * Math.log2(freq / nearestTarget)) < 80) {
-      cents = centsFromTarget(freq, nearestTarget);
+    if (nearestTarget && Math.abs(1200 * Math.log2(sf / nearestTarget)) < 80) {
+      cents = centsFromTarget(sf, nearestTarget);
     } else {
-      // סטייה כרומטית רגילה
       cents = (mf - midi) * 100;
     }
 
+    // החלקת המחט (EMA) כדי שהיא תזוז חלק ולא תקפוץ
+    _emaCents = (_emaCents === null) ? cents : _emaCents * 0.6 + cents * 0.4;
+
     const matchedCourse = findMatchingCourse(mf);
 
-    updateDisplay(
-      name,
-      solfege,
-      freq.toFixed(1) + ' Hz',
-      cents,
-      rms,
-      matchedCourse
-    );
+    updateDisplay(name, solfege, sf.toFixed(1) + ' Hz', _emaCents, rms, matchedCourse);
 
-    addToHistory(name, cents);
+    // התחייבות לתו רק כשהוא יציב מספר פריימים — מונע "ריצוד" בהיסטוריה
+    if (_noteCommit.name === name) _noteCommit.count++;
+    else _noteCommit = { name, count: 1 };
+    if (_noteCommit.count === STABLE_FRAMES) addToHistory(name, _emaCents);
   }
 
   /* ---------- מיקרופון ---------- */
@@ -327,7 +352,7 @@ const BouzoukiTuner = (() => {
       const src = micCtx.createMediaStreamSource(micStream);
       analyser = micCtx.createAnalyser();
       analyser.fftSize = 4096;
-      src.connect(analyser);
+      AudioEngine.micBoost(src).connect(analyser);
       showError('');
       return true;
     } catch (e) {
@@ -397,6 +422,7 @@ const BouzoukiTuner = (() => {
     if (!ok) return;
     running = true;
     history = [];
+    resetStable();
     renderHistory();
     pollTimer = setInterval(poll, POLL_MS);
 
@@ -575,7 +601,7 @@ const BouzoukiTuner = (() => {
   border-radius: 2px;
   background: var(--gold);
   left: 50%;
-  transition: left 0.08s ease-out, background 0.2s, box-shadow 0.2s;
+  transition: left 0.13s ease-out, background 0.2s, box-shadow 0.2s;
   z-index: 2;
   opacity: 0.2;
 }

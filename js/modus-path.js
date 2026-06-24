@@ -156,7 +156,7 @@ const ModusPath = (() => {
       const src = mic.ctx.createMediaStreamSource(mic.stream);
       mic.analyser = mic.ctx.createAnalyser();
       mic.analyser.fftSize = 2048;
-      src.connect(mic.analyser);
+      AudioEngine.micBoost(src).connect(mic.analyser);
       return true;
     } catch { return false; }
   }

@@ -489,9 +489,25 @@ const AudioEngine = (() => {
 
   function isEnsembleActive() { return !!ensemble; }
 
+  /* הגברת אות מיקרופון לפני הניתוח — הבוזוקי האקוסטי שקט יחסית,
+     מכניסים GainNode (×factor) בין המקור למנתח. מחובר רק למנתח (לא לרמקול) — בלי פידבק.
+     שימוש: AudioEngine.micBoost(sourceNode).connect(analyser) */
+  let _micGain = 5;
+  function micBoost(source, factor) {
+    try {
+      const g = source.context.createGain();
+      g.gain.value = (typeof factor === 'number') ? factor : _micGain;
+      source.connect(g);
+      return g;
+    } catch (_) { return source; }
+  }
+  function setMicGain(v) { _micGain = Math.max(1, Math.min(20, +v || 5)); }
+  function getMicGain() { return _micGain; }
+
   return { ensureCtx, pluckMidi, pluckFromMidi, pluckCourse, pluckBassFromMidi,
     modeScaleFrets, playModeScale, playModeIntervals, stopModeScale,
     dum, tek, click, strum, strumChord, bassOfChord, Scheduler,
     startEnsemble, stopEnsemble, isEnsembleActive, rhythmForDromos,
+    micBoost, setMicGain, getMicGain,
     get ctx() { return ctx; } };
 })();

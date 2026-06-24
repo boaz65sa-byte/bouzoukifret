@@ -303,7 +303,7 @@ const Listen = (() => {
       const src = micCtx.createMediaStreamSource(micStream);
       analyser = micCtx.createAnalyser();
       analyser.fftSize = 2048;
-      src.connect(analyser);
+      AudioEngine.micBoost(src).connect(analyser);
       $('#ls-error').textContent = '';
       return true;
     } catch (e) {
