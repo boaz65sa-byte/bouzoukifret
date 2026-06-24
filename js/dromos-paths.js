@@ -6,6 +6,34 @@
 
 const DROMOS_PATHS = [
   {
+    id: 'maqam-western',
+    featured: true,
+    badge: 'מאקאם',
+    titleHe: 'נתיב מאקאמים מערביים',
+    titleGr: 'Maqamat',
+    rhythmId: 'tsifteteli',
+    dromosIds: ['maq-hijaz', 'maq-bayati', 'maq-rast', 'maq-saba', 'maq-nahawand'],
+    intro: 'מסלול לימוד במאקאמים הערביים/טורקיים הקלאסיים — לצד הדרומוסים היווניים. כל שלב מציג את המאקאם, משווה לדרומוס המקביל, ומוביל לתרגול ולשירים.',
+    steps: [
+      {
+        kind: 'theory',
+        title: 'יווני מול מערבי',
+        body: 'דרומוס (יווני) ומאקאם (ערבי/טורקי) מתארים לעיתים את אותם צלילים — ההבדל בקישוטים, במיקרוטונים ובמסורת. למדו את שניהם כדי לנגן את הכול.',
+      },
+      { kind: 'dromos', dromosId: 'maq-hijaz', exerciseId: 'dr1', title: 'שלב 1 — חיג׳אז (Hijaz)' },
+      { kind: 'exercises', title: 'קדנצה 4→3→♭2→1', exerciseIds: ['tr2', 'tr3'] },
+      { kind: 'dromos', dromosId: 'maq-bayati', exerciseId: 'dr3', title: 'שלב 2 — ביאתי (Bayati)' },
+      { kind: 'dromos', dromosId: 'maq-rast', exerciseId: 'dr6', title: 'שלב 3 — ראסט (Rast)' },
+      { kind: 'dromos', dromosId: 'maq-saba', exerciseId: 'dr4', title: 'שלב 4 — סבא (Saba)' },
+      { kind: 'dromos', dromosId: 'maq-nahawand', exerciseId: 'dr2', title: 'שלב 5 — נהאוונד (Nahawand)' },
+      { kind: 'dromos', dromosId: 'maq-hijazkar', exerciseId: 'dr7', title: 'שלב 6 — חיג׳אזכאר' },
+      { kind: 'dromos', dromosId: 'maq-huzzam', title: 'שלב 7 — הוזאם' },
+      { kind: 'dromos', dromosId: 'maq-suzinak', title: 'שלב 8 — סוזינאק' },
+      { kind: 'rhythm', rhythmId: 'tsifteteli', title: 'ציפטטלי לאלתור' },
+      { kind: 'songs', title: 'שירים ללימוד', songIds: ['misirlou', 'minore-tou-teke'] },
+    ],
+  },
+  {
     id: 'zeibekiko',
     featured: true,
     badge: '⭐ מומלץ',
@@ -54,7 +82,7 @@ const DROMOS_PATHS = [
       {
         kind: 'exercises',
         title: 'שלב 7 — מהלך Am–Dm–E7',
-        exerciseIds: ['zb10', 'zb5'],
+        exerciseIds: ['zb10', 'zb11', 'zb12', 'zb5'],
       },
       {
         kind: 'dromos',
@@ -179,6 +207,20 @@ const DROMOS_PATHS = [
       { kind: 'exercises', title: 'מהירות פנייה', exerciseIds: ['cr3', 'tr4'] },
     ],
   },
+  {
+    id: 'kiourdi',
+    titleHe: 'נתיב קיורדי',
+    titleGr: 'Κιουρδι',
+    rhythmId: 'hasapiko',
+    dromosIds: ['kiourdi'],
+    intro: 'מינור טבעי עדין — בלי שנייה מוגברת. מצוין לשירי לאיקו ולמעברים רכים ממינורה.',
+    steps: [
+      { kind: 'dromos', dromosId: 'kiourdi', exerciseId: 'dr3', title: 'סולם קיורדי על D' },
+      { kind: 'exercises', title: 'ליווי מינור', exerciseIds: ['mp1', 'ch2'] },
+      { kind: 'rhythm', rhythmId: 'hasapiko', title: 'חסאפיקו איטי' },
+      { kind: 'songs', songIds: ['apopse-tha-pio'], title: 'שיר: Απόψε θα πιω' },
+    ],
+  },
 ];
 
 /** מיפוי שם דרומוס משיר → id ב-DROMOI */
@@ -186,13 +228,21 @@ function dromosNameToId(name) {
   if (!name) return null;
   const n = String(name).toLowerCase().replace(/\s+/g, '');
   const map = {
-    minore: 'minore', hitzaz: 'hitzaz', hijaz: 'hitzaz', hitzazkiar: 'hitzazkiar',
-    ousak: 'ousak', usak: 'ousak', sabah: 'sabah', rast: 'rast', pireotikos: 'pireotikos',
-    niavent: 'niavent', karsilamas: 'karsilamas', houzam: 'houzam', karcigar: 'karcigar',
+    minore: 'minore', nahawand: 'minore', nihavend: 'minore',
+    hitzaz: 'hitzaz', hijaz: 'hitzaz', hicaz: 'hitzaz',
+    hitzazkiar: 'hitzazkiar', hijazkar: 'hitzazkiar', hicazkar: 'hitzazkiar',
+    ousak: 'ousak', usak: 'ousak', bayati: 'ousak', ussak: 'ousak',
+    sabah: 'sabah', saba: 'sabah', rast: 'rast',
+    huzzam: 'houzam', huzam: 'houzam', houzam: 'houzam',
+    kurd: 'kiourdi', kiourdi: 'kiourdi',
+    pireotikos: 'pireotikos',
+    niavent: 'niavent', karsilamas: 'karsilamas', karcigar: 'karcigar',
   };
   return map[n] || DROMOI.find(d =>
     d.nameEn.toLowerCase() === n || d.nameGr.toLowerCase() === n || d.id === n
-  )?.id || null;
+  )?.id || (typeof MAQAMAT !== 'undefined' ? MAQAMAT.find(m =>
+    (m.nameEn || '').toLowerCase() === n || m.id === n
+  )?.id : null) || null;
 }
 
 function findPathForDromos(dromosId) {

@@ -1429,6 +1429,30 @@ const EXERCISES = [
           { kind: 'rest', len: 2 },
         ])
       },
+      {
+        id: 'zb11', name: 'ζεϊμπέκικο — שקטים מודגשים (9/4)', bpm: 56, sub: 4, type: 'tab',
+        desc: 'תרגול השקטים בזεϊμπέκικו: בס חזק על 1, שקט ארוך, מלודיה קצרה. כמו ב-Ευδοκία.',
+        notes: [
+          _n(0, 0, 'D', 4), _rest(4), _n(0, 2, 'd', 2), _rest(2),
+          _n(0, 0, 'D', 2), _rest(2), _n(0, 3, 'u', 2), _n(0, 2, 'd', 2),
+          _n(0, 0, 'D', 4), _rest(4), _n(0, 5, 'd', 2), _n(0, 4, 'U', 2),
+          _n(0, 2, 'd', 2), _rest(4), _n(0, 0, 'U', 4),
+        ]
+      },
+      {
+        id: 'zb12', name: 'ζεϊμπέκικο — Dm→A7 קדנצה', bpm: 60, sub: 2, type: 'strum',
+        chords: ['Dm', 'A7'],
+        desc: 'סיום קלאסי בזεϊμπέκיקו: Dm איטי ואז A7 עם בס על סריג 5. חברו לשירים בדרומוס מינורה.',
+        events: ['Dm', 'Dm', 'A7', 'Dm'].flatMap(ch => [
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'd', len: 2 },
+          { kind: 'rest', len: 1 },
+          { kind: 'bass', chord: ch, dir: 'd', len: 2 },
+          { kind: 'strum', chord: ch, dir: 'u', len: 2 },
+          { kind: 'rest', len: 2 },
+        ])
+      },
     ]
   },
   {

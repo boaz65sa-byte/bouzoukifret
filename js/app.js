@@ -364,6 +364,50 @@ function drawAnatomy() {
 /* ===================== מסך דרומוסים ===================== */
 let currentDromos = DROMOI[0];
 let currentRoot = 2; // D = pitch class 2
+let dromoiFilter = 'all';
+
+function setDromoiFilter(filter) {
+  dromoiFilter = filter || 'all';
+  document.querySelectorAll('#dromoi-filter [data-filter]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === dromoiFilter);
+  });
+  rebuildDromoiList();
+}
+window.setDromoiFilter = setDromoiFilter;
+
+function rebuildDromoiList() {
+  const list = $('#dromoi-list');
+  if (!list) return;
+  const scales = typeof getScalesForDromoi === 'function'
+    ? getScalesForDromoi(dromoiFilter)
+    : DROMOI;
+  if (!scales.some(s => s.id === currentDromos?.id)) {
+    currentDromos = scales[0] || DROMOI[0];
+  }
+  list.innerHTML = '';
+  scales.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'dromos-item'
+      + (d.id === currentDromos.id ? ' active' : '')
+      + (d.family === 'maqam' ? ' maqam-item' : '');
+    item.dataset.scaleId = d.id;
+    const sub = d.family === 'maqam'
+      ? `${d.nameAr || d.nameGr} · ${d.degrees}`
+      : `${d.nameGr} · ${d.degrees}`;
+    item.innerHTML = `<div class="di-name">${d.nameHe}${d.family === 'maqam' ? ' <span class="di-tag">מאקאם</span>' : ''}</div><div class="di-gr">${sub}</div>`;
+    item.addEventListener('click', () => {
+      $$('.dromos-item').forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      currentDromos = d;
+      clearTimeout(scaleTimer);
+      scaleTimer = null;
+      AudioEngine.stopModeScale();
+      refreshEnsembleIfActive();
+      renderDromos();
+    });
+    list.appendChild(item);
+  });
+}
 
 function getSafeNoteIntervals(dromos) {
   const labels = dromos.degrees.split(/\s+/);
@@ -405,23 +449,10 @@ function refreshEnsembleIfActive() {
 }
 
 function initDromoi() {
-  const list = $('#dromoi-list');
-  DROMOI.forEach((d, i) => {
-    const item = document.createElement('div');
-    item.className = 'dromos-item' + (i === 0 ? ' active' : '');
-    item.innerHTML = `<div class="di-name">${d.nameHe}</div><div class="di-gr">${d.nameGr} · ${d.degrees}</div>`;
-    item.addEventListener('click', () => {
-      $$('.dromos-item').forEach(x => x.classList.remove('active'));
-      item.classList.add('active');
-      currentDromos = d;
-      clearTimeout(scaleTimer);
-      scaleTimer = null;
-      AudioEngine.stopModeScale();
-      refreshEnsembleIfActive();
-      renderDromos();
-    });
-    list.appendChild(item);
+  document.querySelectorAll('#dromoi-filter [data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => setDromoiFilter(btn.dataset.filter));
   });
+  rebuildDromoiList();
 
   const rootSel = $('#dr-root');
   NOTE_NAMES.forEach((n, i) => {
@@ -492,10 +523,18 @@ function scaleMidisFromRoot() {
 function renderDromos() {
   const d = currentDromos;
   $('#dr-name').textContent = d.nameHe;
-  $('#dr-greek').textContent = `${d.nameGr} · ${d.nameEn} · ${d.degrees}`;
+  const subLine = d.family === 'maqam'
+    ? `${d.nameAr || ''} · ${d.nameGr || ''} · ${d.degrees}`
+    : `${d.nameGr} · ${d.nameEn} · ${d.degrees}`;
+  $('#dr-greek').textContent = subLine;
   $('#dr-mood').textContent = d.mood;
   $('#dr-desc').textContent = d.desc;
-  $('#dr-maqam').textContent = d.maqam;
+  if (d.family === 'maqam' && d.greekParallel && typeof greekParallelName === 'function') {
+    const gName = greekParallelName(d);
+    $('#dr-maqam').textContent = gName ? `דרומוס יווני מקביל: ${gName}` : d.maqam;
+  } else {
+    $('#dr-maqam').textContent = d.maqam;
+  }
   $('#dr-chords').textContent = d.chords;
   $('#dr-songs').textContent = d.songs.join(' · ');
   $('#dr-tips').textContent = d.tips;

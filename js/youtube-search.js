@@ -16,7 +16,8 @@ const YoutubeSearch = (() => {
 
   function getProxyUrl() {
     const u = window.BOUZOUKI_CONFIG?.stemProxyUrl || DEFAULT_PROXY;
-    return String(u).replace(/\/$/, '');
+    const raw = String(u).replace(/\/$/, '');
+    return typeof DeviceUtils !== 'undefined' ? DeviceUtils.resolveProxyUrl(raw) : raw;
   }
 
   function fmtDuration(sec) {

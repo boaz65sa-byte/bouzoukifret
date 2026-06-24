@@ -242,7 +242,7 @@ const LearnLibrary = (() => {
         const rec = await LearnOffline.get(btn.dataset.id);
         if (rec?.blob && typeof StemAPI !== 'undefined') {
           const safe = String(rec.titleHe || rec.title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-          StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.m4a`);
+          await StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.m4a`);
         }
       });
     });
@@ -272,6 +272,7 @@ const LearnLibrary = (() => {
     const q = document.getElementById('learn-lib-search')?.value || '';
     await _renderStats();
     _renderGrid(q);
+    if (typeof LearnFlow !== 'undefined') LearnFlow.markLibrary();
   }
 
   function _injectStyles() {

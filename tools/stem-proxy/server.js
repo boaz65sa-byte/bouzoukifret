@@ -125,12 +125,28 @@ async function lalalPoll(taskId, onTick) {
 }
 
 /* ---------- routes ---------- */
+function getLanAddresses() {
+  const addrs = [];
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) addrs.push(net.address);
+    }
+  }
+  return addrs;
+}
+
 app.get('/health', (req, res) => {
+  const lan = getLanAddresses();
   res.json({
     ok: true,
     lalal: !!LALAL_KEY,
     ytdlp: true,
     time: Date.now(),
+    host: '0.0.0.0',
+    port: PORT,
+    lan,
+    mobileUrl: lan.length ? `http://${lan[0]}:${PORT}` : null,
   });
 });
 
@@ -284,8 +300,15 @@ app.get('/api/learn-library/file/:videoId', (req, res) => {
   res.sendFile(filePath);
 });
 
-app.listen(PORT, () => {
-  console.log(`Stem proxy על http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  const lan = getLanAddresses();
+  console.log(`Stem proxy על http://localhost:${PORT} (רשת: ${HOST}:${PORT})`);
+  if (lan.length) {
+    console.log('  גישה ממובייל (אותה WiFi):');
+    lan.forEach(ip => console.log(`    http://${ip}:${PORT}`));
+  }
   console.log(`  LALAL key: ${LALAL_KEY ? 'מוגדר ✓' : 'חסר ✗ (הגדר LALAL_LICENSE_KEY)'}`);
   console.log(`  CORS origin: ${ALLOW_ORIGIN}`);
 });

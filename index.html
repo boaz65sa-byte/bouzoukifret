@@ -224,12 +224,19 @@
     <!-- ========== מסך: דרומוסים ========== -->
     <section class="screen" id="screen-dromoi">
       <header class="screen-head">
-        <h1>הדרומוסים — Οι Δρόμοι</h1>
-        <p class="lead">"דרכים" — הסולמות של הרבטיקו והלאיקו. כל דרומוס הוא עולם רגשי שלם</p>
+        <h1>דרומוסים ומאקאמים — Δρόμοι & Maqamat</h1>
+        <p class="lead">סולמות יווניים (דרומוסים) ומאקאמים מערביים — אותם צלילים, שתי מסורות. למדו, השוו ונגנו</p>
       </header>
 
       <div class="dromoi-layout">
-        <div class="dromoi-list" id="dromoi-list"></div>
+        <div class="dromoi-sidebar">
+          <div class="dromoi-filter" id="dromoi-filter">
+            <button type="button" class="btn secondary active" data-filter="all">הכל</button>
+            <button type="button" class="btn secondary" data-filter="greek">יווני</button>
+            <button type="button" class="btn secondary" data-filter="maqam">מאקאם מערבי</button>
+          </div>
+          <div class="dromoi-list" id="dromoi-list"></div>
+        </div>
 
         <div class="dromos-detail card" id="dromos-detail">
           <div class="dromos-header">
@@ -1059,7 +1066,9 @@
 
 <script src="config.example.js"></script>
 <script src="config.js" onerror="void 0"></script>
+<script src="js/device-utils.js"></script>
 <script src="js/data.js"></script>
+<script src="js/maqamat-data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/chord-library.js"></script>
 <script src="js/chord-diagram.js"></script>
@@ -1069,14 +1078,18 @@
 <script src="js/exercises.js"></script>
 <script src="js/listen.js"></script>
 <script src="js/game.js"></script>
+<script src="js/songs/song-references.js"></script>
+<script src="js/songs/song-catalog.js"></script>
 <script src="js/songs.js"></script>
 <script src="js/learning-resources.js"></script>
 <script src="js/dromos-paths.js"></script>
 <script src="js/learn-offline.js"></script>
+<script src="js/learn-flow.js"></script>
+<script src="js/learn-onboarding.js"></script>
 <script src="js/learn-library.js"></script>
 <script src="js/youtube-search.js"></script>
-<script src="js/learn-youtube.js"></script>
 <script src="js/stem-api.js"></script>
+<script src="js/learn-youtube.js"></script>
 <script src="js/pitch-player.js"></script>
 <script src="js/live-chord.js"></script>
 <script src="js/essentia-analyzer.js"></script>

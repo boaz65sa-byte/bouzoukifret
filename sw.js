@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v3';
+const CACHE_STATIC = 'bouzouki-static-v5';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -10,8 +10,10 @@ const PRECACHE = [
   './manifest.json',
   './css/style.css',
   './config.example.js',
+  './js/device-utils.js',
   './icons/icon.svg',
   './js/data.js',
+  './js/maqamat-data.js',
   './js/audio.js',
   './js/chord-library.js',
   './js/chord-tooltip.js',
@@ -20,10 +22,14 @@ const PRECACHE = [
   './js/exercises.js',
   './js/listen.js',
   './js/game.js',
+  './js/songs/song-references.js',
+  './js/songs/song-catalog.js',
   './js/songs.js',
   './js/learning-resources.js',
   './js/dromos-paths.js',
   './js/learn-offline.js',
+  './js/learn-flow.js',
+  './js/learn-onboarding.js',
   './js/learn-library.js',
   './js/youtube-search.js',
   './js/learn-youtube.js',

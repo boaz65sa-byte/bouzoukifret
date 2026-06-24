@@ -74,10 +74,16 @@ const LearnHub = (() => {
   function _openDromos(dromosId) {
     _navigate('dromoi');
     setTimeout(() => {
-      const idx = DROMOI.findIndex(d => d.id === dromosId);
-      const items = document.querySelectorAll('#dromoi-list .dromos-item');
-      if (idx >= 0 && items[idx]) items[idx].click();
-    }, 80);
+      const scale = typeof findScaleById === 'function'
+        ? findScaleById(dromosId)
+        : DROMOI.find(d => d.id === dromosId);
+      if (!scale) return;
+      if (typeof setDromoiFilter === 'function') {
+        setDromoiFilter(scale.family === 'maqam' ? 'maqam' : 'greek');
+      }
+      const item = document.querySelector(`#dromoi-list .dromos-item[data-scale-id="${dromosId}"]`);
+      if (item) item.click();
+    }, 120);
   }
 
   function _openRhythm(rhythmId) {
@@ -169,6 +175,7 @@ const LearnHub = (() => {
       document.getElementById('sa-progress-wrap').style.display = '';
       try {
         await SongAnalyzer.runPipeline(`https://youtu.be/${id}`);
+        if (typeof LearnFlow !== 'undefined') LearnFlow.afterAnalyze(id, {});
       } catch (e) {
         alert(e.message || String(e));
       }
@@ -243,9 +250,15 @@ const LearnHub = (() => {
         saveToDisk: true,
         onProgress: (msg, pct) => _setDownloadStatus(`${msg} (${pct}%)`, null),
       });
-      _setDownloadStatus('✓ נשמר בספריית לימוד + בתיקייה learn-downloads', true);
+      _setDownloadStatus(
+        (typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile())
+          ? '✓ נשמר בספריית לימוד — האזינו מ"ספריית לימוד" או שתפו את הקובץ'
+          : '✓ נשמר בספריית לימוד + בתיקייה learn-downloads',
+        true,
+      );
       _renderOfflineLibrary();
       if (typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
+      if (typeof LearnFlow !== 'undefined') LearnFlow.afterDownload(id, title);
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
       alert(e.message || String(e));
@@ -268,6 +281,7 @@ const LearnHub = (() => {
     document.getElementById('sa-progress-wrap').style.display = '';
     try {
       await SongAnalyzer.runPipeline(rec.blob);
+      if (typeof LearnFlow !== 'undefined') LearnFlow.afterAnalyze(videoId, {});
     } catch (e) {
       alert(e.message || String(e));
     }
@@ -312,7 +326,7 @@ const LearnHub = (() => {
         const rec = await LearnOffline.get(btn.dataset.video);
         if (rec?.blob && typeof StemAPI !== 'undefined') {
           const safe = String(rec.titleHe || rec.title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-          StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.mp3`);
+          await StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.mp3`);
         }
       });
     });
@@ -508,11 +522,16 @@ const LearnHub = (() => {
         </div>`;
       }
       case 'dromos': {
-        const d = DROMOI.find(x => x.id === step.dromosId);
+        const d = typeof findScaleById === 'function'
+          ? findScaleById(step.dromosId)
+          : DROMOI.find(x => x.id === step.dromosId);
+        const parallel = d?.family === 'maqam' && typeof greekParallelName === 'function'
+          ? greekParallelName(d) : '';
         return `<div class="learn-step">
           <strong>${_esc(step.title || d?.nameHe)}</strong>
-          ${d ? `<p>${_esc(d.tips)}</p>` : ''}
-          <button type="button" class="btn secondary learn-go-dromos" data-dromos="${step.dromosId}">דרומוס</button>
+          ${d ? `<p>${_esc(d.tips || d.desc)}</p>` : ''}
+          ${parallel ? `<p class="hint">דרומוס יווני מקביל: ${_esc(parallel)}</p>` : ''}
+          <button type="button" class="btn secondary learn-go-dromos" data-dromos="${step.dromosId}">פתח סולם</button>
           ${step.exerciseId ? `<button type="button" class="btn secondary learn-go-ex" data-ex="${step.exerciseId}">תרגיל</button>` : ''}
         </div>`;
       }
@@ -721,7 +740,11 @@ const LearnHub = (() => {
       el.hidden = true;
       return;
     }
-    const url = typeof YoutubeSearch !== 'undefined' ? YoutubeSearch.getProxyUrl() : 'http://127.0.0.1:3456';
+    const url = typeof YoutubeSearch !== 'undefined' ? YoutubeSearch.getProxyUrl()
+      : (typeof StemAPI !== 'undefined' ? StemAPI.getProxyUrl() : 'http://127.0.0.1:3456');
+    const mobileHint = typeof DeviceUtils !== 'undefined'
+      ? DeviceUtils.proxyHintMessage(url)
+      : `הריצו: cd tools\\stem-proxy && npm start (${url})`;
     el.hidden = false;
     if (needsRestart) {
       el.innerHTML = `
@@ -729,7 +752,7 @@ const LearnHub = (() => {
         <code class="learn-proxy-cmd">npm start</code>`;
     } else {
       el.innerHTML = `
-        <span>⚙️ <b>stem-proxy לא פעיל</b> — חיפוש YouTube מלא והורדת MP3 דורשים את השרת המקומי (${url})</span>
+        <span>⚙️ <b>stem-proxy לא פעיל</b> — ${mobileHint}</span>
         <code class="learn-proxy-cmd">cd tools\\stem-proxy &amp;&amp; npm start</code>`;
     }
   }
@@ -798,6 +821,7 @@ const LearnHub = (() => {
     const root = document.getElementById('learn-hub-app');
     if (!root) return;
     root.innerHTML = `
+      <div id="learn-flow-mount"></div>
       <details class="learn-setup card">
         <summary>⚙️ מדריך התקנה — YouTube, stems, ניתוח AI</summary>
         <ol>
@@ -810,7 +834,8 @@ const LearnHub = (() => {
           <li><strong>ייצוא / ייבוא:</strong> אחרי ניתוח — JSON או TXT. אפשר לטעון JSON שמור (עם או בלי קובץ אודיו) בלי לרוץ שוב Essentia.</li>
           <li><strong>TAB poly:</strong> נקודות זהב ב-TAB = רמז polyphonic (עד 3 צלילים ב-onset).</li>
           <li><strong>Offline:</strong> לאחר ביקור אחד ב-HTTPS, האפליקציה + Essentia/Meyda נשמרים ב-cache (PWA). תג ● בסרגל = מוכן offline.</li>
-          <li><strong>הורדה ללימוד:</strong> «הורד MP3 ללימוד» — דורש stem-proxy + yt-dlp במחשב. השיר נשמר באפליקציה (IndexedDB) + קובץ במכשיר. לשימוש אישי ללימוד בלבד.</li>
+          <li><strong>הורדה ללימוד:</strong> השיר נשמר באפליקציה (IndexedDB) + בתיקייה <code>learn-downloads</code> + <strong>ספריית לימוד</strong> בתפריט.</li>
+          <li><strong>מסלול לימוד:</strong> חיפוש → הורדה → ספרייה → ניתוח → תרגול — פס התקדמות בראש המסך.</li>
           <li>אפשר גם להעלות MP3 מ-YMusic / Moises ידנית בטאב «ניתוח AI».</li>
         </ol>
       </details>
@@ -923,7 +948,10 @@ const LearnHub = (() => {
     document.getElementById('learn-yt-search-form')?.addEventListener('submit', e => {
       e.preventDefault();
       const q = document.getElementById('learn-yt-search-input')?.value;
-      if (q?.trim()) _runYoutubeSearch(q.trim());
+      if (q?.trim()) {
+        if (typeof LearnFlow !== 'undefined') LearnFlow.setStep('search');
+        _runYoutubeSearch(q.trim());
+      }
     });
     document.getElementById('learn-song-select').addEventListener('change', e => {
       const id = e.target.value;
@@ -939,6 +967,7 @@ const LearnHub = (() => {
     });
 
     _injectLearnStyles();
+    if (typeof LearnFlow !== 'undefined') LearnFlow.mount('learn-flow-mount');
     _checkProxyOnInit();
     _renderSongPicker();
     _renderLearningPanel();
@@ -950,7 +979,11 @@ const LearnHub = (() => {
     _renderShell();
     _renderPathsTab();
     _renderResourcesTab();
+    if (typeof LearnOnboarding !== 'undefined') {
+      LearnOnboarding.initOnNav();
+      setTimeout(() => LearnOnboarding.showIfNeeded(), 600);
+    }
   }
 
-  return { init, stop, pausePlayback, pauseTabPlayback: _pauseTabPlayback, loadVideo: _loadVideo };
+  return { init, stop, pausePlayback, pauseTabPlayback: _pauseTabPlayback, loadVideo: _loadVideo, analyzeOffline: _analyzeOfflineTrack };
 })();

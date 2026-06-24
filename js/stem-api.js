@@ -5,16 +5,26 @@
 'use strict';
 
 const StemAPI = (() => {
-  const cfg = () => ({
-    stemProxyUrl: 'http://127.0.0.1:3456',
-    ...(window.BOUZOUKI_CONFIG || {}),
-  });
+  const cfg = () => {
+    const base = {
+      stemProxyUrl: 'http://127.0.0.1:3456',
+      ...(window.BOUZOUKI_CONFIG || {}),
+    };
+    base.stemProxyUrl = typeof DeviceUtils !== 'undefined'
+      ? DeviceUtils.resolveProxyUrl(base.stemProxyUrl)
+      : String(base.stemProxyUrl || '').replace(/\/$/, '');
+    return base;
+  };
+
+  function proxyUrl() {
+    return cfg().stemProxyUrl?.replace(/\/$/, '') || '';
+  }
 
   async function checkHealth() {
-    const url = cfg().stemProxyUrl;
+    const url = proxyUrl();
     if (!url) return { ok: false, reason: 'no_proxy' };
     try {
-      const r = await fetch(`${url.replace(/\/$/, '')}/health`, { signal: AbortSignal.timeout(4000) });
+      const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(4000) });
       return r.ok ? await r.json() : { ok: false };
     } catch {
       return { ok: false, reason: 'offline' };
@@ -28,7 +38,7 @@ const StemAPI = (() => {
    */
   async function separate(file, opts = {}) {
     const { provider = 'lalal', stem = 'strings', onProgress } = opts;
-    const proxy = cfg().stemProxyUrl?.replace(/\/$/, '');
+    const proxy = proxyUrl();
 
     if (proxy) {
       onProgress?.('שולח לפרוקסי stem separation…', 10);
@@ -101,7 +111,7 @@ const StemAPI = (() => {
    * @param {(msg:string,pct:number)=>void} [onProgress]
    */
   async function fetchYoutube(videoId, onProgress, meta = {}) {
-    const proxy = cfg().stemProxyUrl?.replace(/\/$/, '');
+    const proxy = proxyUrl();
     if (!proxy) throw new Error('הגדר stemProxyUrl ב-config.js והרץ stem-proxy');
     onProgress?.('מוריד מ-YouTube (yt-dlp)…', 8);
     const qs = new URLSearchParams({ id: videoId, library: '1' });
@@ -119,12 +129,32 @@ const StemAPI = (() => {
     return resp.blob();
   }
 
-  function saveBlobAsFile(blob, filename) {
+  async function saveBlobAsFile(blob, filename) {
+    const name = filename || 'audio.mp3';
+    const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();
+    const mime = blob.type || 'audio/mp4';
+
+    if (mobile && navigator.share) {
+      try {
+        const file = new File([blob], name, { type: mime });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: name });
+          return { method: 'share' };
+        }
+      } catch (e) {
+        if (e?.name === 'AbortError') return { method: 'cancelled' };
+      }
+    }
+
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = filename || 'audio.mp3';
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+    return { method: mobile ? 'library-only' : 'download' };
   }
 
   /**
@@ -144,13 +174,19 @@ const StemAPI = (() => {
     } = opts;
 
     const health = await checkHealth();
-    if (!health.ok) throw new Error('stem-proxy לא פעיל — הרץ tools/stem-proxy והגדר config.js');
+    if (!health.ok) {
+      const hint = typeof DeviceUtils !== 'undefined'
+        ? DeviceUtils.proxyHintMessage(proxyUrl())
+        : 'הריצו tools/stem-proxy והגדירו config.js';
+      throw new Error(`stem-proxy לא פעיל — ${hint.replace(/<[^>]+>/g, '')}`);
+    }
     if (!health.ytdlp) throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
 
     const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
+    const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();
 
     if (saveOffline && typeof LearnOffline !== 'undefined') {
-      onProgress?.('שומר בספריית לימוד…', 98);
+      onProgress?.('שומר בספריית לימוד…', 90);
       await LearnOffline.save(videoId, blob, {
         title, titleHe, author, songId,
         thumbUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
@@ -159,7 +195,12 @@ const StemAPI = (() => {
 
     if (saveToDisk) {
       const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-      saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
+      const fileResult = await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
+      if (mobile && fileResult.method === 'share') {
+        onProgress?.('נשמר בספרייה + שותף מהמכשיר', 98);
+      } else if (mobile) {
+        onProgress?.('נשמר בספריית לימוד — האזינו מ"ספריית לימוד"', 98);
+      }
     }
 
     onProgress?.('מוכן ללימוד', 100);
@@ -168,7 +209,7 @@ const StemAPI = (() => {
   }
 
   async function listDiskLibrary() {
-    const proxy = cfg().stemProxyUrl?.replace(/\/$/, '');
+    const proxy = proxyUrl();
     if (!proxy) return null;
     try {
       const r = await fetch(`${proxy}/api/learn-library`, { signal: AbortSignal.timeout(5000) });
@@ -179,5 +220,5 @@ const StemAPI = (() => {
     }
   }
 
-  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning, listDiskLibrary };
+  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning, listDiskLibrary, getProxyUrl: proxyUrl };
 })();

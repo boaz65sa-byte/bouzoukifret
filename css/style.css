@@ -339,6 +339,12 @@ select {
 
 /* ===================== דרומוסים ===================== */
 .dromoi-layout { display: grid; grid-template-columns: 235px 1fr; gap: 22px; align-items: start; }
+.dromoi-sidebar { display: flex; flex-direction: column; gap: 10px; }
+.dromoi-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+.dromoi-filter .btn { padding: 6px 10px; font-size: 0.82rem; }
+.dromoi-filter .btn.active { background: var(--gold); color: #1a1208; border-color: var(--gold); }
+.dromos-item.maqam-item { border-right: 3px solid var(--gold); }
+.di-tag { font-size: 0.7rem; opacity: 0.85; font-weight: normal; }
 @media (max-width: 1100px) { .dromoi-layout { grid-template-columns: 1fr; } }
 
 .dromoi-list { display: flex; flex-direction: column; gap: 7px; position: sticky; top: 24px; }
