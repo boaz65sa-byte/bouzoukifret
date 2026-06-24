@@ -73,6 +73,7 @@
       <button class="nav-btn nav-featured" data-screen="theory-lab"><span class="nav-ico">📚</span> חומר עיוני</button>
       <button class="nav-btn nav-featured" data-screen="arp-studio"><span class="nav-ico">🎯</span> אולפן ארפג׳ו</button>
       <button class="nav-btn nav-featured" data-screen="reference-cards"><span class="nav-ico">🗂️</span> כרטיסי ייחוס</button>
+      <button class="nav-btn nav-featured" data-screen="worksheets"><span class="nav-ico">🖨️</span> דפי עבודה להדפסה</button>
       <button class="nav-btn nav-featured" data-screen="song-academy">
         <span class="nav-ico">📀</span> אקדמיית השירים
       </button>
@@ -1000,6 +1001,15 @@
       <div id="reference-cards-app"></div>
     </section>
 
+    <!-- ========== מסך: דפי עבודה להדפסה ========== -->
+    <section class="screen" id="screen-worksheets">
+      <header class="screen-head">
+        <h1>דפי עבודה להדפסה</h1>
+        <p class="lead">צרו שיעורי בית צבעוניים — אקורדים, דרומוסים ויומן תרגול — והדפיסו או שמרו כ-PDF לתרגול על נייר, בלי מחשב</p>
+      </header>
+      <div id="worksheets-app"></div>
+    </section>
+
     <!-- ========== מסך: ספריית תרגילים מעשית ========== -->
     <section class="screen" id="screen-practice-lib">
       <header class="screen-head">
@@ -1120,6 +1130,7 @@
 <script src="js/theory-lab.js"></script>
 <script src="js/arp-studio.js"></script>
 <script src="js/reference-cards.js"></script>
+<script src="js/worksheets.js"></script>
 <script src="js/song-learn.js"></script>
 <script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
@@ -1156,6 +1167,7 @@ if (typeof DromosLearn !== 'undefined') DromosLearn.init();
 if (typeof TheoryLab !== 'undefined') TheoryLab.init();
 if (typeof ArpStudio !== 'undefined') ArpStudio.init();
 if (typeof ReferenceCards !== 'undefined') ReferenceCards.init();
+if (typeof Worksheets !== 'undefined') Worksheets.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();
 if (typeof ModusPath !== 'undefined') ModusPath.init();
