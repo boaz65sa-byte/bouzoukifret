@@ -109,22 +109,48 @@ const AudioEngine = (() => {
     if (_modeScaleTimer) { clearTimeout(_modeScaleTimer); _modeScaleTimer = null; }
   }
 
-  /** סולם דרומוס — תמיד pluckCourse על מיתר D, אותו צליל בוזוקי בכל המסכים */
+  /**
+   * סולם דרומוס — פוזיציה גיטרתית (1–4 מיתרים, תיבת סריגים, טרנספוזיציה).
+   * opts: gapMs, gain, descending, posBase, stringMode, span, onStep(fret, i, point?)
+   */
   function playModeScale(intervals, rootPc, opts = {}) {
     stopModeScale();
     ensureCtx();
     const gapMs = opts.gapMs ?? 320;
     const gain = opts.gain ?? 0.5;
     const descending = opts.descending !== false;
-    const frets = modeScaleFrets(intervals, rootPc, opts.includeOctave !== false);
-    let seq = [...frets];
-    if (descending) seq = [...frets, ...[...frets].reverse().slice(1)];
+    const posBase = opts.posBase ?? 0;
+    const stringMode = opts.stringMode ?? 4;
+
+    let seq = [];
+    let multi = false;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
+      const span = opts.span ?? FretboardScale.MELODY_POS_SPAN;
+      const path = FretboardScale.buildScaleDegreePath(intervals, rootPc, posBase, span, stringMode);
+      if (path.length) {
+        seq = FretboardScale.scalePlaySequence(path, descending);
+        multi = true;
+      }
+    }
+
+    if (!seq.length) {
+      const frets = modeScaleFrets(intervals, rootPc, opts.includeOctave !== false);
+      seq = descending ? [...frets, ...[...frets].reverse().slice(1)] : [...frets];
+      multi = false;
+    }
 
     let i = 0;
     function step() {
       if (i >= seq.length) { _modeScaleTimer = null; return; }
-      pluckCourse(0, seq[i], 0, gain);
-      if (opts.onStep) opts.onStep(seq[i], i);
+      if (multi) {
+        const p = seq[i];
+        pluckCourse(p.ci, p.fret, 0, gain);
+        if (opts.onStep) opts.onStep(p.fret, i, p);
+      } else {
+        const f = seq[i];
+        pluckCourse(0, f, 0, gain);
+        if (opts.onStep) opts.onStep(f, i);
+      }
       i++;
       _modeScaleTimer = setTimeout(step, gapMs);
     }

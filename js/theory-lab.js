@@ -17,7 +17,7 @@ const TheoryLab = (() => {
   // מצב טאב "דרומוס על הגריף"
   let _selDromos = null;   // id הדרומוס הנבחר
   let _posBase = 0;        // סריג בסיס של חלון הפוזיציה
-  let _neckMode = '4';     // '4' = מסלול על 4 מיתרים · '2' = על 2 מיתרים (A,D)
+  let _neckMode = 4;     // 1–4 מיתרים פעילים
   let _seqTimer = null;    // נגן רצף צלילים (סולם/מסלול)
   let _seqBtn = null;
   let _seqDots = null;     // מפת נקודות הגריף לפי "ci-fret"
@@ -633,15 +633,17 @@ const TheoryLab = (() => {
   // סדר תצוגה מלמעלה למטה: C(course3) F(course2) A(course1) D(course0)
   const ROW_COURSES = [3, 2, 1, 0];
 
-  // אילו מיתרים פעילים בכל מצב (מהנמוך לגבוה בגובה צליל — לבניית מסלול עולה)
-  // 2: A,D · 3: F,A,D · 4: C,F,A,D
-  const MODE_COURSES = {
-    '2': [1, 0],
-    '3': [2, 1, 0],
-    '4': [3, 2, 1, 0],
-  };
+  // אילו מיתרים פעילים — נשען על FretboardScale
+  function activeCoursesForMode(mode) {
+    const m = Number(mode) || 4;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.coursesForStringMode) {
+      return FretboardScale.coursesForStringMode(m);
+    }
+    const fallback = { 1: [0], 2: [1, 0], 3: [2, 1, 0], 4: [3, 2, 1, 0] };
+    return fallback[m] || fallback[4];
+  }
   const MODE_LABELS = {
-    '2': '🎻 2 מיתרים', '3': '🪕 3 מיתרים', '4': '🎸 4 מיתרים',
+    1: '🎵 מיתר D', 2: '🎻 2 מיתרים', 3: '🪕 3 מיתרים', 4: '🎸 4 מיתרים',
   };
 
   function scalePcs(dromos) {
@@ -649,45 +651,24 @@ const TheoryLab = (() => {
     return set;
   }
 
-  // בונה את "הכביש" של הדרומוס: מסלול עולה מהשורש (רה) עד השורש באוקטבה,
-  // תחנה אחר תחנה (כל דרגת סולם), פרוס על מספר המיתרים הפעילים שבמצב.
-  // נשארים על המיתר הנמוך עד שמיצינו את חלון היד, ואז עולים למיתר הבא —
-  // כך הכביש "חוצה" 2 / 3 / 4 מיתרים כמו פוזיציה אמיתית. מחזיר [{ci,fret,midi,degree,isRoot}].
   function buildPositionPath(dromos, base, mode) {
-    const courses = MODE_COURSES[mode] || MODE_COURSES['4']; // מהנמוך לגבוה
-    const span = mode === '4' ? 3 : mode === '3' ? 5 : 7;     // רוחב חלון יד לכל מיתר
-    const open0 = TUNING[courses[0]].midi;
-    // נקודת התחלה: השורש הראשון על המיתר הנמוך הפעיל, מהפוזיציה ומעלה
-    const upToRoot = (((ROOT_PC - ((open0 + base) % 12)) % 12) + 12) % 12;
-    const startMidi = open0 + base + upToRoot;
-    const degrees = (dromos.intervals || []).slice().concat([12]); // שורש … אוקטבה
-    const road = [];
-    let ciIdx = 0;
-    let windowStart = base + upToRoot;   // הסריג שממנו מתחיל חלון המיתר הנוכחי
-    let prevMidi = -Infinity;
-    degrees.forEach((iv, i) => {
-      const target = startMidi + iv;
-      if (target <= prevMidi) return;
-      // עולים מיתרים עד שהתו נכנס לחלון היד של המיתר ובתחום הגריף
-      while (ciIdx < courses.length) {
-        const f = target - TUNING[courses[ciIdx]].midi;
-        if (f >= 0 && f <= NECK_FRETS && f <= windowStart + span) {
-          road.push({ ci: courses[ciIdx], fret: f, midi: target, degree: i + 1, isRoot: (target % 12) === ROOT_PC });
-          prevMidi = target;
-          break;
-        }
-        ciIdx++;
-        if (ciIdx < courses.length) windowStart = Math.max(0, target - TUNING[courses[ciIdx]].midi);
-      }
-    });
-    return road;
+    const stringMode = Number(mode) || 4;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
+      const span = FretboardScale.MELODY_POS_SPAN;
+      const path = FretboardScale.buildScaleDegreePath(dromos.intervals, ROOT_PC, base, span, stringMode);
+      return path.map(p => ({
+        ...p,
+        isRoot: (p.midi % 12) === ROOT_PC,
+      }));
+    }
+    return [];
   }
 
   function drawDromosNeck(dromos, base, mode) {
     const pcs = scalePcs(dromos);
     const path = buildPositionPath(dromos, base, mode);
     const inPath = new Set(path.map(p => p.ci + '-' + p.fret));
-    const activeCourses = new Set(MODE_COURSES[mode] || MODE_COURSES['4']);
+    const activeCourses = new Set(activeCoursesForMode(mode));
 
     const padL = 60, padR = 14, padT = 16, padB = 26;
     const fretW = 46, rowH = 44;
@@ -700,7 +681,7 @@ const TheoryLab = (() => {
     svgEl('rect', { x: padL - 6, y: padT - 6, width: fretW * NECK_FRETS + 12, height: rowH * 3 + 12, rx: 6, fill: '#2b2014', stroke: '#1a120a', 'stroke-width': 1.5 }, svg);
 
     // הדגשת המיתרים הפעילים כשלא כל 4 פעילים
-    if (mode !== '4') {
+    if (mode !== 4) {
       ROW_COURSES.forEach((ci, row) => {
         if (!activeCourses.has(ci)) return;
         svgEl('rect', { x: padL - 6, y: padT + row * rowH - rowH / 2 + 6, width: fretW * NECK_FRETS + 12, height: rowH, fill: '#e3b341', opacity: 0.1 }, svg);
@@ -744,7 +725,7 @@ const TheoryLab = (() => {
         const cx = f === 0 ? padL - 22 : padL + (f - 0.5) * fretW;
         const isRoot = pc === ROOT_PC;
         const isIn = inPath.has(ci + '-' + f);
-        const dim = (mode !== '4' && !activeCourses.has(ci));   // מיתר לא-פעיל במצב מצומצם
+        const dim = (Number(mode) !== 4 && !activeCourses.has(ci));
         const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer' }, svg);
         svgEl('circle', {
           cx, cy: y, r: isIn ? 12 : 9,
@@ -961,14 +942,15 @@ const TheoryLab = (() => {
       ${dromos.mood ? `<div class="tl-neck-mood">${dromos.mood}</div>` : ''}`;
     card.appendChild(head);
 
-    // מתג מצב: 2 / 3 / 4 מיתרים — כל אחד עם המסלול שלו
+    // מתג מצב: 1–4 מיתרים
     const modeWrap = document.createElement('div');
     modeWrap.className = 'tl-pos-row tl-mode-row';
     modeWrap.innerHTML = '<span class="tl-pos-label">מסלול על:</span>';
-    [['2', '🎻 2 מיתרים'], ['3', '🪕 3 מיתרים'], ['4', '🎸 4 מיתרים']].forEach(([m, label]) => {
+    [1, 2, 3, 4].forEach(m => {
       const mb = document.createElement('button');
+      mb.type = 'button';
       mb.className = 'tl-pos-chip tl-mode-chip' + (m === _neckMode ? ' active' : '');
-      mb.textContent = label;
+      mb.textContent = MODE_LABELS[m];
       mb.addEventListener('click', () => {
         if (_neckMode === m) return;
         _neckMode = m; stopSeq();
@@ -1031,10 +1013,13 @@ const TheoryLab = (() => {
     });
     btns.appendChild(bRound);
 
-    // נגן סולם על מיתר D בלבד (השוואה / צליל אחיד)
-    const bScale = mkBtn('🎵 סולם על מיתר D', () => {
+    const bScale = mkBtn('🎵 נגן סולם (פוזיציה)', () => {
       ensureAudio();
-      if (AudioEngine.playModeScale) AudioEngine.playModeScale(dromos.intervals, ROOT_PC, { gain: 0.5 });
+      if (AudioEngine.playModeScale) {
+        AudioEngine.playModeScale(dromos.intervals, ROOT_PC, {
+          gain: 0.5, posBase: _posBase, stringMode: _neckMode,
+        });
+      }
     });
     btns.appendChild(bScale);
     card.appendChild(btns);

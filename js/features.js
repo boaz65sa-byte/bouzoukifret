@@ -266,7 +266,9 @@ const ModeQuiz = (() => {
 
   function playScale() {
     if (!current) return;
-    AudioEngine.playModeScale(current.dromos.intervals, rootMidi % 12, { gapMs: 350, gain: 0.48 });
+    AudioEngine.playModeScale(current.dromos.intervals, rootMidi % 12, {
+      gapMs: 350, gain: 0.48, posBase: 0, stringMode: 4,
+    });
   }
 
   function renderOptions(opts) {
@@ -333,6 +335,9 @@ const ModeQuiz = (() => {
 const ScaleExplorer = (() => {
   let selDromos = 0, rootPc = 2, compareDromos = -1;
   let playTimer = null;
+  let _posBase = 0;
+  let _stringMode = 4;
+  let _panel = null;
 
   function init() {
     const el = document.querySelector('#explorer-app');
@@ -353,7 +358,7 @@ const ScaleExplorer = (() => {
         <div id="ex-formula" class="ex-formula"></div>
         <div id="ex-chords-info" class="ex-chords-info"></div>
       </div>
-      <svg id="fb-explorer" class="fretboard" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="ex-fb-host"></div>
       <div class="ex-compare">
         <label>השווה ל:
           <select id="ex-compare"><option value="-1">— ללא —</option>${DROMOI.map((d, i) => `<option value="${i}">${d.nameHe}</option>`).join('')}</select>
@@ -381,25 +386,36 @@ const ScaleExplorer = (() => {
     const notes = new Set(getScaleNotes(selDromos, rootPc));
     const rootName = NOTE_NAMES[rootPc];
 
-    // formula
     const formulaEl = document.querySelector('#ex-formula');
     if (formulaEl) {
       const degrees = dr.intervals.map(iv => NOTE_NAMES[(rootPc + iv) % 12] + ' (' + SOLFEGE[NOTE_NAMES[(rootPc + iv) % 12]] + ')');
       formulaEl.innerHTML = `<strong>${dr.nameHe}</strong> מ-${rootName}: ${degrees.join(' — ')}<br><small>מרווחים: ${dr.degrees || dr.intervals.join('-')}</small>`;
     }
-    // chords
     const chordsEl = document.querySelector('#ex-chords-info');
     if (chordsEl) chordsEl.innerHTML = dr.chords ? `<strong>אקורדים אופייניים:</strong> ${dr.chords}` : '';
 
-    // fretboard
-    drawFretboard(document.querySelector('#fb-explorer'), (ci, f, midi) => {
-      const pc = ((midi % 12) + 12) % 12;
-      if (!notes.has(pc)) return null;
-      const isRoot = pc === rootPc;
-      return { type: isRoot ? 'root' : 'note', label: SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc] };
-    });
+    const host = document.querySelector('#ex-fb-host');
+    if (host && typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel) {
+      _panel = FretboardScale.mountDromosScalePanel(host, {
+        intervals: dr.intervals,
+        rootPc,
+        posBase: _posBase,
+        stringMode: _stringMode,
+        onChange(st) {
+          _posBase = st.posBase;
+          _stringMode = st.stringMode;
+        },
+      });
+    } else if (host) {
+      host.innerHTML = '<svg id="fb-explorer" class="fretboard" preserveAspectRatio="xMidYMid meet"></svg>';
+      drawFretboard(document.querySelector('#fb-explorer'), (ci, f, midi) => {
+        const pc = ((midi % 12) + 12) % 12;
+        if (!notes.has(pc)) return null;
+        const isRoot = pc === rootPc;
+        return { type: isRoot ? 'root' : 'note', label: SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc] };
+      });
+    }
 
-    // compare
     const svg2 = document.querySelector('#fb-explorer2');
     if (compareDromos >= 0 && svg2) {
       svg2.style.display = '';
@@ -421,11 +437,21 @@ const ScaleExplorer = (() => {
     const dr = DROMOI[selDromos];
     if (!dr) return;
     AudioEngine.ensureCtx();
-    const frets = AudioEngine.modeScaleFrets(dr.intervals, rootPc);
-    const seq = dir === 'down' ? [...frets].reverse() : frets;
-    const t0 = AudioEngine.ctx.currentTime + 0.05;
-    seq.forEach((f, i) => AudioEngine.pluckCourse(0, f, t0 + i * 0.35, 0.48));
-    playTimer = setTimeout(() => { playTimer = null; }, seq.length * 350 + 200);
+    const st = _panel?.getState?.() || { posBase: _posBase, stringMode: _stringMode };
+    const svg = _panel?.getSvg?.() || document.querySelector('#fb-explorer');
+    AudioEngine.playModeScale(dr.intervals, rootPc, {
+      gapMs: 350,
+      gain: 0.48,
+      descending: dir !== 'down',
+      posBase: st.posBase,
+      stringMode: st.stringMode,
+      onStep(fret, i, p) {
+        if (p && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
+        else if (svg && typeof flashDot === 'function') flashDot(svg, 0, fret);
+      },
+    });
+    const n = dr.intervals.length + 1;
+    playTimer = setTimeout(() => { playTimer = null; }, n * 700 + 200);
   }
 
   function stop() {

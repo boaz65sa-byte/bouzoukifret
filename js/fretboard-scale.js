@@ -44,64 +44,60 @@ const FretboardScale = (() => {
   }
 
   /**
-   * מסלול סולם עולה בפוזיציה — 4 מיתרים, תיבת span סריגים, מעבר מיתר + Shift.
-   * @returns {{ci,fret,midi,degree}[]}
+   * מסלול סולם בפוזיציה גיטרתית — תיבת span סריגים משותפת, 1–4 מיתרים, טרנספוזיציה.
+   * @param {number} stringMode — 1|2|3|4 מיתרים פעילים
+   * @returns {{ci,fret,midi,degree,positionBase,finger}[]}
    */
-  function buildScaleDegreePath(intervals, rootPc, base = 0, span = MELODY_POS_SPAN) {
-    const courses = [3, 2, 1, 0];
-    const openLow = TUNING[courses[0]].midi;
-    const upToRoot = (((normPc(rootPc) - normPc(openLow + base)) % 12) + 12) % 12;
-    const startMidi = openLow + base + upToRoot;
+  function buildScaleDegreePath(intervals, rootPc, startBase = 0, span = MELODY_POS_SPAN, stringMode = 4) {
+    const courses = coursesForStringMode(stringMode);
     const degrees = [...(intervals || []), 12];
-    const road = [];
-    let ciIdx = 0;
-    let windowStart = base + upToRoot;
-    let prevMidi = -Infinity;
 
-    function fitsWindow(f) {
-      return f >= windowStart && f <= windowStart + span && f >= 0 && f <= NUM_FRETS;
-    }
-
-    degrees.forEach((iv, i) => {
-      const target = startMidi + iv;
-      if (target <= prevMidi) return;
-      let placed = false;
-
-      while (ciIdx < courses.length) {
-        const ci = courses[ciIdx];
-        const f = fretFromMidi(ci, target);
-        if (f == null) {
-          ciIdx++;
-          continue;
-        }
-        if (f > windowStart + span) {
-          windowStart = Math.max(base, f - span);
-        }
-        if (fitsWindow(f)) {
-          road.push({ ci, fret: f, midi: target, degree: i + 1 });
-          prevMidi = target;
-          placed = true;
-          break;
-        }
-        ciIdx++;
-        if (ciIdx < courses.length) {
-          const fNext = fretFromMidi(courses[ciIdx], target);
-          if (fNext != null) windowStart = Math.max(base, fNext - span);
-        }
+    let posBase = startBase;
+    const root0 = findRootInBox(rootPc, posBase, span, courses);
+    if (!root0) {
+      while (posBase <= NUM_FRETS - span && !findRootInBox(rootPc, posBase, span, courses)) {
+        posBase = nextPositionBase(posBase);
       }
+    }
+    const anchor = findRootInBox(rootPc, posBase, span, courses);
+    if (!anchor) return [];
 
-      if (!placed) {
-        for (const ci of courses) {
+    const startMidi = anchor.midi;
+    const targets = degrees.map(iv => startMidi + iv);
+    const road = [];
+    let prev = null;
+    let activeBase = posBase;
+
+    targets.forEach((target, i) => {
+      if (i > 0 && target <= (road[road.length - 1]?.midi ?? -1)) return;
+
+      let placed = false;
+      let tryBase = activeBase;
+      let guard = 0;
+
+      while (!placed && tryBase <= NUM_FRETS - span && guard++ < 24) {
+        const cands = [];
+        courses.forEach(ci => {
           const f = fretFromMidi(ci, target);
-          if (f == null) continue;
-          const bases = legalBasesForFret(f, span).filter(b => b >= base);
-          const b = bases.find(x => f >= x && f <= x + span);
-          if (b == null) continue;
-          road.push({ ci, fret: f, midi: target, degree: i + 1 });
-          windowStart = b;
-          ciIdx = courses.indexOf(ci);
-          prevMidi = target;
-          break;
+          if (f == null || f < tryBase || f > tryBase + span) return;
+          cands.push({ ci, fret: f, midi: target });
+        });
+
+        if (cands.length) {
+          const pick = pickScaleStep(cands, prev);
+          if (pick) {
+            road.push({
+              ...pick,
+              degree: i + 1,
+              positionBase: tryBase,
+              finger: fingerForFret(pick.fret, tryBase),
+            });
+            prev = pick;
+            activeBase = tryBase;
+            placed = true;
+          }
+        } else {
+          tryBase = nextPositionBase(tryBase);
         }
       }
     });
@@ -194,6 +190,52 @@ const FretboardScale = (() => {
   const MELODY_BASES = [0, 2, 3, 5, 7, 9, 12];
   /** מיתרי מלודיה בלבד: D (0) ו-A (1) — לא בס C/F */
   const MELODY_COURSES = [0, 1];
+
+  /** מצבי נגינה על הצוואר — 1/2/3/4 מיתרים (מעבה → דק) */
+  const SCALE_STRING_MODES = {
+    1: [0],
+    2: [1, 0],
+    3: [2, 1, 0],
+    4: [3, 2, 1, 0],
+  };
+
+  function coursesForStringMode(mode = 4) {
+    return SCALE_STRING_MODES[mode] || SCALE_STRING_MODES[4];
+  }
+
+  function nextPositionBase(current) {
+    const cur = current ?? 0;
+    const next = MELODY_BASES.find(b => b > cur);
+    return next != null ? next : Math.min(NUM_FRETS - MELODY_POS_SPAN, cur + 1);
+  }
+
+  function findRootInBox(rootPc, base, span, courses) {
+    for (const ci of courses) {
+      for (let f = base; f <= base + span; f++) {
+        if (normPc(TUNING[ci].midi + f) === normPc(rootPc)) {
+          return { ci, fret: f, midi: TUNING[ci].midi + f };
+        }
+      }
+    }
+    return null;
+  }
+
+  function pickScaleStep(cands, prev) {
+    if (!cands.length) return null;
+    if (!prev) {
+      return cands.slice().sort((a, b) => a.ci - b.ci || a.fret - b.fret)[0];
+    }
+    let best = cands[0];
+    let bestScore = Infinity;
+    cands.forEach(c => {
+      let s = transitionCostGreek(prev, c);
+      if (c.ci < prev.ci && Math.abs(c.fret - prev.fret) <= 2) s -= 8;
+      if (c.ci === prev.ci && c.fret > prev.fret && c.fret - prev.fret <= 2) s -= 4;
+      if (c.fret === 0) s -= 6;
+      if (s < bestScore) { bestScore = s; best = c; }
+    });
+    return best;
+  }
 
   /** מפת מיתרים פתוחים (חצאי-טונים / MIDI) — course 0 = מיתר 1 (D4) … 3 = מיתר 4 (C3) */
   function openStringMap() {
@@ -775,8 +817,188 @@ const FretboardScale = (() => {
     return svg;
   }
 
+  function fretsOnDToIntervals(frets) {
+    if (!Array.isArray(frets) || !frets.length) return [];
+    const list = frets[frets.length - 1] === 12 && frets.length > 1 ? frets.slice(0, -1) : [...frets];
+    const rootFret = list[0] || 0;
+    return list.map(f => ((f - rootFret) % 12 + 12) % 12);
+  }
+
+  /** ציור סולם דרומוס עם מסלול ממוספר על לוח קיים */
+  function renderDromosScale(svg, intervals, rootPc, opts = {}) {
+    if (!svg || typeof drawFretboard !== 'function' || !intervals?.length) return [];
+    const posBase = opts.posBase ?? 0;
+    const stringMode = opts.stringMode ?? 4;
+    const sp = opts.span ?? MELODY_POS_SPAN;
+    const pcsSet = new Set(intervals.map(iv => normPc(rootPc + iv)));
+    const scalePath = buildScaleDegreePath(intervals, rootPc, posBase, sp, stringMode);
+    const pathKey = (ci, f) => `${ci}-${f}`;
+    const pathMap = new Map(scalePath.map(p => [pathKey(p.ci, p.fret), p]));
+    const usedBases = [...new Set(scalePath.map(p => p.positionBase ?? posBase))];
+    const inUsedBox = (f) => usedBases.some(b => f >= b && f <= b + sp);
+    const activeCourses = new Set(coursesForStringMode(stringMode));
+
+    svg.querySelectorAll('.fs-scale-path, .fs-path-label').forEach(el => el.remove());
+    drawFretboard(svg, (ci, f, midi) => {
+      if (!activeCourses.has(ci)) return null;
+      const pc = normPc(midi);
+      if (!pcsSet.has(pc)) return null;
+      const onPath = pathMap.get(pathKey(ci, f));
+      if (onPath) {
+        const finger = onPath.finger;
+        const label = finger > 0 ? `${onPath.degree}·${finger}` : String(onPath.degree);
+        return { type: onPath.degree === 1 ? 'root' : 'note', label };
+      }
+      if (!inUsedBox(f)) return null;
+      return { type: 'note', label: NOTE_NAMES[pc] };
+    });
+    if (scalePath.length) drawPathOverlay(svg, scalePath, opts.color);
+    return scalePath;
+  }
+
+  /**
+   * פאנל סולם עם בורר פוזיציה + מיתרים.
+   * opts: intervals | frets, rootPc, posBase, stringMode, bases, onChange
+   */
+  function mountDromosScalePanel(container, opts = {}) {
+    if (!container) return null;
+    let posBase = opts.posBase ?? 0;
+    let stringMode = opts.stringMode ?? 4;
+    const rootPc = opts.rootPc ?? 2;
+    const onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
+    const ivs = opts.intervals?.length
+      ? opts.intervals
+      : (opts.frets?.length ? fretsOnDToIntervals(opts.frets) : []);
+    let path = [];
+
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'fs-pos-wrap';
+
+    const bar = document.createElement('div');
+    bar.className = 'fs-pos-bar';
+    bar.innerHTML = '<span class="fs-pos-label">פוזיציה:</span>';
+    const bases = opts.bases || MELODY_BASES.filter(b => b <= 9);
+    bases.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip' + (b === posBase ? ' active' : '');
+      btn.textContent = b === 0 ? 'פתוח' : String(b);
+      btn.dataset.base = String(b);
+      btn.addEventListener('click', () => {
+        posBase = b;
+        bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.base) === b);
+        });
+        render();
+      });
+      bar.appendChild(btn);
+    });
+
+    const strLbl = document.createElement('span');
+    strLbl.className = 'fs-pos-label';
+    strLbl.style.marginInlineStart = '12px';
+    strLbl.textContent = 'מיתרים:';
+    bar.appendChild(strLbl);
+    [1, 2, 3, 4].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip fs-str-chip' + (n === stringMode ? ' active' : '');
+      btn.textContent = String(n);
+      btn.dataset.str = String(n);
+      btn.addEventListener('click', () => {
+        stringMode = n;
+        bar.querySelectorAll('.fs-str-chip').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.str) === n);
+        });
+        render();
+      });
+      bar.appendChild(btn);
+    });
+
+    const board = document.createElement('div');
+    board.className = 'fs-pos-board';
+
+    function render() {
+      let svg = board.querySelector('svg.fretboard');
+      if (!svg) {
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('fretboard', 'fs-neck-board');
+        svg.setAttribute('dir', 'ltr');
+        board.innerHTML = '';
+        board.appendChild(svg);
+      }
+      path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode });
+      if (onChange) onChange({ posBase, stringMode, rootPc, path, svg });
+    }
+
+    wrap.appendChild(bar);
+    wrap.appendChild(board);
+    container.appendChild(wrap);
+    render();
+    return {
+      getState: () => ({ posBase, stringMode, rootPc, path }),
+      getSvg: () => board.querySelector('svg'),
+      render,
+    };
+  }
+
+  /** בורר פוזיציה + מיתרים בלבד (ללא לוח) */
+  function mountPosControls(container, opts = {}) {
+    if (!container) return null;
+    let posBase = opts.posBase ?? 0;
+    let stringMode = opts.stringMode ?? 4;
+    const onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
+    container.innerHTML = '';
+    const bar = document.createElement('div');
+    bar.className = 'fs-pos-bar';
+    bar.innerHTML = '<span class="fs-pos-label">פוזיציה:</span>';
+    const bases = opts.bases || MELODY_BASES.filter(b => b <= 9);
+    const fire = () => { if (onChange) onChange({ posBase, stringMode }); };
+    bases.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip' + (b === posBase ? ' active' : '');
+      btn.textContent = b === 0 ? 'פתוח' : String(b);
+      btn.dataset.base = String(b);
+      btn.addEventListener('click', () => {
+        posBase = b;
+        bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.base) === b);
+        });
+        fire();
+      });
+      bar.appendChild(btn);
+    });
+    const strLbl = document.createElement('span');
+    strLbl.className = 'fs-pos-label';
+    strLbl.style.marginInlineStart = '12px';
+    strLbl.textContent = 'מיתרים:';
+    bar.appendChild(strLbl);
+    [1, 2, 3, 4].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip fs-str-chip' + (n === stringMode ? ' active' : '');
+      btn.textContent = String(n);
+      btn.dataset.str = String(n);
+      btn.addEventListener('click', () => {
+        stringMode = n;
+        bar.querySelectorAll('.fs-str-chip').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.str) === n);
+        });
+        fire();
+      });
+      bar.appendChild(btn);
+    });
+    container.appendChild(bar);
+    return { getState: () => ({ posBase, stringMode }) };
+  }
+
   function mountWithPositions(container, opts = {}) {
     if (!container) return null;
+    if (opts.intervals?.length || opts.frets?.length) {
+      return mountDromosScalePanel(container, opts)?.getSvg() ?? null;
+    }
     const wrap = document.createElement('div');
     wrap.className = 'fs-pos-wrap';
 
@@ -838,6 +1060,13 @@ const FretboardScale = (() => {
     buildBoxPath,
     buildScaleDegreePath,
     scalePlaySequence,
+    fretsOnDToIntervals,
+    renderDromosScale,
+    mountDromosScalePanel,
+    mountPosControls,
+    coursesForStringMode,
+    SCALE_STRING_MODES,
+    nextPositionBase,
     buildDPath,
     makeState,
     mount,

@@ -377,12 +377,21 @@ const ModusPath = (() => {
     // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
     if (typeof DromosRoad !== 'undefined') {
       DromosRoad.renderInto(document.getElementById('mp-road-host'), {
-        intervals: p.scale.frets.filter(f => f < 12),
+        frets: p.scale.frets,
         rootPc: D_OPEN % 12,
         nameHe: p.nameHe || p.name || 'הסולם',
       });
     }
-    document.getElementById('mp-play').addEventListener('click', () => playFrets([...p.scale.frets, ...[...p.scale.frets].reverse().slice(1)]));
+    document.getElementById('mp-play').addEventListener('click', () => {
+      const ivs = typeof FretboardScale !== 'undefined'
+        ? FretboardScale.fretsOnDToIntervals(p.scale.frets)
+        : [];
+      if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
+        AudioEngine.playModeScale(ivs, D_OPEN % 12, { gapMs: 320, gain: 0.5, posBase: 0, stringMode: 4 });
+      } else {
+        playFrets([...p.scale.frets, ...[...p.scale.frets].reverse().slice(1)]);
+      }
+    });
     document.getElementById('mp-listen').addEventListener('click', () => startScaleListen(p.scale.frets));
     wireNav();
   }

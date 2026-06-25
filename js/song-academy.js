@@ -286,14 +286,20 @@ const SongAcademy = (() => {
     return el;
   }
 
-  /** סולם דרומוס — כל המיתרים + פוזיציות */
-  function drawScaleBoard(svgId, scaleFrets) {
+  let _saScalePanel = null;
+
+  /** סולם דרומוס — פוזיציה גיטרתית */
+  function drawScaleBoard(svgId, scaleFrets, rootPc = 2, intervals = null) {
     const el = document.getElementById(svgId);
-    if (!el) return;
+    if (!el) return null;
     const wrap = el.parentElement;
-    if (typeof FretboardScale !== 'undefined' && wrap) {
-      FretboardScale.mountWithPositions(wrap, { frets: scaleFrets, bases: [0, 2, 5, 7, 9] });
-      return;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel && wrap) {
+      wrap.innerHTML = '';
+      const panelOpts = intervals?.length
+        ? { intervals, rootPc }
+        : { frets: scaleFrets, rootPc };
+      _saScalePanel = FretboardScale.mountDromosScalePanel(wrap, panelOpts);
+      return _saScalePanel;
     }
     const svg = _mountFretboard(svgId);
     if (!svg) return;
@@ -705,9 +711,20 @@ const SongAcademy = (() => {
           <button class="btn" id="sa-dr-phrase">🎶 הפראזה של השיר (עם הדגשה)</button>
         </div>
       </div>`;
-    drawScaleBoard('sa-fb-scale', dr.frets);
+    const mainDr = (typeof DROMOI !== 'undefined') ? DROMOI.find(x => x.id === sec.dromos) : null;
+    drawScaleBoard('sa-fb-scale', dr.frets, 2, mainDr?.intervals);
     drawPhraseBoard('sa-fb-phrase', s.phrase.frets, dr.frets);
-    document.getElementById('sa-dr-scale').addEventListener('click', () => playFrets([...dr.frets, ...[...dr.frets].reverse().slice(1)], 300));
+    document.getElementById('sa-dr-scale').addEventListener('click', () => {
+      const st = _saScalePanel?.getState?.() || { posBase: 0, stringMode: 4 };
+      const ivs = mainDr?.intervals
+        || (typeof FretboardScale !== 'undefined' ? FretboardScale.fretsOnDToIntervals(dr.frets) : []);
+      if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
+        AudioEngine.playModeScale(ivs, 2, {
+          gapMs: 300, gain: 0.5, descending: true,
+          posBase: st.posBase, stringMode: st.stringMode,
+        });
+      }
+    });
     document.getElementById('sa-dr-phrase').addEventListener('click', () => playPhraseAnimated(s.phrase.frets, dr.frets, 320));
   }
 

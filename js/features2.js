@@ -1365,6 +1365,7 @@ const LiveAnalyzer = (() => {
    ================================================================ */
 const MaqamGuide = (() => {
   let compareMode = false;
+  let _mqPanel = null;
 
   // Extended data for jins analysis and characteristics
   const JINS_MAP = {
@@ -1522,26 +1523,37 @@ const MaqamGuide = (() => {
         ` : ''}
       </div>
 
-      <div style="overflow-x:auto;">
-        <svg id="mq-fretboard" class="fretboard-svg"></svg>
-      </div>
+      <div id="mq-fb-host"></div>
     `;
 
-    // draw fretboard
-    const rootPc = 2; // D
-    const scaleSet = new Set(d.intervals.map(iv => (rootPc + iv) % 12));
-    drawFretboard($('#mq-fretboard'), (ci, fret, midi) => {
-      const pc = midi % 12;
-      if (!scaleSet.has(pc)) return null;
-      const isRoot = pc === rootPc;
-      return { type: isRoot ? 'root' : 'note', label: NOTE_NAMES[pc] };
-    });
-
-    // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
+    const rootPc = 2;
+    const fbHost = document.getElementById('mq-fb-host');
+    if (fbHost && typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel) {
+      _mqPanel = FretboardScale.mountDromosScalePanel(fbHost, {
+        intervals: d.intervals,
+        rootPc,
+        onChange(st) {
+          const rh = document.getElementById('mq-road-host');
+          if (rh && typeof DromosRoad !== 'undefined') {
+            DromosRoad.renderInto(rh, {
+              intervals: d.intervals, rootPc, nameHe: d.nameHe,
+              embedded: true, posBase: st.posBase, stringMode: st.stringMode,
+              fretboard: _mqPanel?.getSvg(),
+            });
+          }
+        },
+      });
+    }
+    const roadHost = document.createElement('div');
+    roadHost.id = 'mq-road-host';
+    wrap.appendChild(roadHost);
     if (typeof DromosRoad !== 'undefined') {
-      const roadHost = document.createElement('div');
-      wrap.appendChild(roadHost);
-      DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc, nameHe: d.nameHe, fretboard: $('#mq-fretboard') });
+      const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
+      DromosRoad.renderInto(roadHost, {
+        intervals: d.intervals, rootPc, nameHe: d.nameHe,
+        embedded: true, posBase: st.posBase, stringMode: st.stringMode,
+        fretboard: _mqPanel?.getSvg?.(),
+      });
     }
   }
 
@@ -1549,7 +1561,10 @@ const MaqamGuide = (() => {
     const id = $('#mq-select').value;
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
-    AudioEngine.playModeScale(d.intervals, 2, { gapMs: 350, gain: 0.48 });
+    const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
+    AudioEngine.playModeScale(d.intervals, 2, {
+      gapMs: 350, gain: 0.48, posBase: st.posBase, stringMode: st.stringMode,
+    });
   }
 
   function playPhrase(id) {
@@ -1636,7 +1651,11 @@ const MaqamGuide = (() => {
   function playCompareScale(id) {
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
-    AudioEngine.playModeScale(d.intervals, 2, { gapMs: 350, gain: 0.48, descending: false });
+    const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
+    AudioEngine.playModeScale(d.intervals, 2, {
+      gapMs: 350, gain: 0.48, descending: false,
+      posBase: st.posBase, stringMode: st.stringMode,
+    });
   }
 
   function stop() {

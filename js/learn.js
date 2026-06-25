@@ -321,6 +321,7 @@ const DromosLearn = (() => {
             DromosVisuals.mountChordBoard(fbEl, practical.chords[0]);
           } else if (frets.length) {
             DromosVisuals.mountFretboard(fbEl, frets, {
+              dromosId: dc.dromosId,
               numbered: !!practical?.phraseFrets,
               scaleFrets: practical?.phraseFrets
                 ? (practical.frets || DromosVisuals.getScaleFrets(dc.dromosId))
@@ -344,7 +345,7 @@ const DromosLearn = (() => {
           btn.className = 'btn gold';
           btn.textContent = '▶ נגן סולם (עלייה+ירידה)';
           btn.addEventListener('click', () => {
-            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, frets, 300);
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, frets, 300, { dromosId: dc.dromosId });
           });
           actions.appendChild(btn);
         }
@@ -388,14 +389,14 @@ const DromosLearn = (() => {
           btnK.className = 'btn';
           btnK.textContent = '▶ קיורדי';
           btnK.addEventListener('click', () => {
-            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.frets, 280);
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.frets, 280, { dromosId: dc.dromosId });
           });
           const btnO = document.createElement('button');
           btnO.type = 'button';
           btnO.className = 'btn';
           btnO.textContent = '▶ אוסאק';
           btnO.addEventListener('click', () => {
-            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.altFrets, 280);
+            if (typeof DromosVisuals !== 'undefined') DromosVisuals.playScaleAnimated(fbContainer, practical.altFrets, 280, { dromosId: dc.dromosId });
           });
           actions.appendChild(btnK);
           actions.appendChild(btnO);

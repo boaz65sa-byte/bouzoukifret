@@ -314,6 +314,14 @@ const DromosVisuals = (() => {
     if (!container) return null;
     const phraseFrets = opts.numbered ? frets : undefined;
     const scaleFrets = opts.scaleFrets || frets;
+    if (!phraseFrets && typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel) {
+      const dr = opts.dromosId && typeof DROMOI !== 'undefined'
+        ? DROMOI.find(d => d.id === opts.dromosId) : null;
+      const panelOpts = dr?.intervals
+        ? { intervals: dr.intervals, rootPc: opts.rootPc ?? 2 }
+        : { frets: scaleFrets, rootPc: opts.rootPc ?? 2 };
+      return FretboardScale.mountDromosScalePanel(container, panelOpts)?.getSvg() ?? null;
+    }
     if (typeof FretboardScale !== 'undefined') {
       return FretboardScale.mount(container, {
         frets: scaleFrets,
@@ -384,7 +392,42 @@ const DromosVisuals = (() => {
     });
   }
 
-  function playScaleAnimated(container, frets, gap = 300) {
+  function playScaleAnimated(container, frets, gap = 300, opts = {}) {
+    const rootPc = opts.rootPc ?? 2;
+    const dr = opts.dromosId && typeof DROMOI !== 'undefined'
+      ? DROMOI.find(d => d.id === opts.dromosId) : null;
+    const ivs = dr?.intervals
+      || (typeof FretboardScale !== 'undefined' ? FretboardScale.fretsOnDToIntervals(frets) : []);
+
+    if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
+      AudioEngine.stopModeScale();
+      let posBase = opts.posBase ?? 0;
+      let stringMode = opts.stringMode ?? 4;
+      const panelState = container?._fsPanel?.getState?.();
+      if (panelState) {
+        posBase = panelState.posBase;
+        stringMode = panelState.stringMode;
+      }
+      const panel = typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel
+        ? FretboardScale.mountDromosScalePanel(container, dr?.intervals
+          ? { intervals: dr.intervals, rootPc }
+          : { frets, rootPc })
+        : null;
+      if (panel) container._fsPanel = panel;
+      AudioEngine.playModeScale(ivs, rootPc, {
+        gapMs: gap,
+        gain: 0.52,
+        posBase,
+        stringMode,
+        onStep(fret, i, p) {
+          const svg = container?.querySelector('svg');
+          if (p && svg && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
+          else if (svg && typeof flashDot === 'function') flashDot(svg, 0, fret);
+        },
+      });
+      return;
+    }
+
     const seq = [...frets, ...[...frets].reverse().slice(1)];
     seq.forEach((f, i) => {
       setTimeout(() => {

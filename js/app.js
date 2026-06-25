@@ -371,6 +371,7 @@ let currentDromos = DROMOI[0];
 let currentRoot = 2; // D = pitch class 2
 let dromoiFilter = 'all';
 let _dromoiPosBase = 0;
+let _dromoiStringMode = 4;
 
 function setDromoiFilter(filter) {
   dromoiFilter = filter || 'all';
@@ -495,8 +496,29 @@ function initDromoi() {
       btn.dataset.base = String(b);
       btn.addEventListener('click', () => {
         _dromoiPosBase = b;
-        bar.querySelectorAll('.fs-pos-chip').forEach(x => {
+        bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
           x.classList.toggle('active', Number(x.dataset.base) === b);
+        });
+        renderDromos();
+      });
+      bar.appendChild(btn);
+    });
+    const strLabel = document.createElement('span');
+    strLabel.className = 'fs-pos-label';
+    strLabel.style.marginInlineStart = '12px';
+    strLabel.textContent = 'מיתרים:';
+    bar.appendChild(strLabel);
+    [1, 2, 3, 4].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary fs-pos-chip fs-str-chip' + (n === _dromoiStringMode ? ' active' : '');
+      btn.textContent = String(n);
+      btn.dataset.str = String(n);
+      btn.title = n === 1 ? 'מיתר D בלבד' : `${n} מיתרים`;
+      btn.addEventListener('click', () => {
+        _dromoiStringMode = n;
+        bar.querySelectorAll('.fs-str-chip').forEach(x => {
+          x.classList.toggle('active', Number(x.dataset.str) === n);
         });
         renderDromos();
       });
@@ -586,21 +608,31 @@ function renderDromos() {
   if (!_dromoiPosBase && _dromoiPosBase !== 0) _dromoiPosBase = 0;
   const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
   const scalePath = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span)
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode)
     : [];
   const pathKey = (ci, f) => `${ci}-${f}`;
   const pathMap = new Map(scalePath.map(p => [pathKey(p.ci, p.fret), p]));
+  const usedBases = [...new Set(scalePath.map(p => p.positionBase ?? _dromoiPosBase))];
+  const inUsedBox = (f) => usedBases.some(b => f >= b && f <= b + span);
+  const activeCourses = typeof FretboardScale !== 'undefined'
+    ? new Set(FretboardScale.coursesForStringMode(_dromoiStringMode))
+    : null;
 
   drawFretboard($('#fb-dromos'), (ci, f, midi) => {
+    if (activeCourses && !activeCourses.has(ci)) return null;
     const pc = midi % 12;
     if (!pcsSet.has(pc)) return null;
-    if (f < _dromoiPosBase || f > _dromoiPosBase + span) return null;
     const onPath = pathMap.get(pathKey(ci, f));
-    const idx = pcs.indexOf(pc);
-    return {
-      type: (onPath?.degree === 1 || idx === 0) ? 'root' : 'note',
-      label: onPath ? String(onPath.degree) : NOTE_NAMES[pc],
-    };
+    if (onPath) {
+      const finger = onPath.finger;
+      const label = finger > 0 ? `${onPath.degree}·${finger}` : String(onPath.degree);
+      return {
+        type: onPath.degree === 1 ? 'root' : 'note',
+        label,
+      };
+    }
+    if (!inUsedBox(f)) return null;
+    return { type: 'note', label: NOTE_NAMES[pc] };
   });
   if (typeof FretboardScale !== 'undefined' && scalePath.length) {
     FretboardScale.drawPathOverlay($('#fb-dromos'), scalePath);
@@ -620,7 +652,15 @@ function renderDromos() {
       if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(roadHost, anchor.nextSibling);
       else { const fb = $('#fb-dromos'); if (fb && fb.parentNode) fb.parentNode.appendChild(roadHost); }
     }
-    DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc: currentRoot, nameHe: d.nameHe, fretboard: $('#fb-dromos') });
+    DromosRoad.renderInto(roadHost, {
+      intervals: d.intervals,
+      rootPc: currentRoot,
+      nameHe: d.nameHe,
+      fretboard: $('#fb-dromos'),
+      embedded: true,
+      posBase: _dromoiPosBase,
+      stringMode: _dromoiStringMode,
+    });
   }
 }
 
@@ -630,7 +670,7 @@ function renderSingleString() {
   const d = currentDromos;
   const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
   const scalePath = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span)
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode)
     : [];
   const dNotes = scalePath.filter(p => p.ci === 0);
   const seq = dNotes.length
@@ -660,39 +700,17 @@ function playScale(msPerNote) {
   scaleTimer = null;
   AudioEngine.stopModeScale();
   const svg = $('#fb-dromos');
-  const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
-  const path = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.buildScaleDegreePath(currentDromos.intervals, currentRoot, _dromoiPosBase, span)
-    : [];
-  const seq = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.scalePlaySequence(path)
-    : [];
-
-  if (!seq.length) {
-    AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
-      gapMs: msPerNote,
-      gain: 0.52,
-      onStep(fret) {
-        const midi = TUNING[0].midi + fret;
-        if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
-        else flashDot(svg, 0, fret);
-      },
-    });
-    return;
-  }
-
-  let i = 0;
-  function step() {
-    if (i >= seq.length) { scaleTimer = null; return; }
-    const { ci, fret } = seq[i];
-    AudioEngine.pluckCourse(ci, fret, 0, 0.52);
-    const midi = TUNING[ci].midi + fret;
-    if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
-    else flashDot(svg, ci, fret);
-    i++;
-    scaleTimer = setTimeout(step, msPerNote);
-  }
-  step();
+  AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
+    gapMs: msPerNote,
+    gain: 0.52,
+    posBase: _dromoiPosBase,
+    stringMode: _dromoiStringMode,
+    onStep(fret, i, p) {
+      if (p && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
+      else if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, TUNING[0].midi + fret);
+      else flashDot(svg, p?.ci ?? 0, fret);
+    },
+  });
 }
 
 function playSingleString() {

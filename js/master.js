@@ -61,6 +61,7 @@ const MasterModes = (() => {
   let scaleNotes = [], idx = 0, heroMode = false;
   let stats = { correct: 0, wrong: 0, streak: 0, best: 0 };
   let stablePc = null, stableCount = 0, armed = true, quietFrames = 0, lastReg = 0;
+  let _posBase = 0, _stringMode = 4;
 
   // Flow / full-scale streaming game
   let heroCanvas, heroCtx, heroRaf = null;
@@ -78,6 +79,19 @@ const MasterModes = (() => {
   };
 
   function buildScale() {
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
+      const path = FretboardScale.buildScaleDegreePath(
+        dromos.intervals, rootPc, _posBase, FretboardScale.MELODY_POS_SPAN, _stringMode,
+      );
+      return path.map(p => ({
+        ci: p.ci,
+        fret: p.fret,
+        midi: p.midi,
+        pc: p.midi % 12,
+        name: NOTE_NAMES[p.midi % 12],
+        solfege: SOLFEGE[NOTE_NAMES[p.midi % 12]],
+      }));
+    }
     const openPc = TUNING[0].midi % 12;
     const frets = [...dromos.intervals, 12];
     return frets.map(iv => {
@@ -85,7 +99,7 @@ const MasterModes = (() => {
       const midi = TUNING[0].midi + fret;
       const pc = (rootPc + iv) % 12;
       return {
-        fret, midi, pc,
+        ci: 0, fret, midi, pc,
         name: NOTE_NAMES[pc],
         solfege: SOLFEGE[NOTE_NAMES[pc]],
       };
@@ -94,20 +108,27 @@ const MasterModes = (() => {
 
   function drawModeFretboard() {
     if (!dromos) return;
-    const pcs = dromos.intervals.map(iv => (rootPc + iv) % 12);
+    const svg = $('#fb-master-modes');
+    if (!svg) return;
     const target = !heroMode && scaleNotes[idx] ? scaleNotes[idx] : null;
 
-    drawFretboard($('#fb-master-modes'), (ci, f, midi) => {
-      const pc = midi % 12;
-      if (!pcs.includes(pc)) return null;
-      return { type: pc === rootPc ? 'root' : 'note', label: NOTE_NAMES[pc] };
-    });
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.renderDromosScale) {
+      FretboardScale.renderDromosScale(svg, dromos.intervals, rootPc, {
+        posBase: _posBase, stringMode: _stringMode,
+      });
+    } else {
+      const pcs = dromos.intervals.map(iv => (rootPc + iv) % 12);
+      drawFretboard(svg, (ci, f, midi) => {
+        const pc = midi % 12;
+        if (!pcs.includes(pc)) return null;
+        return { type: pc === rootPc ? 'root' : 'note', label: NOTE_NAMES[pc] };
+      });
+    }
 
     if (target) {
-      const svg = $('#fb-master-modes');
-      svg.querySelectorAll('.fb-dot').forEach(dot => {
+      svg.querySelectorAll('.note-dot').forEach(dot => {
         dot.classList.remove('mm-target', 'mm-glow');
-        if (parseInt(dot.dataset.course) === 0 && parseInt(dot.dataset.fret) === target.fret) {
+        if (parseInt(dot.dataset.course, 10) === target.ci && parseInt(dot.dataset.fret, 10) === target.fret) {
           dot.classList.add('mm-target', 'mm-glow');
         }
       });
@@ -128,7 +149,7 @@ const MasterModes = (() => {
     if (n && !heroMode) {
       $('#mm-current-note').textContent = n.name;
       $('#mm-current-solfege').textContent = SOLFEGE[n.name];
-      $('#mm-current-fret').textContent = 'סריג ' + n.fret + ' על מיתר D';
+      $('#mm-current-fret').textContent = 'מיתר ' + TUNING[n.ci].course + ' · סריג ' + n.fret;
     } else if (heroMode && n) {
       $('#mm-current-note').textContent = n.name;
       $('#mm-current-solfege').textContent = n.solfege || SOLFEGE[n.name];
@@ -168,7 +189,7 @@ const MasterModes = (() => {
       if (idx >= scaleNotes.length) { finish(); return; }
       updateUI();
       drawModeFretboard();
-      if (!heroMode) AudioEngine.pluckCourse(0, scaleNotes[idx].fret, 0, 0.5);
+      if (!heroMode) AudioEngine.pluckCourse(scaleNotes[idx].ci, scaleNotes[idx].fret, 0, 0.5);
     }, 500);
   }
 
@@ -535,10 +556,10 @@ const MasterModes = (() => {
       stopHero();
       AudioEngine.ensureCtx();
       scaleNotes.forEach((n, i) => {
-        setTimeout(() => AudioEngine.pluckCourse(0, n.fret, 0, 0.4), i * 300);
+        setTimeout(() => AudioEngine.pluckCourse(n.ci, n.fret, 0, 0.4), i * 300);
       });
       setTimeout(() => {
-        if (scaleNotes[0]) AudioEngine.pluckCourse(0, scaleNotes[0].fret, 0, 0.55);
+        if (scaleNotes[0]) AudioEngine.pluckCourse(scaleNotes[0].ci, scaleNotes[0].fret, 0, 0.55);
       }, scaleNotes.length * 300 + 500);
     }
 
@@ -569,7 +590,7 @@ const MasterModes = (() => {
     $('#mm-start').addEventListener('click', () => running ? stop() : start());
     $('#mm-play-note').addEventListener('click', () => {
       const n = scaleNotes[idx];
-      if (n) { AudioEngine.ensureCtx(); AudioEngine.pluckCourse(0, n.fret, 0, 0.55); }
+      if (n) { AudioEngine.ensureCtx(); AudioEngine.pluckCourse(n.ci, n.fret, 0, 0.55); }
     });
 
     sel.addEventListener('change', () => {
@@ -582,6 +603,25 @@ const MasterModes = (() => {
       scaleNotes = buildScale();
       drawModeFretboard();
     });
+
+    const fbCard = $('#fb-master-modes')?.closest('.card');
+    if (fbCard && !$('#mm-pos-bar') && typeof FretboardScale !== 'undefined' && FretboardScale.mountPosControls) {
+      const barHost = document.createElement('div');
+      barHost.id = 'mm-pos-bar';
+      const scrollHint = fbCard.querySelector('.fretboard-scroll-hint');
+      fbCard.insertBefore(barHost, scrollHint || fbCard.querySelector('.fretboard-wrap'));
+      FretboardScale.mountPosControls(barHost, {
+        posBase: _posBase,
+        stringMode: _stringMode,
+        onChange(st) {
+          _posBase = st.posBase;
+          _stringMode = st.stringMode;
+          scaleNotes = buildScale();
+          drawModeFretboard();
+        },
+      });
+    }
+
     $('#mm-mode-select').addEventListener('change', () => {
       heroMode = $('#mm-mode-select').value === 'full-scale';
       if (!running) {
