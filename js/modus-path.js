@@ -365,6 +365,7 @@ const ModusPath = (() => {
       <p class="hint">כל הנקודות = צלילי הסולם על כל 4 המיתרים · הקו המקווקו = מסלול בפוזיציה</p>
       ${tabSvg(p.scale.frets, p.color)}
       <div class="mp-note-names">${p.scale.frets.map((f,i) => `<span style="color:${p.color}">${notes[i]}</span>`).join(' · ')}</div>
+      <div id="mp-road-host"></div>
       <div class="mp-btn-row">
         <button class="btn gold" id="mp-play">🔊 שמעו את הסולם</button>
         <button class="btn" id="mp-listen">🎤 תרגלו — האפליקציה מאזינה</button>
@@ -373,6 +374,14 @@ const ModusPath = (() => {
       ${stageNav()}
     `;
     mountNeck(document.getElementById('mp-neck-host'), p.scale.frets, p.color);
+    // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
+    if (typeof DromosRoad !== 'undefined') {
+      DromosRoad.renderInto(document.getElementById('mp-road-host'), {
+        intervals: p.scale.frets.filter(f => f < 12),
+        rootPc: D_OPEN % 12,
+        nameHe: p.nameHe || p.name || 'הסולם',
+      });
+    }
     document.getElementById('mp-play').addEventListener('click', () => playFrets([...p.scale.frets, ...[...p.scale.frets].reverse().slice(1)]));
     document.getElementById('mp-listen').addEventListener('click', () => startScaleListen(p.scale.frets));
     wireNav();

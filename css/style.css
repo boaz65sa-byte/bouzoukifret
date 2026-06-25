@@ -2324,3 +2324,12 @@ select {
 .tl-road-root .tl-road-note { color: var(--gold); }
 .tl-road-pos { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 .tl-road-arrow { flex: 0 0 auto; align-self: center; color: var(--gold-soft); font-size: 18px; opacity: 0.7; }
+
+/* ---------- DromosRoad: רכיב כביש משותף ---------- */
+.dr-road-host { margin: 14px 0; }
+.dr-road-modes { margin: 8px 0; }
+.dr-road-btns { margin-top: 8px; }
+.tl-road-stop.tl-road-playing { background: var(--gold); border-color: var(--gold); transform: translateY(-2px); }
+.tl-road-stop.tl-road-playing .tl-road-note,
+.tl-road-stop.tl-road-playing .tl-road-pos,
+.tl-road-stop.tl-road-playing .tl-road-num { color: #1a1408; }

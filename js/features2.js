@@ -1536,6 +1536,13 @@ const MaqamGuide = (() => {
       const isRoot = pc === rootPc;
       return { type: isRoot ? 'root' : 'note', label: NOTE_NAMES[pc] };
     });
+
+    // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
+    if (typeof DromosRoad !== 'undefined') {
+      const roadHost = document.createElement('div');
+      wrap.appendChild(roadHost);
+      DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc, nameHe: d.nameHe });
+    }
   }
 
   function playScale() {
