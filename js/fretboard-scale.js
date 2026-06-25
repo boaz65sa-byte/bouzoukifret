@@ -120,6 +120,25 @@ const FretboardScale = (() => {
 
   const MELODY_POS_SPAN = 4;
   const MELODY_BASES = [0, 2, 3, 5, 7, 9, 12];
+  /** מיתרי מלודיה בלבד: D (0) ו-A (1) — לא בס C/F */
+  const MELODY_COURSES = [0, 1];
+
+  function coursePenalty(ci) {
+    if (ci === 0) return 0;
+    if (ci === 1) return 1;
+    return 100;
+  }
+
+  function filterByMode(candidates, mode, base) {
+    if (mode === 'd') return candidates.filter(p => p.ci === 0);
+    if (mode === 'da' || mode === 'box') {
+      return candidates.filter(p =>
+        MELODY_COURSES.includes(p.ci) &&
+        (mode !== 'box' || (p.fret >= base && p.fret <= base + MELODY_POS_SPAN))
+      );
+    }
+    return candidates.filter(p => MELODY_COURSES.includes(p.ci));
+  }
 
   function noteMidi(n) {
     return n.midi ?? (TUNING[n.course].midi + n.fret);
@@ -134,45 +153,60 @@ const FretboardScale = (() => {
     return out;
   }
 
-  function pickPlacement(candidates, prev) {
+  function pickPlacement(candidates, prev, sticky) {
     if (!candidates.length) return null;
+    const midi = candidates[0].midi;
+    if (sticky && sticky.has(midi)) {
+      const mem = sticky.get(midi);
+      const exact = candidates.find(p => p.ci === mem.ci && p.fret === mem.fret);
+      if (exact) return exact;
+      const onSame = candidates.filter(p => p.ci === mem.ci);
+      if (onSame.length) candidates = onSame;
+    }
     let best = candidates[0];
     let bestScore = Infinity;
     candidates.forEach(p => {
-      let s = p.ci === 0 ? 0 : 3;
+      let s = coursePenalty(p.ci);
       if (prev) {
         s += Math.abs(p.fret - prev.fret) * 2;
-        if (p.ci !== prev.ci) s += 4;
-        if (Math.abs(p.fret - prev.fret) > 3) s += 12;
+        if (p.ci !== prev.ci) s += 3;
+        if (Math.abs(p.fret - prev.fret) > 4) s += 15;
+      }
+      if (sticky && sticky.has(midi)) {
+        const mem = sticky.get(midi);
+        if (p.ci === mem.ci && p.fret === mem.fret) s -= 20;
+        else if (p.ci === mem.ci) s -= 8;
       }
       if (s < bestScore) { bestScore = s; best = p; }
     });
+    if (sticky && best) sticky.set(midi, { ci: best.ci, fret: best.fret });
     return best;
   }
 
   function remapMelody(notes, opts = {}) {
-    const mode = opts.mode || 'd';
+    const mode = opts.mode || 'da';
     const base = opts.base ?? 0;
     const remapped = [];
     let prev = null;
+    const sticky = opts.sticky || new Map();
     for (const n of notes) {
       const midi = noteMidi(n);
       let candidates = placementsForMidi(midi);
-      if (mode === 'd') candidates = candidates.filter(p => p.ci === 0);
-      else candidates = candidates.filter(p => p.fret >= base && p.fret <= base + MELODY_POS_SPAN);
-      const pick = pickPlacement(candidates, prev);
+      candidates = filterByMode(candidates, mode, base);
+      const pick = pickPlacement(candidates, prev, sticky);
       if (!pick) continue;
       remapped.push({ ...n, course: pick.ci, fret: pick.fret, midi: pick.midi });
       prev = pick;
     }
-    return { notes: remapped, base, mode };
+    return { notes: remapped, base, mode, sticky };
   }
 
   function scoreRemapped(remapped) {
     let s = 0;
     let prev = null;
     remapped.forEach(n => {
-      if (prev) s += Math.abs(n.fret - prev.fret) + (n.course !== prev.course ? 3 : 0);
+      s += coursePenalty(n.course) * 2;
+      if (prev) s += Math.abs(n.fret - prev.fret) + (n.course !== prev.course ? 4 : 0);
       prev = n;
     });
     return s + (remapped.length ? 0 : 9999);
@@ -182,7 +216,7 @@ const FretboardScale = (() => {
     let best = MELODY_BASES[0];
     let bestScore = Infinity;
     MELODY_BASES.forEach(b => {
-      const { notes: remapped } = remapMelody(notes, { mode, base: b });
+      const { notes: remapped } = remapMelody(notes, { mode: mode === 'box' ? 'box' : mode, base: b });
       const coverage = remapped.length / Math.max(1, notes.length);
       if (coverage < 0.55) return;
       const score = scoreRemapped(remapped) + (1 - coverage) * 200;
@@ -214,16 +248,31 @@ const FretboardScale = (() => {
    */
   function normalizeMelody(notes, opts = {}) {
     const sorted = [...(notes || [])].sort((a, b) => a.time - b.time);
-    if (!sorted.length) return { notes: [], segments: [], mode: 'd', base: 0 };
+    if (!sorted.length) return { notes: [], segments: [], mode: 'da', base: 0 };
 
     if (opts.mode === 'd') {
       const onD = remapMelody(sorted, { mode: 'd' });
       return { notes: onD.notes, segments: [{ mode: 'd', base: 0, notes: onD.notes }], mode: 'd', base: 0 };
     }
+    if (opts.mode === 'da') {
+      const onDa = remapMelody(sorted, { mode: 'da' });
+      return { notes: onDa.notes, segments: [{ mode: 'da', base: 0, notes: onDa.notes }], mode: 'da', base: 0 };
+    }
     if (opts.mode === 'box') {
       const base = opts.base ?? findBestBase(sorted, 'box');
       const { notes: remapped } = remapMelody(sorted, { mode: 'box', base });
       return { notes: remapped, segments: [{ mode: 'box', base, notes: remapped }], mode: 'box', base };
+    }
+
+    const onDa = remapMelody(sorted, { mode: 'da' });
+    const coverageDa = onDa.notes.length / sorted.length;
+    if (coverageDa >= 0.75) {
+      return {
+        notes: onDa.notes,
+        segments: [{ mode: 'da', base: 0, notes: onDa.notes }],
+        mode: 'da',
+        base: 0,
+      };
     }
 
     const onD = remapMelody(sorted, { mode: 'd' });
@@ -240,10 +289,11 @@ const FretboardScale = (() => {
     const phrases = splitPhrases(sorted, opts.gapSec ?? 0.38, opts.phraseSize ?? 18);
     const segments = [];
     const allNotes = [];
+    const sticky = new Map();
 
     phrases.forEach(phrase => {
       const base = opts.base ?? findBestBase(phrase, 'box');
-      const { notes: remapped } = remapMelody(phrase, { mode: 'box', base });
+      const { notes: remapped } = remapMelody(phrase, { mode: 'box', base, sticky });
       if (!remapped.length) return;
       segments.push({ mode: 'box', base, startTime: phrase[0].time, notes: remapped });
       allNotes.push(...remapped);
@@ -253,7 +303,7 @@ const FretboardScale = (() => {
 
     if (allNotes.length < sorted.length * 0.65) {
       const base = opts.base ?? findBestBase(sorted, 'box');
-      const { notes: remapped } = remapMelody(sorted, { mode: 'box', base });
+      const { notes: remapped } = remapMelody(sorted, { mode: 'box', base, sticky });
       if (remapped.length >= allNotes.length) {
         return {
           notes: remapped,
@@ -265,31 +315,33 @@ const FretboardScale = (() => {
     }
 
     return {
-      notes: allNotes.length ? allNotes : onD.notes,
-      segments: segments.length ? segments : [{ mode: 'd', base: 0, notes: onD.notes }],
-      mode: segments.length ? 'box' : 'd',
+      notes: allNotes.length ? allNotes : onDa.notes,
+      segments: segments.length ? segments : [{ mode: 'da', base: 0, notes: onDa.notes }],
+      mode: segments.length ? 'box' : 'da',
       base: segments[0]?.base ?? 0,
     };
   }
 
   function drawMelodyConnections(svg, path, color = '#f0cc74') {
     if (!svg || path.length < 2) return;
-    svg.querySelectorAll('.fs-melody-seg').forEach(el => el.remove());
+    svg.querySelectorAll('.fs-melody-seg, .fs-scale-path, .fs-path-label').forEach(el => el.remove());
+    if (path.length <= 24) {
+      drawPathOverlay(svg, path, color);
+      return;
+    }
     for (let i = 1; i < path.length; i++) {
       const a = path[i - 1];
       const b = path[i];
-      const df = Math.abs(a.fret - b.fret);
-      const dc = Math.abs(a.ci - b.ci);
-      if (dc > 1 || df > 3) continue;
+      if (!MELODY_COURSES.includes(a.ci) || !MELODY_COURSES.includes(b.ci)) continue;
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', fretCenterX(a.fret));
       line.setAttribute('y1', courseY(a.ci));
       line.setAttribute('x2', fretCenterX(b.fret));
       line.setAttribute('y2', courseY(b.ci));
       line.setAttribute('stroke', color);
-      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-width', '2.5');
       line.setAttribute('stroke-dasharray', '5 3');
-      line.setAttribute('opacity', '0.75');
+      line.setAttribute('opacity', '0.85');
       line.setAttribute('class', 'fs-melody-seg');
       line.style.pointerEvents = 'none';
       svg.appendChild(line);
@@ -298,12 +350,15 @@ const FretboardScale = (() => {
 
   function mountMelody(container, opts = {}) {
     if (!container || typeof drawFretboard !== 'function') return { svg: null, remapped: [], path: [] };
-    const mode = opts.mode || 'd';
-    const base = opts.base ?? (mode === 'box' ? findBestBase(opts.notes || [], mode) : 0);
-    const { notes: remapped } = remapMelody(opts.notes || [], { mode, base });
+    const mode = opts.mode || 'da';
+    const base = opts.base ?? (mode === 'box' ? findBestBase(opts.notes || [], 'box') : 0);
+    const { notes: remapped } = remapMelody(opts.notes || [], { mode, base, sticky: opts.sticky });
     const path = remapped.map(n => ({ ci: n.course, fret: n.fret }));
     const stepByKey = new Map();
-    remapped.forEach((n, i) => stepByKey.set(`${n.course}-${n.fret}`, i + 1));
+    remapped.forEach((n, i) => {
+      const k = `${n.course}-${n.fret}`;
+      if (!stepByKey.has(k)) stepByKey.set(k, i + 1);
+    });
 
     container.innerHTML = '';
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -327,7 +382,7 @@ const FretboardScale = (() => {
 
   function mountMelodyLesson(container, opts = {}) {
     if (!container) return null;
-    const mode = opts.mode || 'd';
+    const mode = opts.mode || 'da';
     let base = opts.base ?? (mode === 'box' ? findBestBase(opts.notes || [], mode) : 0);
     const wrap = document.createElement('div');
     wrap.className = 'fs-melody-lesson';
@@ -467,6 +522,7 @@ const FretboardScale = (() => {
     POSITION_BASES,
     MELODY_BASES,
     MELODY_POS_SPAN,
+    MELODY_COURSES,
     pcsFromDFrets,
     pcsFromIntervals,
     allPositions,

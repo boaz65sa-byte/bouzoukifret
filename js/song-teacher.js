@@ -24,7 +24,7 @@ const SongTeacher = (() => {
   let _melCells = [];
   let _engine = 'essentia';   // 'essentia' | 'basicpitch'
   let _dromos = null;
-  let _learnMode = 'd';
+  let _learnMode = 'da';
   let _posBase = 0;
   let _phrases = [];
   let _phraseIdx = 0;
@@ -79,8 +79,9 @@ const SongTeacher = (() => {
   }
 
   function learnHint() {
-    if (_learnMode === 'd') return 'מסלול על מיתר D (מיתר 1) — אצבוע רציף, בלי קפיצות בין מיתרים.';
-    return `מסלול בתיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} — היד נשארת באזור אחד על הצוואר.`;
+    if (_learnMode === 'd') return 'מסלול על מיתר D (מיתר 1) בלבד — דו·דו·דו·רה·רה על אותו מיתר.';
+    if (_learnMode === 'da') return 'מיתרים D+A (מיתרים 1–2) בלבד — מלודיה יוונית, בלי מיתרי בס C/F.';
+    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} על מיתרים D+A — היד באזור אחד.`;
   }
   function chordShape(name) {
     if (typeof CHORDS === 'undefined') return null;
@@ -194,6 +195,7 @@ const SongTeacher = (() => {
     while (_nextNoteIdx < _melody.length && _melody[_nextNoteIdx].time <= elapsed) {
       const n = _melody[_nextNoteIdx];
       if (!_loop || (n.time >= _loop.a && n.time <= _loop.b)) {
+        ensurePhraseVisible(_nextNoteIdx);
         AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
         flashDot(n.course, n.fret);
         highlightMelCell(_nextNoteIdx);
@@ -229,6 +231,28 @@ const SongTeacher = (() => {
   }
 
   function togglePlay() { _playing ? stop() : play(); }
+
+  function phraseIndexForTime(t) {
+    for (let i = 0; i < _phrases.length; i++) {
+      const p = _phrases[i];
+      if (!p.length) continue;
+      const end = p[p.length - 1].time + (p[p.length - 1].duration || 0.3);
+      if (t >= p[0].time - 0.05 && t <= end + 0.05) return i;
+    }
+    return _phraseIdx;
+  }
+
+  function ensurePhraseVisible(globalIdx) {
+    const n = _melody[globalIdx];
+    if (!n) return;
+    const pi = phraseIndexForTime(n.time);
+    if (pi !== _phraseIdx) {
+      _phraseIdx = pi;
+      renderFretboard();
+      const lbl = $('#st-phrase-label');
+      if (lbl) lbl.textContent = phraseLabel();
+    }
+  }
 
   /* ============================================================
      ויזואליה
@@ -439,7 +463,8 @@ const SongTeacher = (() => {
           <button type="button" class="btn small secondary" id="st-phrase-next" ${_phraseIdx >= _phrases.length - 1 ? 'disabled' : ''}>משפט הבא ▶</button>
         </div>
         <div class="st-row st-learn-modes">
-          <button type="button" class="btn small st-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D</button>
+          <button type="button" class="btn small st-learn-mode ${_learnMode === 'da' ? 'active' : ''}" data-m="da">מיתרים D+A (1–2)</button>
+          <button type="button" class="btn small st-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D בלבד</button>
           <button type="button" class="btn small st-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת פוזיציה</button>
         </div>
         <div id="st-fb-host" class="st-fb-scroll" dir="ltr"></div>
@@ -597,9 +622,12 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
         if (_learnMode === 'box') {
           _posBase = FretboardScale.findBestBase(_rawMelody, 'box');
           _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'box', base: _posBase }).notes;
-        } else {
+        } else if (_learnMode === 'd') {
           _posBase = 0;
           _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'd' }).notes;
+        } else {
+          _posBase = 0;
+          _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'da' }).notes;
         }
       }
       rebuildPhrases();

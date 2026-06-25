@@ -35,7 +35,7 @@ const BasicPitchEngine = (() => {
   }
   function _midiToPos(midi, prev = null) {
     const candidates = [];
-    for (let c = 0; c < TUNING.length; c++) {
+    for (let c = 0; c <= 1; c++) {
       for (let f = 0; f <= NUM_FRETS; f++) {
         const m = TUNING[c].midi + f;
         const d = Math.abs(m - midi);

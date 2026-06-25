@@ -21,13 +21,14 @@ const BouzoukiStudio = (() => {
   let _nextIdx = 0;
   let _fbHost = null;
   let _activeBackingIdx = null;
-  let _learnMode = 'd';       // 'd' = מיתר D קלאסי | 'box' = תיבת פוזיציה
+  let _learnMode = 'da';       // 'da' = מיתרים 1–2 | 'd' | 'box'
   let _posBase = 0;
   let _phraseIdx = 0;
   let _phrases = [];
   let _phrasePlay = [];
   let _phraseDur = 0;
   let _fbSvg = null;
+  let _rawMelody = [];
 
   const STEPS = [
     { id: 'source', label: 'מקור' },
@@ -70,7 +71,15 @@ const BouzoukiStudio = (() => {
 
   function ingestAnalysis(a) {
     _analysis = a;
-    _melody = (a.tabNotes || []).slice().sort((x, y) => x.time - y.time);
+    _rawMelody = (a.tabNotes || []).slice().sort((x, y) => x.time - y.time);
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+      const norm = FretboardScale.normalizeMelody(_rawMelody);
+      _melody = norm.notes;
+      _learnMode = norm.mode;
+      _posBase = norm.base;
+    } else {
+      _melody = _rawMelody.slice();
+    }
     _chords = (a.chords || []).slice().sort((x, y) => x.time - y.time);
     const lastM = _melody.length ? _melody[_melody.length - 1].time + (_melody[_melody.length - 1].duration || 0.3) : 0;
     const lastC = _chords.length ? _chords[_chords.length - 1].time + 1 : 0;
@@ -82,19 +91,22 @@ const BouzoukiStudio = (() => {
   }
 
   function rebuildPhrases() {
-    if (!_melody.length || typeof FretboardScale === 'undefined') {
-      _phrases = [];
+    if (!_rawMelody.length || typeof FretboardScale === 'undefined') {
+      _phrases = _melody.length ? [_melody] : [];
       _phraseIdx = 0;
+      setPhrasePlay();
       return;
     }
     if (_learnMode === 'box' && !_posBase) {
-      _posBase = FretboardScale.findBestBase(_melody, 'box');
+      _posBase = FretboardScale.findBestBase(_rawMelody, 'box');
     }
-    const { notes: mapped } = FretboardScale.remapMelody(_melody, {
+    const norm = FretboardScale.normalizeMelody(_rawMelody, {
       mode: _learnMode,
       base: _posBase,
     });
-    _phrases = FretboardScale.splitPhrases(mapped);
+    _melody = norm.notes;
+    _posBase = norm.base;
+    _phrases = FretboardScale.splitPhrases(_melody);
     if (_phraseIdx >= _phrases.length) _phraseIdx = 0;
     setPhrasePlay();
   }
@@ -117,9 +129,12 @@ const BouzoukiStudio = (() => {
 
   function learnModeHint() {
     if (_learnMode === 'd') {
-      return 'מיתר D (מיתר 1) — כמו במורה יווני: המלודיה נשארת על מיתר אחד, משפט-משפט.';
+      return 'מיתר D (מיתר 1) — המלודיה על מיתר אחד, משפט-משפט.';
     }
-    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} — היד לא זזה על כל הצוואר.`;
+    if (_learnMode === 'da') {
+      return 'מיתרים D+A (1–2) — מלודיה יוונית, בלי מיתרי בס C/F.';
+    }
+    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} על מיתרים D+A.`;
   }
 
   async function analyzeBlob(blob) {
@@ -357,7 +372,8 @@ const BouzoukiStudio = (() => {
           ${_dromosIds.length ? `<p>דרומוסים משוערים: ${dromosChips}</p>` : ''}
           <div class="bzs-row bzs-learn-modes">
             <span>אופן לימוד:</span>
-            <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D (קלאסי)</button>
+            <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'da' ? 'active' : ''}" data-m="da">מיתרים D+A (1–2)</button>
+            <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D בלבד</button>
             <button type="button" class="btn small bzs-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת פוזיציה</button>
           </div>
           <div class="bzs-row bzs-phrase-nav">
@@ -452,7 +468,9 @@ const BouzoukiStudio = (() => {
     app.querySelectorAll('.bzs-learn-mode').forEach(b => b.addEventListener('click', () => {
       _learnMode = b.dataset.m;
       if (_learnMode === 'box' && typeof FretboardScale !== 'undefined') {
-        _posBase = FretboardScale.findBestBase(_melody, 'box');
+        _posBase = FretboardScale.findBestBase(_rawMelody, 'box');
+      } else if (_learnMode !== 'box') {
+        _posBase = 0;
       }
       _phraseIdx = 0;
       rebuildPhrases();
