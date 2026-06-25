@@ -123,6 +123,47 @@ const FretboardScale = (() => {
   /** מיתרי מלודיה בלבד: D (0) ו-A (1) — לא בס C/F */
   const MELODY_COURSES = [0, 1];
 
+  /** מפת מיתרים פתוחים (חצאי-טונים / MIDI) — course 0 = מיתר 1 (D4) … 3 = מיתר 4 (C3) */
+  function openStringMap() {
+    return TUNING.map((t, ci) => ({
+      ci,
+      string: t.course,
+      note: t.note,
+      midi: t.midi,
+      labelHe: t.labelHe,
+    }));
+  }
+
+  /** סריג = מרחק בחצאי-טונים מתו פתוח; null אם מחוץ לתחום */
+  function fretFromMidi(courseIdx, midi) {
+    const fret = midi - TUNING[courseIdx].midi;
+    if (fret < 0 || fret > NUM_FRETS) return null;
+    return fret;
+  }
+
+  function midiFromFret(courseIdx, fret) {
+    return TUNING[courseIdx].midi + fret;
+  }
+
+  /** כל בסיסי הפוזיציה שבהם הסריג נמצא בתיבת span סריגים */
+  function legalBasesForFret(fret, span = MELODY_POS_SPAN) {
+    const out = [];
+    const lo = Math.max(0, fret - span);
+    for (let b = lo; b <= fret; b++) {
+      if (b + span <= NUM_FRETS) out.push(b);
+    }
+    return out;
+  }
+
+  function shiftCost(fromBase, toBase) {
+    if (toBase <= fromBase) return 0;
+    return (toBase - fromBase) * 18;
+  }
+
+  function inPositionBox(fret, base, span = MELODY_POS_SPAN) {
+    return fret >= base && fret <= base + span;
+  }
+
   function coursePenalty(ci) {
     if (ci === 0) return 0;
     if (ci === 1) return 1;
@@ -147,10 +188,15 @@ const FretboardScale = (() => {
   function placementsForMidi(midi) {
     const out = [];
     TUNING.forEach((c, ci) => {
-      const f = midi - c.midi;
-      if (f >= 0 && f <= NUM_FRETS) out.push({ ci, fret: f, midi });
+      const f = fretFromMidi(ci, midi);
+      if (f != null) out.push({ ci, fret: f, midi: c.midi + f });
     });
     return out;
+  }
+
+  /** כל המיקומים האפשריים לתו על מיתרים נתונים (ללא סינון תיבה) */
+  function allCandidatesForNote(midi, courses) {
+    return placementsForMidi(midi).filter(p => courses.includes(p.ci));
   }
 
   /** עלות מעבר בין שתי נקודות — ורטיקלי (מיתר) עדיף על הוריזונטלי (ריצה על מיתר) */
@@ -183,15 +229,16 @@ const FretboardScale = (() => {
     const cands = [];
     const seen = new Set();
     courses.forEach(ci => {
-      const openMidi = TUNING[ci].midi;
-      const f = midi - openMidi;
-      if (f < 0 || f > NUM_FRETS) return;
+      const f = fretFromMidi(ci, midi);
+      if (f == null) return;
       const key = `${ci}-${f}`;
       if (seen.has(key)) return;
       seen.add(key);
-      const inBox = f >= base && f <= base + span;
-      if (inBox) cands.push({ ci, fret: f, midi: openMidi + f, inBox: true });
-      else if (allowOpen && f === 0) cands.push({ ci, fret: 0, midi: openMidi, inBox: false, open: true });
+      const inBox = inPositionBox(f, base, span);
+      if (inBox) cands.push({ ci, fret: f, midi: midiFromFret(ci, f), inBox: true });
+      else if (allowOpen && f === 0) {
+        cands.push({ ci, fret: 0, midi: TUNING[ci].midi, inBox: false, open: true });
+      }
     });
     return cands;
   }
@@ -200,55 +247,82 @@ const FretboardScale = (() => {
     let s = 0;
     if (p.fret === 0) s -= 28;
     if (p.open && !p.inBox) s += 6;
+    if (inPositionBox(p.fret, base)) s -= 6;
     s += coursePenalty(p.ci);
     if (prev) s += transitionCostGreek(prev, p);
     return s;
   }
 
   /**
-   * נתיב נגינה יווני — קופסת 4–5 סריגים, מעבר מיתר, מיתר פתוח, אצבוע.
-   * @param {object[]} notes — תווים עם midi/time
-   * @param {{ base?: number, span?: number, mode?: string, courses?: number[] }} opts
-   * @returns {{ notes: object[], base: number, span: number, path: {ci,fret}[] }}
+   * נתיב נגינה יווני — תיבת 4 סריגים, מעבר פוזיציה דינמי (Shift), Viterbi.
+   * fret = midi - openMidi; אם התו מחוץ לתיבה — מקדמים את בסיס הפוזיציה קדימה.
    */
   function computeGreekPath(notes, opts = {}) {
     const sorted = [...(notes || [])].sort((a, b) => a.time - b.time);
     const span = opts.span ?? MELODY_POS_SPAN;
     const mode = opts.mode || 'da';
     const courses = opts.courses ?? coursesForMode(mode);
-    const base = opts.base ?? findBestGreekBase(sorted, { ...opts, mode, courses, span });
+    const fixedBase = opts.base;
+    const dynamicShift = fixedBase == null;
     const allowOpen = opts.allowOpen !== false;
 
-    if (!sorted.length) return { notes: [], base, span, path: [] };
+    if (!sorted.length) {
+      return { notes: [], base: fixedBase ?? 0, span, path: [] };
+    }
 
-    const layers = sorted.map(n => ({
-      note: n,
-      cands: candidatesForNote(noteMidi(n), base, span, courses, allowOpen),
-    }));
+    const layers = sorted.map(n => {
+      let cands = allCandidatesForNote(noteMidi(n), courses);
+      if (!allowOpen) cands = cands.filter(p => p.fret > 0);
+      return { note: n, cands };
+    });
 
-    const cov = layers.filter(l => l.cands.length).length / layers.length;
-    if (cov < 0.4) {
-      return { notes: [], base, span, path: [] };
+    const viable = layers.filter(l => l.cands.length).length;
+    if (!viable) return { notes: [], base: fixedBase ?? 0, span, path: [] };
+
+    function basesForCandidate(c) {
+      if (fixedBase != null) {
+        return inPositionBox(c.fret, fixedBase, span) ? [fixedBase] : [];
+      }
+      return legalBasesForFret(c.fret, span);
     }
 
     let states = [];
     layers[0].cands.forEach(c => {
-      states.push({ pick: c, cost: placementCostGreek(c, null, base), prev: null, idx: 0 });
+      basesForCandidate(c).forEach(b => {
+        states.push({
+          pick: c,
+          base: b,
+          cost: placementCostGreek(c, null, b),
+          prev: null,
+          idx: 0,
+        });
+      });
     });
-    if (!states.length) return { notes: [], base, span, path: [] };
+    if (!states.length) return { notes: [], base: fixedBase ?? 0, span, path: [] };
 
     for (let i = 1; i < layers.length; i++) {
       const { cands } = layers[i];
       if (!cands.length) continue;
       const next = [];
       cands.forEach(c => {
-        let bestCost = Infinity;
-        let bestPrev = null;
-        states.forEach(st => {
-          const cost = st.cost + placementCostGreek(c, st.pick, base);
-          if (cost < bestCost) { bestCost = cost; bestPrev = st; }
+        const bases = basesForCandidate(c);
+        bases.forEach(b => {
+          let bestCost = Infinity;
+          let bestPrev = null;
+          states.forEach(st => {
+            if (dynamicShift && b < st.base) return;
+            const cost = st.cost
+              + (dynamicShift ? shiftCost(st.base, b) : 0)
+              + placementCostGreek(c, st.pick, b);
+            if (cost < bestCost) {
+              bestCost = cost;
+              bestPrev = st;
+            }
+          });
+          if (bestPrev) {
+            next.push({ pick: c, base: b, cost: bestCost, prev: bestPrev, idx: i });
+          }
         });
-        if (bestPrev) next.push({ pick: c, cost: bestCost, prev: bestPrev, idx: i });
       });
       if (next.length) states = next;
     }
@@ -257,9 +331,11 @@ const FretboardScale = (() => {
     states.forEach(st => { if (st.cost < best.cost) best = st; });
 
     const picksByIdx = new Map();
+    const basesByIdx = new Map();
     let cur = best;
     while (cur) {
       picksByIdx.set(cur.idx, cur.pick);
+      basesByIdx.set(cur.idx, cur.base);
       cur = cur.prev;
     }
 
@@ -268,23 +344,29 @@ const FretboardScale = (() => {
     sorted.forEach((n, i) => {
       const p = picksByIdx.get(i);
       if (!p) return;
+      const noteBase = basesByIdx.get(i) ?? fixedBase ?? 0;
       path.push({ ci: p.ci, fret: p.fret });
-      const finger = fingerForFret(p.fret, base);
+      const finger = fingerForFret(p.fret, noteBase);
       out.push({
         ...n,
         course: p.ci,
         fret: p.fret,
-        midi: p.midi,
+        midi: p.midi ?? midiFromFret(p.ci, p.fret),
         finger,
         string: TUNING[p.ci].course,
-        positionBase: base,
+        positionBase: noteBase,
       });
     });
 
-    return { notes: out, base, span, path };
+    const pathBase = out[0]?.positionBase ?? fixedBase ?? 0;
+    return { notes: out, base: pathBase, span, path, bases: out.map(n => n.positionBase) };
   }
 
   function findBestGreekBase(notes, opts = {}) {
+    const dynamic = computeGreekPath(notes, { ...opts, base: undefined });
+    const dynCov = dynamic.notes.length / Math.max(1, notes.length);
+    if (dynCov >= 0.85) return dynamic.base;
+
     const mode = opts.mode || 'da';
     const courses = opts.courses ?? coursesForMode(mode);
     const span = opts.span ?? MELODY_POS_SPAN;
@@ -441,8 +523,7 @@ const FretboardScale = (() => {
     const allNotes = [];
 
     phrases.forEach(phrase => {
-      const base = findBestGreekBase(phrase, { mode: 'da' });
-      const greek = computeGreekPath(phrase, { mode: 'da', base });
+      const greek = computeGreekPath(phrase, { mode: 'da' });
       if (!greek.notes.length) return;
       segments.push({ mode: 'da', base: greek.base, startTime: phrase[0].time, notes: greek.notes });
       allNotes.push(...greek.notes);
@@ -451,8 +532,7 @@ const FretboardScale = (() => {
     allNotes.sort((a, b) => a.time - b.time);
 
     if (allNotes.length < sorted.length * 0.65) {
-      const base = findBestGreekBase(sorted, { mode: 'da' });
-      const greek = computeGreekPath(sorted, { mode: 'da', base });
+      const greek = computeGreekPath(sorted, { mode: 'da' });
       if (greek.notes.length >= allNotes.length) {
         return {
           notes: greek.notes,
@@ -701,7 +781,14 @@ const FretboardScale = (() => {
     normalizeMelody,
     pickPlacement,
     placementsForMidi,
+    allCandidatesForNote,
     noteMidi,
+    fretFromMidi,
+    midiFromFret,
+    legalBasesForFret,
+    openStringMap,
+    inPositionBox,
+    shiftCost,
     mountMelody,
     mountMelodyLesson,
     flashMidi,
