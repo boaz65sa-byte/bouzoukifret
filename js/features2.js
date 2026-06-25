@@ -1541,7 +1541,7 @@ const MaqamGuide = (() => {
     if (typeof DromosRoad !== 'undefined') {
       const roadHost = document.createElement('div');
       wrap.appendChild(roadHost);
-      DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc, nameHe: d.nameHe });
+      DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc, nameHe: d.nameHe, fretboard: $('#mq-fretboard') });
     }
   }
 

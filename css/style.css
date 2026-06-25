@@ -2339,3 +2339,8 @@ select {
   border: 1px solid rgba(143,166,188,0.35); border-radius: 6px;
   padding: 5px 10px; font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 700;
 }
+
+/* ---------- DromosRoad: הדגשת הכביש על הפרטבורד ---------- */
+.note-dot.dr-road-on circle { stroke: #fff !important; stroke-width: 3 !important; }
+.note-dot.dr-road-off { opacity: 0.22; }
+.note-dot.dr-road-play circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 7px var(--gold)); }

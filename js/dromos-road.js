@@ -50,9 +50,9 @@ const DromosRoad = (() => {
     return (typeof SOLFEGE !== 'undefined' && SOLFEGE[NOTE_NAMES[pc]]) || NOTE_NAMES[pc];
   }
 
-  // נגן את הכביש (עולה, או הלוך-חזור), מדגיש כל תחנה
-  function playRoad(road, stripEl, btn, roundTrip) {
-    stopRoad(stripEl);
+  // נגן את הכביש (עולה, או הלוך-חזור), מדגיש כל תחנה גם ברצועה וגם על הגריף
+  function playRoad(road, stripEl, btn, roundTrip, fbSvg) {
+    stopRoad(stripEl, null, fbSvg);
     ensureAudio();
     const seq = roundTrip ? road.concat(road.slice(0, -1).reverse()) : road.slice();
     if (!seq.length) return;
@@ -63,12 +63,17 @@ const DromosRoad = (() => {
     const n = road.length;
     const tick = () => {
       stops.forEach(s => s.classList.remove('tl-road-playing'));
+      if (fbSvg) fbSvg.querySelectorAll('.dr-road-play').forEach(d => d.classList.remove('dr-road-play'));
       const p = seq[i % seq.length];
       if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.6);
       // אינדקס התחנה המקורית להדגשה (גם בירידה של הלוך-חזור)
       const roadIdx = i < n ? i : (2 * n - 2 - i);
       const hi = stops[roadIdx];
       if (hi) hi.classList.add('tl-road-playing');
+      if (fbSvg) {
+        const dot = fbSvg.querySelector(`.note-dot[data-course="${p.ci}"][data-fret="${p.fret}"]`);
+        if (dot) dot.classList.add('dr-road-play');
+      }
       i++;
       if (i >= seq.length) {
         clearInterval(stripEl._roadTimer); stripEl._roadTimer = null;
@@ -80,7 +85,8 @@ const DromosRoad = (() => {
     if (typeof registerLoop === 'function') registerLoop();
   }
 
-  function stopRoad(stripEl, btn) {
+  function stopRoad(stripEl, btn, fbSvg) {
+    if (fbSvg) fbSvg.querySelectorAll('.dr-road-play').forEach(d => d.classList.remove('dr-road-play'));
     if (stripEl && stripEl._roadTimer) { clearInterval(stripEl._roadTimer); stripEl._roadTimer = null; }
     if (stripEl) stripEl.querySelectorAll('.tl-road-playing').forEach(s => s.classList.remove('tl-road-playing'));
     if (btn && btn.dataset.was) { btn.textContent = btn.dataset.was; btn.classList.remove('playing'); }
@@ -88,7 +94,10 @@ const DromosRoad = (() => {
 
   // בונה את רצועת התחנות עבור מצב נתון
   function buildStrip(intervals, rootPc, mode, nameHe) {
-    const road = buildRoad(intervals, rootPc, mode, 0);
+    return buildStripFromRoad(buildRoad(intervals, rootPc, mode, 0), nameHe);
+  }
+
+  function buildStripFromRoad(road, nameHe) {
     const strip = document.createElement('div');
     strip.className = 'tl-road dr-road-strip';
     const track = document.createElement('div');
@@ -122,10 +131,24 @@ const DromosRoad = (() => {
     return strip;
   }
 
+  // מצייר את הכביש על הפרטבורד: קו מקווקו + מספרים, מדגיש את נקודות הכביש ומעמעם את השאר
+  function drawOnFretboard(svg, road) {
+    if (!svg || !road || !road.length) return;
+    const inRoad = new Set(road.map(p => p.ci + '-' + p.fret));
+    svg.querySelectorAll('.note-dot').forEach(dot => {
+      const key = dot.getAttribute('data-course') + '-' + dot.getAttribute('data-fret');
+      dot.classList.toggle('dr-road-on', inRoad.has(key));
+      dot.classList.toggle('dr-road-off', !inRoad.has(key));
+    });
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.drawPathOverlay) {
+      FretboardScale.drawPathOverlay(svg, road, '#f0cc74');
+    }
+  }
+
   /**
    * מרנדר את כל ה"כביש" לתוך אלמנט: כותרת + מתג 2/3/4 + רצועת תחנות + נגינה.
    * @param {HTMLElement} container
-   * @param {{intervals:number[], rootPc:number, nameHe?:string, defaultMode?:string}} opts
+   * @param {{intervals:number[], rootPc:number, nameHe?:string, defaultMode?:string, fretboard?:SVGElement}} opts
    */
   function renderInto(container, opts) {
     if (!container || !opts || !Array.isArray(opts.intervals)) return;
@@ -190,17 +213,19 @@ const DromosRoad = (() => {
       modeRow.querySelectorAll('.tl-mode-chip').forEach(c =>
         c.classList.toggle('active', c.textContent === MODE_LABEL[mode]));
       if (strip) stopRoad(strip);
-      strip = buildStrip(opts.intervals, rootPc, mode, opts.nameHe);
+      const road = buildRoad(opts.intervals, rootPc, mode, 0);
+      strip = buildStripFromRoad(road, opts.nameHe);
       stripHost.innerHTML = '';
       stripHost.appendChild(strip);
+      drawOnFretboard(opts.fretboard, road);
     }
     bUp.addEventListener('click', () => {
-      if (strip && strip._roadTimer) { stopRoad(strip, bUp); return; }
-      playRoad(strip._road, strip, bUp, false);
+      if (strip && strip._roadTimer) { stopRoad(strip, bUp, opts.fretboard); return; }
+      playRoad(strip._road, strip, bUp, false, opts.fretboard);
     });
     bRt.addEventListener('click', () => {
-      if (strip && strip._roadTimer) { stopRoad(strip, bRt); return; }
-      playRoad(strip._road, strip, bRt, true);
+      if (strip && strip._roadTimer) { stopRoad(strip, bRt, opts.fretboard); return; }
+      playRoad(strip._road, strip, bRt, true, opts.fretboard);
     });
     rebuild();
   }

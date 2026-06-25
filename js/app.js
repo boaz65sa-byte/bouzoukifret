@@ -612,7 +612,7 @@ function renderDromos() {
       if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(roadHost, anchor.nextSibling);
       else { const fb = $('#fb-dromos'); if (fb && fb.parentNode) fb.parentNode.appendChild(roadHost); }
     }
-    DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc: currentRoot, nameHe: d.nameHe });
+    DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc: currentRoot, nameHe: d.nameHe, fretboard: $('#fb-dromos') });
   }
 }
 
