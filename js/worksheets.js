@@ -285,8 +285,9 @@ const Worksheets = (() => {
         <div class="ws-pick" id="ws-pick-chords"></div>
         <div class="ws-pick" id="ws-pick-dromoi"></div>
         <div class="ws-row ws-actions">
-          <button class="btn ws-print-btn" id="ws-print">🖨️ הדפס / שמור PDF</button>
-          <span class="ws-hint">נפתח חלון הדפסה — אפשר לבחור מדפסת או "שמור כ-PDF"</span>
+          <button class="btn ws-print-btn" id="ws-download">📥 הורד קובץ (מובייל · טאבלט · מחשב)</button>
+          <button class="btn small" id="ws-print">🖨️ הדפס / שמור PDF</button>
+          <span class="ws-hint">"הורד קובץ" שומר דף HTML צבעוני ישירות על המכשיר — נפתח בכל דפדפן, גם אופליין</span>
         </div>
       </div>
       <div class="ws-preview-label">תצוגה מקדימה ↓</div>
@@ -305,6 +306,57 @@ const Worksheets = (() => {
     el.querySelector('#ws-blanktab').addEventListener('change', e => { _opts.blankTab = e.target.checked; updateSheet(el); });
     el.querySelector('#ws-log').addEventListener('change', e => { _opts.log = e.target.checked; updateSheet(el); });
     el.querySelector('#ws-print').addEventListener('click', printSheet);
+    el.querySelector('#ws-download').addEventListener('click', downloadSheet);
+  }
+
+  /* אוסף את כללי ה-CSS של הדף (.ws-*) מהעמוד כדי להטמיע אותם בקובץ עצמאי */
+  function collectSheetCss() {
+    let css = '';
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (_) { continue; } // דלג על cross-origin
+      if (!rules) continue;
+      for (const rule of Array.from(rules)) {
+        const txt = rule.cssText || '';
+        if (/\.ws-|:root/.test(rule.selectorText || txt)) css += txt + '\n';
+      }
+    }
+    return css;
+  }
+
+  function standaloneHtml() {
+    const sheet = buildSheetHtml();
+    const css = collectSheetCss();
+    return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>דף עבודה — בוזוקי</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
+${css}
+.ws-sheet{margin:0 auto;}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+@page{margin:10mm;}
+@media print{html,body{background:#fff;padding:0;}.ws-sheet{box-shadow:none;}}
+</style></head>
+<body><div class="ws-sheet">${sheet}</div></body></html>`;
+  }
+
+  function downloadSheet() {
+    try {
+      const html = standaloneHtml();
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const date = new Date().toISOString().slice(0, 10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `דף-עבודה-בוזוקי-${_type}-${date}.html`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+    } catch (e) {
+      alert('ההורדה נכשלה: ' + (e.message || e));
+    }
   }
 
   function refresh(el) {

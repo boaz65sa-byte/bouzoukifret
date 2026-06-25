@@ -2196,6 +2196,14 @@ select {
 }
 .st-engine-row { font-size: 13px; color: var(--text-dim); }
 .st-engine.active { background: var(--aegean-deep); color: #fff; }
+.st-export { padding: 12px 14px; }
+.st-export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.st-export-row b { color: var(--gold-soft); }
+.st-export-row .btn { min-width: auto; }
+
+/* ============================================================
+   Bouzouki Studio — אולפן בוזוקי
+   ============================================================ */
 
 .st-harmony { padding: 12px 14px; }
 .st-harmony-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -2309,3 +2317,48 @@ select {
   .bzs-step { min-width: 58px; font-size: 12px; padding: 7px 6px; }
   .bzs-backing-list { grid-template-columns: 1fr; }
 }
+
+/* ---------- TheoryLab: "הכביש" של הדרומוס ---------- */
+.tl-road { margin: 12px 0 4px; }
+.tl-road-head { color: var(--text-dim); font-size: 13.5px; margin-bottom: 8px; }
+.tl-road-head b { color: var(--gold); }
+.tl-road-track {
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch;
+  gap: 4px; overflow-x: auto; padding: 6px 2px;
+}
+.tl-road-stop {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 92px; padding: 8px 6px; border-radius: 9px; cursor: pointer;
+  background: rgba(42,127,168,0.16); border: 1px solid rgba(127,208,239,0.35);
+  color: var(--text); font-family: 'Heebo', sans-serif; transition: transform .1s, background .15s;
+}
+.tl-road-stop:hover { transform: translateY(-2px); background: rgba(42,127,168,0.28); }
+.tl-road-root { background: rgba(227,179,65,0.18); border-color: var(--gold); }
+.tl-road-num { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+.tl-road-flag { font-size: 11px; font-weight: 800; color: var(--gold); }
+.tl-road-note { font-size: 19px; font-weight: 900; color: var(--text); line-height: 1.1; }
+.tl-road-root .tl-road-note { color: var(--gold); }
+.tl-road-pos { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.tl-road-arrow { flex: 0 0 auto; align-self: center; color: var(--gold-soft); font-size: 18px; opacity: 0.7; }
+
+/* ---------- DromosRoad: רכיב כביש משותף ---------- */
+.dr-road-host { margin: 14px 0; }
+.dr-road-modes { margin: 8px 0; }
+.dr-road-btns { margin-top: 8px; }
+.tl-road-stop.tl-road-playing { background: var(--gold); border-color: var(--gold); transform: translateY(-2px); }
+.tl-road-stop.tl-road-playing .tl-road-note,
+.tl-road-stop.tl-road-playing .tl-road-pos,
+.tl-road-stop.tl-road-playing .tl-road-num { color: #1a1408; }
+.dr-road-roots { margin: 6px 0; }
+.dr-root-select {
+  background: var(--bg-deep); color: var(--text);
+  border: 1px solid rgba(143,166,188,0.35); border-radius: 6px;
+  padding: 5px 10px; font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 700;
+}
+
+/* ---------- DromosRoad: הדגשת הכביש על הפרטבורד ---------- */
+.note-dot.dr-road-on circle { stroke: #fff !important; stroke-width: 3 !important; }
+.note-dot.dr-road-off { opacity: 0.22; }
+.note-dot.dr-road-play circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 7px var(--gold)); }
+.dr-road-positions { margin: 6px 0; }
+.dr-pos-chip.active { background: var(--gold); color: #1a1408; border-color: var(--gold); }

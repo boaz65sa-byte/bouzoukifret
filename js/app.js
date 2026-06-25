@@ -601,6 +601,19 @@ function renderDromos() {
 
   // תרגיל מיתר בודד
   renderSingleString();
+
+  // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
+  if (typeof DromosRoad !== 'undefined') {
+    let roadHost = document.getElementById('dr-road');
+    if (!roadHost) {
+      roadHost = document.createElement('div');
+      roadHost.id = 'dr-road';
+      const anchor = $('#dr-single');
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(roadHost, anchor.nextSibling);
+      else { const fb = $('#fb-dromos'); if (fb && fb.parentNode) fb.parentNode.appendChild(roadHost); }
+    }
+    DromosRoad.renderInto(roadHost, { intervals: d.intervals, rootPc: currentRoot, nameHe: d.nameHe, fretboard: $('#fb-dromos') });
+  }
 }
 
 function renderSingleString() {
