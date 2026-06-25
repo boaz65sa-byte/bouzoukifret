@@ -129,12 +129,12 @@ const BouzoukiStudio = (() => {
 
   function learnModeHint() {
     if (_learnMode === 'd') {
-      return 'מיתר D (מיתר 1) — המלודיה על מיתר אחד, משפט-משפט.';
+      return `מיתר D · קופסה ${_posBase}–${_posBase + 4} · דו חוזר על אותו סריג.`;
     }
     if (_learnMode === 'da') {
-      return 'מיתרים D+A (1–2) — מלודיה יוונית, בלי מיתרי בס C/F.';
+      return `מיתרים D+A · קופסה ${_posBase}–${_posBase + 4} · מעבר מיתר חכם.`;
     }
-    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} על מיתרים D+A.`;
+    return `קופסה יוונית ${_posBase}–${_posBase + 4} על 4 מיתרים.`;
   }
 
   async function analyzeBlob(blob) {

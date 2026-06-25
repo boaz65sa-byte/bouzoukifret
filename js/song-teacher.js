@@ -79,9 +79,9 @@ const SongTeacher = (() => {
   }
 
   function learnHint() {
-    if (_learnMode === 'd') return 'מסלול על מיתר D (מיתר 1) בלבד — דו·דו·דו·רה·רה על אותו מיתר.';
-    if (_learnMode === 'da') return 'מיתרים D+A (מיתרים 1–2) בלבד — מלודיה יוונית, בלי מיתרי בס C/F.';
-    return `תיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} על מיתרים D+A — היד באזור אחד.`;
+    if (_learnMode === 'd') return `מיתר D בלבד · קופסה סריגים ${_posBase}–${_posBase + 4} · מיתר פתוח כשאפשר.`;
+    if (_learnMode === 'da') return `מיתרים D+A · קופסה ${_posBase}–${_posBase + 4} · מעבר מיתר (ורטיקלי), לא ריצה על מיתר.`;
+    return `קופסה יוונית 4 סריגים (${_posBase}–${_posBase + 4}) · אצבע 1 על סריג הבסיס.`;
   }
   function chordShape(name) {
     if (typeof CHORDS === 'undefined') return null;
@@ -512,7 +512,9 @@ const SongTeacher = (() => {
       cell.className = 'st-mel-cell';
       cell.dataset.idx = String(idx);
       const noteName = (typeof NOTE_NAMES !== 'undefined') ? NOTE_NAMES[n.midi % 12] : '';
-      cell.innerHTML = `<span class="st-mel-note">${noteName}</span><span class="st-mel-pos">${STR_LABELS[n.course] || ''}·${n.fret}</span>`;
+      const finger = n.finger != null && n.finger > 0 ? ` א${n.finger}` : (n.finger === 0 ? ' פתוח' : '');
+      const posBase = n.positionBase != null ? ` [${n.positionBase}–${n.positionBase + 4}]` : '';
+      cell.innerHTML = `<span class="st-mel-note">${noteName}</span><span class="st-mel-pos">${STR_LABELS[n.course] || ''}·${n.fret}${finger}${posBase}</span>`;
       cell.addEventListener('click', () => {
         ensureAudio();
         AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
