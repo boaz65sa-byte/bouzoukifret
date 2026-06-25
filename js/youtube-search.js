@@ -120,6 +120,8 @@ const YoutubeSearch = (() => {
         { signal: AbortSignal.timeout(25000) }
       );
       if (r.status === 404) return { results: [], hasMore: false, unavailable: true };
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('json')) return { results: [], hasMore: false, unavailable: true };
       if (!r.ok) return { results: [], hasMore: false };
       const data = await r.json();
       return {
@@ -229,10 +231,27 @@ const YoutubeSearch = (() => {
 
     const local = page === 1 ? searchLocal(q) : [];
     const proxyReachable = _proxyReachable();
-    const proxy = proxyReachable ? await _proxySearch(q, page) : { results: [], online: false, skip: true, hasMore: false };
-    let remote = proxy.results || [];
-    let hasMore = proxy.hasMore;
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    let remote = [];
+    let hasMore = false;
     let source = null;
+    let proxy = { results: [], online: false, hasMore: false, skip: !proxyReachable };
+
+    if (onPublic || !proxyReachable) {
+      const origin = await _sameOriginSearch(q, page);
+      if (origin.results?.length) {
+        remote = origin.results;
+        hasMore = origin.hasMore;
+        source = 'origin-api';
+      }
+    }
+
+    if (!remote.length && proxyReachable) {
+      proxy = await _proxySearch(q, page);
+      remote = proxy.results || [];
+      hasMore = proxy.hasMore;
+      if (remote.length) source = 'ytdlp';
+    }
 
     if (!remote.length) {
       const origin = await _sameOriginSearch(q, page);
@@ -257,8 +276,7 @@ const YoutubeSearch = (() => {
       if (remote.length) source = 'piped';
     }
 
-    if (remote.length && proxy.online && !proxy.needsRestart && !source) source = 'ytdlp';
-    else if (!source && local.length) source = 'library';
+    if (!source && local.length) source = 'library';
 
     const merged = page === 1 ? dedupeById([...local, ...remote]) : remote;
 
