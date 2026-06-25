@@ -23,6 +23,14 @@ const SongTeacher = (() => {
   let _lastChordShown = -1;
   let _melCells = [];
   let _engine = 'essentia';   // 'essentia' | 'basicpitch'
+  let _dromos = null;
+  let _learnMode = 'd';
+  let _posBase = 0;
+  let _phrases = [];
+  let _phraseIdx = 0;
+  let _fbHost = null;
+  let _rawMelody = [];
+  const STR_LABELS = ['D', 'A', 'F', 'C'];
 
   /* ---------- עזרים ---------- */
   function $(s, r = document) { return r.querySelector(s); }
@@ -30,7 +38,50 @@ const SongTeacher = (() => {
   function now() { try { return AudioEngine.ctx.currentTime; } catch (_) { return 0; } }
   function fmt(t) { t = Math.max(0, t); return Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0'); }
 
-  /* ---------- צורת אקורד לנגינה ---------- */
+  function dedupeChords(chords) {
+    const out = [];
+    let last = null;
+    (chords || []).forEach(c => {
+      const ch = String(c.chord || '').trim();
+      if (!ch || ch === 'N') return;
+      if (ch !== last) { out.push({ ...c, chord: ch }); last = ch; }
+    });
+    return out;
+  }
+
+  function chordProgression() {
+    return dedupeChords(_chords).map(c => c.chord);
+  }
+
+  function applyMelodyLayout(raw, opts = {}) {
+    if (typeof FretboardScale === 'undefined' || !FretboardScale.normalizeMelody) return raw;
+    const norm = opts.auto
+      ? FretboardScale.normalizeMelody(raw)
+      : FretboardScale.normalizeMelody(raw, { mode: _learnMode, base: _posBase });
+    _learnMode = norm.mode;
+    _posBase = norm.base;
+    return norm.notes;
+  }
+
+  function rebuildPhrases() {
+    if (!_melody.length || typeof FretboardScale === 'undefined') {
+      _phrases = _melody.length ? [_melody] : [];
+      return;
+    }
+    _phrases = FretboardScale.splitPhrases(_melody, 0.38, 16);
+    if (_phraseIdx >= _phrases.length) _phraseIdx = 0;
+  }
+
+  function phraseLabel() {
+    if (!_phrases.length) return '';
+    const p = _phrases[_phraseIdx] || [];
+    return `משפט ${_phraseIdx + 1}/${_phrases.length} · ${p.length} תווים`;
+  }
+
+  function learnHint() {
+    if (_learnMode === 'd') return 'מסלול על מיתר D (מיתר 1) — אצבוע רציף, בלי קפיצות בין מיתרים.';
+    return `מסלול בתיבת פוזיציה סריגים ${_posBase}–${_posBase + 4} — היד נשארת באזור אחד על הצוואר.`;
+  }
   function chordShape(name) {
     if (typeof CHORDS === 'undefined') return null;
     let key = name;
@@ -79,12 +130,25 @@ const SongTeacher = (() => {
   }
 
   function ingest(a) {
-    _melody = (a.tabNotes || []).slice().sort((x, y) => x.time - y.time);
-    _chords = (a.chords || []).slice().sort((x, y) => x.time - y.time);
+    _rawMelody = (a.tabNotes || []).slice().sort((x, y) => x.time - y.time);
+    _melody = applyMelodyLayout(_rawMelody, { auto: true });
+    _chords = dedupeChords((a.chords || []).slice().sort((x, y) => x.time - y.time));
+    if (typeof AudioAnalyzer !== 'undefined' && AudioAnalyzer.detectDromos) {
+      _dromos = AudioAnalyzer.detectDromos(_chords, _melody);
+    } else {
+      _dromos = null;
+    }
+    rebuildPhrases();
+    _phraseIdx = 0;
     const lastMel = _melody.length ? _melody[_melody.length - 1].time + (_melody[_melody.length - 1].duration || 0.3) : 0;
     const lastCh = _chords.length ? _chords[_chords.length - 1].time + 1 : 0;
     _duration = Math.max(lastMel, lastCh, 1);
     _loop = null;
+    if (_analysis) {
+      _analysis.tabNotes = _melody;
+      _analysis.chords = _chords;
+      _analysis.dromosMatch = _dromos;
+    }
   }
 
   /* ============================================================
@@ -171,26 +235,66 @@ const SongTeacher = (() => {
      ============================================================ */
   function melodyPositions() {
     const set = {};
-    _melody.forEach(n => { set[n.course + '-' + n.fret] = n; });
+    const view = _phrases[_phraseIdx] || _melody;
+    view.forEach((n, i) => {
+      set[n.course + '-' + n.fret] = { ...n, step: i + 1 };
+    });
     return set;
   }
 
-  function buildFretboard() {
+  function renderFretboard() {
+    const host = $('#st-fb-host');
+    if (!host || !_melody.length) return;
+    _fbHost = host;
+    const phraseNotes = (_phrases[_phraseIdx] || _melody).slice();
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.mountMelodyLesson) {
+      FretboardScale.mountMelodyLesson(host, {
+        notes: phraseNotes,
+        mode: _learnMode,
+        base: _posBase,
+        onBaseChange: b => {
+          _posBase = b;
+          _learnMode = 'box';
+          if (FretboardScale.normalizeMelody) {
+            _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'box', base: b }).notes;
+            rebuildPhrases();
+          }
+          renderFretboard();
+        },
+        onMount: res => { _fbSvg = res.svg; },
+      });
+      return;
+    }
+    _fbSvg = $('#st-fb');
+    buildFretboardLegacy();
+  }
+
+  function buildFretboardLegacy() {
     if (!_fbSvg || typeof drawFretboard !== 'function') return;
     const set = melodyPositions();
     drawFretboard(_fbSvg, (ci, f) => {
       const n = set[ci + '-' + f];
       if (!n) return null;
-      return { type: 'note', label: (typeof NOTE_NAMES !== 'undefined') ? NOTE_NAMES[n.midi % 12] : '' };
+      return { type: n.step === 1 ? 'root' : 'note', label: String(n.step || '') };
     });
   }
 
   function flashDot(course, fret) {
     if (!_fbSvg) return;
+    _fbSvg.querySelectorAll('.st-active').forEach(d => d.classList.remove('st-active'));
     const dot = _fbSvg.querySelector(`.note-dot[data-course="${course}"][data-fret="${fret}"]`);
     if (dot) {
       dot.classList.add('st-active');
-      setTimeout(() => dot.classList.remove('st-active'), 320);
+      const lbl = dot.querySelector('text');
+      if (lbl) lbl.textContent = '▶';
+      setTimeout(() => {
+        dot.classList.remove('st-active');
+        if (lbl) {
+          const view = _phrases[_phraseIdx] || [];
+          const idx = view.findIndex(n => n.course === course && n.fret === fret);
+          if (idx >= 0) lbl.textContent = String(idx + 1);
+        }
+      }, 320);
     }
   }
   function clearActiveDots() {
@@ -271,12 +375,29 @@ const SongTeacher = (() => {
     const host = $('#st-lesson');
     if (!host) return;
     const a = _analysis || {};
+    const prog = chordProgression();
+    const dromosName = _dromos?.dromos?.nameHe || '—';
+    const dromosConf = _dromos?.confidence ? Math.round(_dromos.confidence) + '%' : '—';
+
     host.innerHTML = `
       <div class="card st-info">
         <span>BPM: <b>${a.bpm || '—'}</b></span>
         <span>תווי מלודיה: <b>${_melody.length}</b></span>
         <span>אקורדים: <b>${_chords.length}</b></span>
         <span>מנוע: <b>${a.engine || '—'}</b></span>
+      </div>
+
+      <div class="card st-harmony">
+        <div class="st-harmony-row">
+          <span class="st-harm-label">דרומוס (מודוס):</span>
+          <strong class="st-dromos-name">${dromosName}</strong>
+          <span class="hint">ביטחון ${dromosConf}</span>
+        </div>
+        <div class="st-harmony-row">
+          <span class="st-harm-label">הרמוניה (מסלול אקורדים):</span>
+          <div class="st-chord-prog">${prog.length ? prog.map(c => `<span class="st-chord-chip">${c}</span>`).join('') : '<span class="hint">לא זוהו</span>'}</div>
+        </div>
+        <p class="hint st-teach-hint">${learnHint()}</p>
       </div>
 
       <div class="card st-chordbox">
@@ -288,12 +409,21 @@ const SongTeacher = (() => {
       </div>
 
       <div class="card st-fbwrap">
-        <div class="st-fb-title">המלודיה על הגריף — צפו בתו הנדלק ונגנו אחריו</div>
-        <div class="st-fb-scroll"><svg id="st-fb" class="fretboard-svg" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="st-fb-title">מלודיה על הגריף — מספרים = סדר הנגינה בפוזיציה אחת</div>
+        <div class="st-row st-phrase-nav">
+          <button type="button" class="btn small secondary" id="st-phrase-prev" ${_phraseIdx <= 0 ? 'disabled' : ''}>◀ משפט קודם</button>
+          <span id="st-phrase-label" class="st-phrase-label">${phraseLabel()}</span>
+          <button type="button" class="btn small secondary" id="st-phrase-next" ${_phraseIdx >= _phrases.length - 1 ? 'disabled' : ''}>משפט הבא ▶</button>
+        </div>
+        <div class="st-row st-learn-modes">
+          <button type="button" class="btn small st-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D</button>
+          <button type="button" class="btn small st-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת פוזיציה</button>
+        </div>
+        <div id="st-fb-host" class="st-fb-scroll" dir="ltr"></div>
       </div>
 
       <div class="card st-melstrip-wrap">
-        <div class="st-fb-title">מלודיה (תו · מיתר)</div>
+        <div class="st-fb-title">מלודיה (תו · מיתר·סריג) — לחצו לשמוע</div>
         <div id="st-melstrip" class="st-melstrip"></div>
       </div>
 
@@ -310,8 +440,8 @@ const SongTeacher = (() => {
         <div class="st-prog"><div class="st-prog-bar"><div id="st-prog-fill2"></div></div><span id="st-prog-time" class="st-prog-time">0:00 / ${fmt(_duration)}</span></div>
       </div>`;
 
-    _fbSvg = $('#st-fb');
-    buildFretboard();
+    _fbSvg = null;
+    renderFretboard();
     buildMelStrip();
     bindLesson(host);
   }
@@ -321,13 +451,18 @@ const SongTeacher = (() => {
     if (!host) return;
     host.innerHTML = '';
     _melCells = [];
-    const labels = ['D', 'A', 'F', 'C']; // course 0..3
-    _melody.forEach((n) => {
+    _melody.forEach((n, idx) => {
       const cell = document.createElement('div');
       cell.className = 'st-mel-cell';
+      cell.dataset.idx = String(idx);
       const noteName = (typeof NOTE_NAMES !== 'undefined') ? NOTE_NAMES[n.midi % 12] : '';
-      cell.innerHTML = `<span class="st-mel-note">${noteName}</span><span class="st-mel-pos">${labels[n.course] || ''}·${n.fret}</span>`;
-      cell.addEventListener('click', () => { ensureAudio(); AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6); flashDot(n.course, n.fret); });
+      cell.innerHTML = `<span class="st-mel-note">${noteName}</span><span class="st-mel-pos">${STR_LABELS[n.course] || ''}·${n.fret}</span>`;
+      cell.addEventListener('click', () => {
+        ensureAudio();
+        AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
+        flashDot(n.course, n.fret);
+        highlightMelCell(idx);
+      });
       host.appendChild(cell);
       _melCells.push(cell);
     });
@@ -335,6 +470,33 @@ const SongTeacher = (() => {
 
   function bindLesson(host) {
     $('#st-play', host).addEventListener('click', togglePlay);
+    $('#st-phrase-prev', host)?.addEventListener('click', () => {
+      if (_phraseIdx > 0) { _phraseIdx--; renderFretboard(); $('#st-phrase-label').textContent = phraseLabel(); }
+    });
+    $('#st-phrase-next', host)?.addEventListener('click', () => {
+      if (_phraseIdx < _phrases.length - 1) { _phraseIdx++; renderFretboard(); $('#st-phrase-label').textContent = phraseLabel(); }
+    });
+    host.querySelectorAll('.st-learn-mode').forEach(b => b.addEventListener('click', () => {
+      _learnMode = b.dataset.m;
+      if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+        if (_learnMode === 'box') {
+          _posBase = FretboardScale.findBestBase(_rawMelody, 'box');
+          _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'box', base: _posBase }).notes;
+        } else {
+          _posBase = 0;
+          _melody = FretboardScale.normalizeMelody(_rawMelody, { mode: 'd' }).notes;
+        }
+      }
+      rebuildPhrases();
+      _phraseIdx = 0;
+      buildMelStrip();
+      renderFretboard();
+      host.querySelectorAll('.st-learn-mode').forEach(x => x.classList.toggle('active', x === b));
+      const hint = host.querySelector('.st-teach-hint');
+      if (hint) hint.textContent = learnHint();
+      const lbl = $('#st-phrase-label');
+      if (lbl) lbl.textContent = phraseLabel();
+    }));
     host.querySelectorAll('.st-speed').forEach(b => b.addEventListener('click', () => {
       _speed = parseFloat(b.dataset.s);
       host.querySelectorAll('.st-speed').forEach(x => x.classList.toggle('active', x === b));

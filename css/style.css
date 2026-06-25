@@ -2197,6 +2197,22 @@ select {
 .st-engine-row { font-size: 13px; color: var(--text-dim); }
 .st-engine.active { background: var(--aegean-deep); color: #fff; }
 
+.st-harmony { padding: 12px 14px; }
+.st-harmony-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.st-harm-label { color: var(--text-dim); font-size: 13px; }
+.st-dromos-name { color: var(--gold-soft); font-size: 16px; }
+.st-chord-prog { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-chord-chip {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  background: rgba(79,179,217,0.15); color: var(--aegean); font-weight: 700; font-size: 13px;
+}
+.st-teach-hint { color: var(--gold-soft); margin: 6px 0 0; font-size: 13px; }
+.st-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.st-phrase-nav { justify-content: center; }
+.st-phrase-label { font-weight: 700; min-width: 160px; text-align: center; }
+.st-learn-mode.active { background: var(--aegean-deep); color: #fff; }
+#st-fb-host .fretboard-svg, #st-fb-host svg.fretboard { width: 100%; min-width: 640px; height: auto; }
+
 /* ============================================================
    Bouzouki Studio — אולפן בוזוקי
    ============================================================ */

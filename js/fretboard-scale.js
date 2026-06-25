@@ -208,6 +208,70 @@ const FretboardScale = (() => {
     return phrases;
   }
 
+  /**
+   * מסלול מלודיה עקבי — מיתר D אם אפשר, אחרת תיבת פוזיציה לפי משפטים.
+   * כמו מורה יווני: אותו מיתר/פוזיציה, לא קפיצות אקראיות על הצוואר.
+   */
+  function normalizeMelody(notes, opts = {}) {
+    const sorted = [...(notes || [])].sort((a, b) => a.time - b.time);
+    if (!sorted.length) return { notes: [], segments: [], mode: 'd', base: 0 };
+
+    if (opts.mode === 'd') {
+      const onD = remapMelody(sorted, { mode: 'd' });
+      return { notes: onD.notes, segments: [{ mode: 'd', base: 0, notes: onD.notes }], mode: 'd', base: 0 };
+    }
+    if (opts.mode === 'box') {
+      const base = opts.base ?? findBestBase(sorted, 'box');
+      const { notes: remapped } = remapMelody(sorted, { mode: 'box', base });
+      return { notes: remapped, segments: [{ mode: 'box', base, notes: remapped }], mode: 'box', base };
+    }
+
+    const onD = remapMelody(sorted, { mode: 'd' });
+    const coverageD = onD.notes.length / sorted.length;
+    if (coverageD >= 0.8) {
+      return {
+        notes: onD.notes,
+        segments: [{ mode: 'd', base: 0, notes: onD.notes }],
+        mode: 'd',
+        base: 0,
+      };
+    }
+
+    const phrases = splitPhrases(sorted, opts.gapSec ?? 0.38, opts.phraseSize ?? 18);
+    const segments = [];
+    const allNotes = [];
+
+    phrases.forEach(phrase => {
+      const base = opts.base ?? findBestBase(phrase, 'box');
+      const { notes: remapped } = remapMelody(phrase, { mode: 'box', base });
+      if (!remapped.length) return;
+      segments.push({ mode: 'box', base, startTime: phrase[0].time, notes: remapped });
+      allNotes.push(...remapped);
+    });
+
+    allNotes.sort((a, b) => a.time - b.time);
+
+    if (allNotes.length < sorted.length * 0.65) {
+      const base = opts.base ?? findBestBase(sorted, 'box');
+      const { notes: remapped } = remapMelody(sorted, { mode: 'box', base });
+      if (remapped.length >= allNotes.length) {
+        return {
+          notes: remapped,
+          segments: [{ mode: 'box', base, notes: remapped }],
+          mode: 'box',
+          base,
+        };
+      }
+    }
+
+    return {
+      notes: allNotes.length ? allNotes : onD.notes,
+      segments: segments.length ? segments : [{ mode: 'd', base: 0, notes: onD.notes }],
+      mode: segments.length ? 'box' : 'd',
+      base: segments[0]?.base ?? 0,
+    };
+  }
+
   function drawMelodyConnections(svg, path, color = '#f0cc74') {
     if (!svg || path.length < 2) return;
     svg.querySelectorAll('.fs-melody-seg').forEach(el => el.remove());
@@ -416,6 +480,10 @@ const FretboardScale = (() => {
     remapMelody,
     findBestBase,
     splitPhrases,
+    normalizeMelody,
+    pickPlacement,
+    placementsForMidi,
+    noteMidi,
     mountMelody,
     mountMelodyLesson,
     flashMidi,

@@ -61,16 +61,43 @@ const AudioAnalyzer = (() => {
     return out;
   }
 
-  function _midiToPosition(midi) {
-    let best = null, bestDiff = 99;
+  function _midiToPosition(midi, prev = null) {
+    const candidates = [];
     for (let c = 0; c < TUNING.length; c++) {
       for (let f = 0; f <= NUM_FRETS; f++) {
         const m = TUNING[c].midi + f;
         const d = Math.abs(m - midi);
-        if (d < bestDiff) { bestDiff = d; best = { course: c, fret: f, midi: m }; }
+        if (d <= 0.6) candidates.push({ course: c, fret: f, midi: m, ci: c });
       }
     }
-    return bestDiff <= 0.6 ? best : null;
+    if (!candidates.length) return null;
+    const prevP = prev ? { ci: prev.course ?? prev.ci, fret: prev.fret } : null;
+    let pick;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.pickPlacement) {
+      pick = FretboardScale.pickPlacement(candidates, prevP);
+    } else {
+      pick = candidates[0];
+      if (prevP) {
+        let best = candidates[0];
+        let bestScore = Infinity;
+        candidates.forEach(p => {
+          let s = p.ci === 0 ? 0 : 3;
+          s += Math.abs(p.fret - prevP.fret) * 2;
+          if (p.ci !== prevP.ci) s += 4;
+          if (s < bestScore) { bestScore = s; best = p; }
+        });
+        pick = best;
+      }
+    }
+    return pick ? { course: pick.ci ?? pick.course, fret: pick.fret, midi: pick.midi } : null;
+  }
+
+  function _finalizeTabNotes(tabNotes) {
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+      const norm = FretboardScale.normalizeMelody(tabNotes);
+      return norm.notes;
+    }
+    return tabNotes;
   }
 
   function _chordFromChroma(chroma) {
@@ -113,7 +140,7 @@ const AudioAnalyzer = (() => {
           if (freq) {
             const mf = 69 + 12 * Math.log2(freq / 440);
             const midi = Math.round(mf);
-            const pos = _midiToPosition(midi);
+            const pos = _midiToPosition(midi, pitches.length ? pitches[pitches.length - 1] : null);
             if (pos) pitches.push({ time: t, ...pos, midi });
           }
         }
@@ -155,7 +182,7 @@ const AudioAnalyzer = (() => {
       if (n) chords.push({ time: t, chord: _chordFromChroma(acc) });
     }
 
-    const tabNotes = _supplementPolyTab(signal, sampleRate, onsets, _mergePitches(pitches));
+    const tabNotes = _finalizeTabNotes(_supplementPolyTab(signal, sampleRate, onsets, _mergePitches(pitches)));
     onProgress?.('ניתוח הושלם', 100);
     return { bpm, chords, tabNotes, beats: onsets, engine: 'fallback' };
   }
@@ -199,7 +226,8 @@ const AudioAnalyzer = (() => {
       if (Math.sqrt(rms / frame.length) < 0.018) return;
 
       Listen.detectPitches(frame, sampleRate, 3).forEach(midi => {
-        const pos = _midiToPosition(midi);
+        const prev = extra.length ? extra[extra.length - 1] : (existingNotes?.length ? existingNotes[existingNotes.length - 1] : null);
+        const pos = _midiToPosition(midi, prev);
         if (pos) extra.push({ time: t, ...pos, midi, poly: true });
       });
     });
@@ -292,11 +320,15 @@ const AudioAnalyzer = (() => {
       const pitchArr = ess.vectorToArray(mel.pitch);
       const conf = ess.vectorToArray(mel.pitchConfidence);
       const hopMel = mel.hopSize || 128;
+      let lastPos = null;
       pitchArr.forEach((p, i) => {
         if (p > 50 && (conf[i] || 0) > 0.5) {
           const midi = Math.round(69 + 12 * Math.log2(p / 440));
-          const pos = _midiToPosition(midi);
-          if (pos) pitches.push({ time: (i * hopMel) / sampleRate, ...pos, midi });
+          const pos = _midiToPosition(midi, lastPos);
+          if (pos) {
+            pitches.push({ time: (i * hopMel) / sampleRate, ...pos, midi });
+            lastPos = pos;
+          }
         }
       });
       try { ess.delete(vec); } catch (_) {}
@@ -305,7 +337,7 @@ const AudioAnalyzer = (() => {
     }
 
     let tabNotes = _mergePitches(pitches);
-    tabNotes = _supplementPolyTab(signal, sampleRate, beats, tabNotes);
+    tabNotes = _finalizeTabNotes(_supplementPolyTab(signal, sampleRate, beats, tabNotes));
     onProgress?.('Essentia — הושלם', 100);
     return { bpm, chords, tabNotes, beats, engine: 'essentia' };
   }
@@ -392,11 +424,14 @@ const AudioAnalyzer = (() => {
 
   function transposeTabNotes(notes, semitones) {
     if (!semitones) return notes;
-    return notes.map(n => {
+    let prev = null;
+    const out = notes.map(n => {
       const midi = n.midi + semitones;
-      const pos = _midiToPosition(midi);
+      const pos = _midiToPosition(midi, prev);
+      if (pos) prev = pos;
       return pos ? { ...n, ...pos, midi } : { ...n, midi };
     }).filter(n => n.course != null);
+    return _finalizeTabNotes(out);
   }
 
   function computeWavePeaks(buffer, points = 800) {

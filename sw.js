@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v8';
+const CACHE_STATIC = 'bouzouki-static-v9';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [

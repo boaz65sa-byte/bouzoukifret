@@ -33,15 +33,21 @@ const BasicPitchEngine = (() => {
     while (m < lo) m += 12;
     return m;
   }
-  function _midiToPos(midi) {
-    let best = null, bd = 99;
+  function _midiToPos(midi, prev = null) {
+    const candidates = [];
     for (let c = 0; c < TUNING.length; c++) {
       for (let f = 0; f <= NUM_FRETS; f++) {
-        const d = Math.abs((TUNING[c].midi + f) - midi);
-        if (d < bd) { bd = d; best = { course: c, fret: f }; }
+        const m = TUNING[c].midi + f;
+        const d = Math.abs(m - midi);
+        if (d <= 0.01) candidates.push({ ci: c, fret: f, midi: m });
       }
     }
-    return bd <= 0.01 ? best : null;
+    if (!candidates.length) return null;
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.pickPlacement) {
+      const pick = FretboardScale.pickPlacement(candidates, prev);
+      return pick ? { course: pick.ci, fret: pick.fret, midi: pick.midi } : null;
+    }
+    return { course: candidates[0].ci, fret: candidates[0].fret, midi: candidates[0].midi };
   }
 
   // אקורד פשוט מתוך תווים בו-זמניים (התאמת טריאדה מז'ור/מינור)
@@ -91,23 +97,31 @@ const BasicPitchEngine = (() => {
     );
 
     const tabNotes = [];
+    let lastPos = null;
     noteEvents.forEach(ev => {
       const midi = _foldToRange(Math.round(ev.pitchMidi));
-      const pos = _midiToPos(midi);
-      if (pos) tabNotes.push({
-        time: +ev.startTimeSeconds.toFixed(3),
-        duration: +Math.max(0.12, ev.durationSeconds || 0.2).toFixed(3),
-        course: pos.course, fret: pos.fret, midi,
-        amp: ev.amplitude || 1,
-      });
+      const pos = _midiToPos(midi, lastPos);
+      if (pos) {
+        tabNotes.push({
+          time: +ev.startTimeSeconds.toFixed(3),
+          duration: +Math.max(0.12, ev.durationSeconds || 0.2).toFixed(3),
+          course: pos.course, fret: pos.fret, midi,
+          amp: ev.amplitude || 1,
+        });
+        lastPos = { ci: pos.course, fret: pos.fret };
+      }
     });
     tabNotes.sort((a, b) => a.time - b.time);
 
-    const dur = tabNotes.length ? tabNotes[tabNotes.length - 1].time + 1 : (audioBuffer.duration || 30);
-    const chords = _chordsFromNotes(tabNotes, dur);
+    const finalized = (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody)
+      ? FretboardScale.normalizeMelody(tabNotes).notes
+      : tabNotes;
+
+    const dur = finalized.length ? finalized[finalized.length - 1].time + 1 : (audioBuffer.duration || 30);
+    const chords = _chordsFromNotes(finalized, dur);
 
     onProgress?.('Basic Pitch — הושלם', 100);
-    return { bpm: 0, chords, tabNotes, engine: 'basic-pitch' };
+    return { bpm: 0, chords, tabNotes: finalized, engine: 'basic-pitch' };
   }
 
   return { transcribe, available };
