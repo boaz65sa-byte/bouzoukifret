@@ -129,15 +129,36 @@ const DromosRoad = (() => {
    */
   function renderInto(container, opts) {
     if (!container || !opts || !Array.isArray(opts.intervals)) return;
-    const rootPc = ((opts.rootPc % 12) + 12) % 12;
+    let rootPc = ((opts.rootPc % 12) + 12) % 12;
     let mode = opts.defaultMode || '4';
     container.innerHTML = '';
     container.classList.add('dr-road-host');
 
     const head = document.createElement('div');
     head.className = 'tl-road-head';
-    head.innerHTML = `🛣️ הכביש של <b>${opts.nameHe || 'הדרומוס'}</b> — מהשורש ועד השורש, תחנה אחר תחנה. בחרו על כמה מיתרים:`;
+    head.innerHTML = `🛣️ הכביש של <b>${opts.nameHe || 'הדרומוס'}</b> — מהשורש ועד השורש, תחנה אחר תחנה.`;
     container.appendChild(head);
+
+    // בורר שורש: מאיזה תו הכביש יוצא ואליו חוזר (רה→רה, מי→מי, …)
+    const rootRow = document.createElement('div');
+    rootRow.className = 'tl-pos-row dr-road-roots';
+    const rootLbl = document.createElement('span');
+    rootLbl.className = 'tl-pos-label';
+    rootLbl.textContent = 'שורש (מ-/ל-):';
+    rootRow.appendChild(rootLbl);
+    const rootSel = document.createElement('select');
+    rootSel.className = 'dr-root-select';
+    for (let pc = 0; pc < 12; pc++) {
+      const o = document.createElement('option');
+      o.value = pc;
+      const sf = (typeof SOLFEGE !== 'undefined' && SOLFEGE[NOTE_NAMES[pc]]) || NOTE_NAMES[pc];
+      o.textContent = `${sf} (${NOTE_NAMES[pc]})`;
+      if (pc === rootPc) o.selected = true;
+      rootSel.appendChild(o);
+    }
+    rootSel.addEventListener('change', () => { rootPc = parseInt(rootSel.value, 10); rebuild(); });
+    rootRow.appendChild(rootSel);
+    container.appendChild(rootRow);
 
     const modeRow = document.createElement('div');
     modeRow.className = 'tl-pos-row tl-mode-row dr-road-modes';

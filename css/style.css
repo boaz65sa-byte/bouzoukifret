@@ -2333,3 +2333,9 @@ select {
 .tl-road-stop.tl-road-playing .tl-road-note,
 .tl-road-stop.tl-road-playing .tl-road-pos,
 .tl-road-stop.tl-road-playing .tl-road-num { color: #1a1408; }
+.dr-road-roots { margin: 6px 0; }
+.dr-root-select {
+  background: var(--bg-deep); color: var(--text);
+  border: 1px solid rgba(143,166,188,0.35); border-radius: 6px;
+  padding: 5px 10px; font-family: 'Heebo', sans-serif; font-size: 14px; font-weight: 700;
+}
