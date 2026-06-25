@@ -2301,3 +2301,26 @@ select {
   .bzs-step { min-width: 58px; font-size: 12px; padding: 7px 6px; }
   .bzs-backing-list { grid-template-columns: 1fr; }
 }
+
+/* ---------- TheoryLab: "הכביש" של הדרומוס ---------- */
+.tl-road { margin: 12px 0 4px; }
+.tl-road-head { color: var(--text-dim); font-size: 13.5px; margin-bottom: 8px; }
+.tl-road-head b { color: var(--gold); }
+.tl-road-track {
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch;
+  gap: 4px; overflow-x: auto; padding: 6px 2px;
+}
+.tl-road-stop {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 92px; padding: 8px 6px; border-radius: 9px; cursor: pointer;
+  background: rgba(42,127,168,0.16); border: 1px solid rgba(127,208,239,0.35);
+  color: var(--text); font-family: 'Heebo', sans-serif; transition: transform .1s, background .15s;
+}
+.tl-road-stop:hover { transform: translateY(-2px); background: rgba(42,127,168,0.28); }
+.tl-road-root { background: rgba(227,179,65,0.18); border-color: var(--gold); }
+.tl-road-num { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+.tl-road-flag { font-size: 11px; font-weight: 800; color: var(--gold); }
+.tl-road-note { font-size: 19px; font-weight: 900; color: var(--text); line-height: 1.1; }
+.tl-road-root .tl-road-note { color: var(--gold); }
+.tl-road-pos { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.tl-road-arrow { flex: 0 0 auto; align-self: center; color: var(--gold-soft); font-size: 18px; opacity: 0.7; }

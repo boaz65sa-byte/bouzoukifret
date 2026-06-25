@@ -649,29 +649,38 @@ const TheoryLab = (() => {
     return set;
   }
 
-  // בונה מסלול נגינה עולה ורציף על מספר המיתרים הפעילים שבמצב.
-  // עוברים מהמיתר הנמוך לגבוה, ובכל מיתר מוסיפים צלילי-סולם בחלון הפוזיציה,
-  // תוך שמירה על עלייה בגובה — כך נוצר מסלול מלודי שעולה עד המיתר הראשון (D).
+  // בונה את "הכביש" של הדרומוס: מסלול עולה מהשורש (רה) עד השורש באוקטבה,
+  // תחנה אחר תחנה (כל דרגת סולם), פרוס על מספר המיתרים הפעילים שבמצב.
+  // נשארים על המיתר הנמוך עד שמיצינו את חלון היד, ואז עולים למיתר הבא —
+  // כך הכביש "חוצה" 2 / 3 / 4 מיתרים כמו פוזיציה אמיתית. מחזיר [{ci,fret,midi,degree,isRoot}].
   function buildPositionPath(dromos, base, mode) {
-    const pcs = scalePcs(dromos);
-    const courses = MODE_COURSES[mode] || MODE_COURSES['4'];
-    // חלון רחב יותר ככל שיש פחות מיתרים, כדי שהמסלול יכסה אוקטבה
-    const span = mode === '4' ? POS_SPAN + 1 : mode === '3' ? 6 : 7;
-    const path = [];
-    let lastMidi = -Infinity;
-    for (const ci of courses) {
-      const openMidi = TUNING[ci].midi;
-      for (let fret = base; fret <= base + span && fret <= NUM_FRETS; fret++) {
-        if (fret < 0) continue;
-        const midi = openMidi + fret;
-        const pc = ((midi % 12) + 12) % 12;
-        if (!pcs.has(pc)) continue;
-        if (midi <= lastMidi) continue;       // רק עלייה — מסלול מלודי רציף
-        path.push({ ci, fret });
-        lastMidi = midi;
+    const courses = MODE_COURSES[mode] || MODE_COURSES['4']; // מהנמוך לגבוה
+    const span = mode === '4' ? 3 : mode === '3' ? 5 : 7;     // רוחב חלון יד לכל מיתר
+    const open0 = TUNING[courses[0]].midi;
+    // נקודת התחלה: השורש הראשון על המיתר הנמוך הפעיל, מהפוזיציה ומעלה
+    const upToRoot = (((ROOT_PC - ((open0 + base) % 12)) % 12) + 12) % 12;
+    const startMidi = open0 + base + upToRoot;
+    const degrees = (dromos.intervals || []).slice().concat([12]); // שורש … אוקטבה
+    const road = [];
+    let ciIdx = 0;
+    let windowStart = base + upToRoot;   // הסריג שממנו מתחיל חלון המיתר הנוכחי
+    let prevMidi = -Infinity;
+    degrees.forEach((iv, i) => {
+      const target = startMidi + iv;
+      if (target <= prevMidi) return;
+      // עולים מיתרים עד שהתו נכנס לחלון היד של המיתר ובתחום הגריף
+      while (ciIdx < courses.length) {
+        const f = target - TUNING[courses[ciIdx]].midi;
+        if (f >= 0 && f <= NECK_FRETS && f <= windowStart + span) {
+          road.push({ ci: courses[ciIdx], fret: f, midi: target, degree: i + 1, isRoot: (target % 12) === ROOT_PC });
+          prevMidi = target;
+          break;
+        }
+        ciIdx++;
+        if (ciIdx < courses.length) windowStart = Math.max(0, target - TUNING[courses[ciIdx]].midi);
       }
-    }
-    return path;
+    });
+    return road;
   }
 
   function drawDromosNeck(dromos, base, mode) {
@@ -783,6 +792,46 @@ const TheoryLab = (() => {
     if (!g) return;
     g.classList.add('tl-neck-active');
     setTimeout(() => g.classList.remove('tl-neck-active'), 260);
+  }
+
+  // "הכביש" — מסע התחנות מהשורש עד השורש, כל תחנה: דרגה, שם תו, מיתר, סריג
+  function buildRoadStrip(path, dotByKey, dromos) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tl-road';
+    const head = document.createElement('div');
+    head.className = 'tl-road-head';
+    head.innerHTML = `🛣️ הכביש של ${dromos.nameHe || 'הדרומוס'} — מ<b>רה</b> ועד <b>רה</b>, תחנה אחר תחנה:`;
+    wrap.appendChild(head);
+
+    const track = document.createElement('div');
+    track.className = 'tl-road-track';
+    path.forEach((p, idx) => {
+      const stop = document.createElement('button');
+      stop.className = 'tl-road-stop' + (p.isRoot ? ' tl-road-root' : '');
+      const note = SOLFEGE[NOTE_NAMES[p.midi % 12]] || NOTE_NAMES[p.midi % 12];
+      const strNote = TUNING[p.ci].note;            // D/A/F/C
+      const strNo = TUNING[p.ci].course;            // 1..4
+      const flag = idx === 0 ? '🏁 התחלה' : (idx === path.length - 1 ? '🏁 סוף' : '');
+      stop.innerHTML =
+        (flag ? `<span class="tl-road-flag">${flag}</span>` : `<span class="tl-road-num">${idx + 1}</span>`) +
+        `<span class="tl-road-note">${note}</span>` +
+        `<span class="tl-road-pos">מיתר ${strNo} (${strNote}) · סריג ${p.fret === 0 ? 'פתוח' : p.fret}</span>`;
+      stop.addEventListener('click', () => {
+        ensureAudio();
+        if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.6);
+        const g = dotByKey && dotByKey[p.ci + '-' + p.fret];
+        if (g) flashNeckDot(g);
+      });
+      track.appendChild(stop);
+      if (idx < path.length - 1) {
+        const arr = document.createElement('span');
+        arr.className = 'tl-road-arrow';
+        arr.textContent = '←';
+        track.appendChild(arr);
+      }
+    });
+    wrap.appendChild(track);
+    return wrap;
   }
 
   // נגן רצף [{ci,fret}] — צליל אחרי צליל, מדגיש כל נקודה
@@ -952,6 +1001,9 @@ const TheoryLab = (() => {
     const { svg, path, dotByKey } = drawDromosNeck(dromos, _posBase, _neckMode);
     scroll.appendChild(svg);
     card.appendChild(scroll);
+
+    // הכביש — מסע התחנות מהשורש (רה) עד השורש (רה אוקטבה)
+    card.appendChild(buildRoadStrip(path, dotByKey, dromos));
 
     // כפתורי נגינה
     const btns = document.createElement('div');
