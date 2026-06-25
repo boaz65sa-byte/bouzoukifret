@@ -2344,3 +2344,5 @@ select {
 .note-dot.dr-road-on circle { stroke: #fff !important; stroke-width: 3 !important; }
 .note-dot.dr-road-off { opacity: 0.22; }
 .note-dot.dr-road-play circle { stroke: #fff !important; stroke-width: 3.5 !important; filter: drop-shadow(0 0 7px var(--gold)); }
+.dr-road-positions { margin: 6px 0; }
+.dr-pos-chip.active { background: var(--gold); color: #1a1408; border-color: var(--gold); }

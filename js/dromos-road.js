@@ -8,32 +8,40 @@
 'use strict';
 
 const DromosRoad = (() => {
-  const NECK_FRETS = 12;
+  const NECK_FRETS = (typeof NUM_FRETS !== 'undefined') ? NUM_FRETS : 15;
   // מיתרים פעילים לכל מצב (מהנמוך לגבוה בגובה): 2=A,D · 3=F,A,D · 4=C,F,A,D
   const MODE_COURSES = { '2': [1, 0], '3': [2, 1, 0], '4': [3, 2, 1, 0] };
   const MODE_LABEL = { '2': '🎻 2 מיתרים', '3': '🪕 3 מיתרים', '4': '🎸 4 מיתרים' };
 
   function ensureAudio() { try { if (typeof AudioEngine !== 'undefined') AudioEngine.ensureCtx(); } catch (_) {} }
 
+  // השורש הנמוך ביותר על המיתר הנמוך הפעיל
+  function lowestRootMidi(courses, rootPc) {
+    const open0 = TUNING[courses[0]].midi;
+    return open0 + ((((rootPc - (open0 % 12)) % 12) + 12) % 12);
+  }
+
   // בונה את הכביש: מהשורש עד השורש (אוקטבה), נשארים על מיתר עד מיצוי חלון היד ואז עולים.
-  function buildRoad(intervals, rootPc, mode, base) {
-    base = base || 0;
+  // pos = אינדקס פוזיציה (0 = נמוכה; 1,2 = אוקטבה גבוהה יותר במעלה הצוואר).
+  function buildRoad(intervals, rootPc, mode, pos) {
+    pos = pos || 0;
     const courses = MODE_COURSES[mode] || MODE_COURSES['4'];
     const span = mode === '4' ? 3 : mode === '3' ? 5 : 7;
     const open0 = TUNING[courses[0]].midi;
-    const upToRoot = (((rootPc - ((open0 + base) % 12)) % 12) + 12) % 12;
-    const startMidi = open0 + base + upToRoot;
+    const startMidi = lowestRootMidi(courses, rootPc) + pos * 12;
     const degrees = (intervals || []).slice().concat([12]);
     const road = [];
     let ciIdx = 0;
-    let windowStart = base + upToRoot;
+    let windowStart = startMidi - open0;   // הסריג של תחילת הכביש על המיתר הנמוך
     let prevMidi = -Infinity;
     degrees.forEach((iv, i) => {
       const target = startMidi + iv;
       if (target <= prevMidi) return;
       while (ciIdx < courses.length) {
         const f = target - TUNING[courses[ciIdx]].midi;
-        if (f >= 0 && f <= NECK_FRETS && f <= windowStart + span) {
+        const lastCourse = ciIdx === courses.length - 1;
+        // על המיתר האחרון אין לאן לעלות — מותר עד סוף הגריף
+        if (f >= 0 && f <= NECK_FRETS && (f <= windowStart + span || lastCourse)) {
           road.push({ ci: courses[ciIdx], fret: f, midi: target, degree: i + 1, isRoot: (target % 12) === rootPc });
           prevMidi = target;
           break;
@@ -43,6 +51,16 @@ const DromosRoad = (() => {
       }
     });
     return road;
+  }
+
+  // אילו פוזיציות שלמות אפשריות (כל הדרגות נכנסות בתחום הגריף)
+  function availablePositions(intervals, rootPc, mode) {
+    const full = (intervals || []).length + 1;
+    const out = [];
+    for (let pos = 0; pos < 3; pos++) {
+      if (buildRoad(intervals, rootPc, mode, pos).length >= full) out.push(pos);
+    }
+    return out.length ? out : [0];
   }
 
   function noteLabel(midi) {
@@ -154,6 +172,7 @@ const DromosRoad = (() => {
     if (!container || !opts || !Array.isArray(opts.intervals)) return;
     let rootPc = ((opts.rootPc % 12) + 12) % 12;
     let mode = opts.defaultMode || '4';
+    let posIndex = 0;
     container.innerHTML = '';
     container.classList.add('dr-road-host');
 
@@ -179,7 +198,7 @@ const DromosRoad = (() => {
       if (pc === rootPc) o.selected = true;
       rootSel.appendChild(o);
     }
-    rootSel.addEventListener('change', () => { rootPc = parseInt(rootSel.value, 10); rebuild(); });
+    rootSel.addEventListener('change', () => { rootPc = parseInt(rootSel.value, 10); refreshPositions(); });
     rootRow.appendChild(rootSel);
     container.appendChild(rootRow);
 
@@ -189,10 +208,16 @@ const DromosRoad = (() => {
       const b = document.createElement('button');
       b.className = 'tl-pos-chip tl-mode-chip' + (m === mode ? ' active' : '');
       b.textContent = MODE_LABEL[m];
-      b.addEventListener('click', () => { mode = m; rebuild(); });
+      b.addEventListener('click', () => { mode = m; refreshPositions(); });
       modeRow.appendChild(b);
     });
     container.appendChild(modeRow);
+
+    // בורר פוזיציה: אותו מודוס במקומות שונים על הצוואר (נמוכה / אמצעית / גבוהה)
+    const POS_LABEL = ['פוזיציה 1 (נמוכה)', 'פוזיציה 2', 'פוזיציה 3 (גבוהה)'];
+    const posRow = document.createElement('div');
+    posRow.className = 'tl-pos-row dr-road-positions';
+    container.appendChild(posRow);
 
     const stripHost = document.createElement('div');
     container.appendChild(stripHost);
@@ -209,11 +234,37 @@ const DromosRoad = (() => {
     container.appendChild(btns);
 
     let strip = null;
-    function rebuild() {
+
+    // בונה מחדש את כפתורי הפוזיציות לפי המצב/שורש הנוכחיים, ואז מרנדר
+    function refreshPositions() {
       modeRow.querySelectorAll('.tl-mode-chip').forEach(c =>
         c.classList.toggle('active', c.textContent === MODE_LABEL[mode]));
-      if (strip) stopRoad(strip);
-      const road = buildRoad(opts.intervals, rootPc, mode, 0);
+      const avail = availablePositions(opts.intervals, rootPc, mode);
+      if (!avail.includes(posIndex)) posIndex = avail[0];
+      posRow.innerHTML = '';
+      if (avail.length > 1) {
+        const lbl = document.createElement('span');
+        lbl.className = 'tl-pos-label';
+        lbl.textContent = 'פוזיציה:';
+        posRow.appendChild(lbl);
+        avail.forEach(p => {
+          const b = document.createElement('button');
+          b.className = 'tl-pos-chip dr-pos-chip' + (p === posIndex ? ' active' : '');
+          b.textContent = POS_LABEL[p] || ('פוזיציה ' + (p + 1));
+          b.addEventListener('click', () => { posIndex = p; rebuild(); });
+          posRow.appendChild(b);
+        });
+      }
+      rebuild();
+    }
+
+    function rebuild() {
+      posRow.querySelectorAll('.dr-pos-chip').forEach((c, i) => {
+        const avail = availablePositions(opts.intervals, rootPc, mode);
+        c.classList.toggle('active', avail[i] === posIndex);
+      });
+      if (strip) stopRoad(strip, null, opts.fretboard);
+      const road = buildRoad(opts.intervals, rootPc, mode, posIndex);
       strip = buildStripFromRoad(road, opts.nameHe);
       stripHost.innerHTML = '';
       stripHost.appendChild(strip);
@@ -227,7 +278,7 @@ const DromosRoad = (() => {
       if (strip && strip._roadTimer) { stopRoad(strip, bRt, opts.fretboard); return; }
       playRoad(strip._road, strip, bRt, true, opts.fretboard);
     });
-    rebuild();
+    refreshPositions();
   }
 
   return { renderInto, buildRoad, buildStrip };
