@@ -63,10 +63,13 @@ const LearnOnboarding = (() => {
     const hasConfig = !!(window.BOUZOUKI_CONFIG?.stemProxyUrl);
 
     let statusHtml = '';
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
     if (st.online && !st.needsRestart) {
       statusHtml = '<div class="learn-onboard-status ok">✓ stem-proxy פעיל — חיפוש YouTube והורדה זמינים</div>';
     } else if (st.needsRestart) {
       statusHtml = '<div class="learn-onboard-status warn">🔄 stem-proxy דורש הפעלה מחדש (npm start ב-tools/stem-proxy)</div>';
+    } else if (onPublic) {
+      statusHtml = '<div class="learn-onboard-status ok">✓ חיפוש YouTube עובד מהאתר. להורדת MP3 — stem-proxy (Render / מקומי)</div>';
     } else {
       statusHtml = '<div class="learn-onboard-status warn">⚙️ stem-proxy לא פעיל — חיפוש מלא והורדה דורשים הפעלה מקומית</div>';
     }

@@ -4,6 +4,8 @@
 'use strict';
 
 const DeviceUtils = (() => {
+  const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1'];
+
   function isMobile() {
     return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
       || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
@@ -14,14 +16,30 @@ const DeviceUtils = (() => {
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   }
 
-  /** אם האפליקציה נפתחה מ-IP ברשת — השתמש באותו IP לפרוקסי */
+  function isLocalProxyHost(hostname) {
+    return LOCAL_HOSTS.includes(hostname);
+  }
+
+  function isLanHost(host) {
+    return /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host || '');
+  }
+
+  /** אתר מפורסם (Vercel/GitHub Pages וכו') — לא להחליף localhost לדומיין הזה */
+  function isPublicHostedPage(host) {
+    const h = host || location.hostname;
+    if (!h || LOCAL_HOSTS.includes(h) || isLanHost(h)) return false;
+    return true;
+  }
+
+  /** אם האפליקציה נפתחה מ-IP ברשת מקומית — השתמש באותו IP לפרוקסי */
   function resolveProxyUrl(configUrl) {
     const raw = configUrl || window.BOUZOUKI_CONFIG?.stemProxyUrl || 'http://127.0.0.1:3456';
     try {
       const u = new URL(String(raw).replace(/\/$/, ''));
       const pageHost = location.hostname;
-      const localHosts = ['localhost', '127.0.0.1', '::1'];
-      if (pageHost && !localHosts.includes(pageHost) && localHosts.includes(u.hostname)) {
+      if (!isLocalProxyHost(u.hostname)) return u.origin;
+      if (isPublicHostedPage(pageHost)) return u.origin;
+      if (pageHost && !LOCAL_HOSTS.includes(pageHost)) {
         u.hostname = pageHost;
       }
       return u.origin;
@@ -30,17 +48,33 @@ const DeviceUtils = (() => {
     }
   }
 
+  /** stem-proxy על localhost לא נגיש מדפדפן באתר מפורסם */
+  function proxyReachableFromPage(proxyUrl) {
+    try {
+      const u = new URL(proxyUrl || resolveProxyUrl());
+      if (!isPublicHostedPage()) return true;
+      return !isLocalProxyHost(u.hostname);
+    } catch {
+      return false;
+    }
+  }
+
   function proxyHintMessage(proxyUrl) {
+    if (isPublicHostedPage() && isLocalProxyHost(new URL(proxyUrl).hostname)) {
+      return 'חיפוש סרטונים עובד מהאתר. להורדת MP3 ו-stems: פרסו stem-proxy (Render / מקומי) ועדכנו <code>stemProxyUrl</code> ב-config.js';
+    }
     if (!isMobile()) {
       return `הריצו stem-proxy: cd tools\\stem-proxy && npm start (${proxyUrl})`;
     }
     const pageHost = location.hostname;
-    const local = ['localhost', '127.0.0.1'];
-    if (local.includes(pageHost)) {
+    if (LOCAL_HOSTS.includes(pageHost)) {
       return 'במובייל: פתחו את האפליקציה דרך IP המחשב (לא localhost). לדוגמה: http://192.168.1.5:8080 — והריצו stem-proxy על המחשב.';
     }
     return `ודאו ש-stem-proxy רץ על המחשב ב-${proxyUrl} (אותה רשת WiFi). השיר נשמר תמיד ב<strong>ספריית לימוד</strong> באפליקציה.`;
   }
 
-  return { isMobile, isIOS, resolveProxyUrl, proxyHintMessage };
+  return {
+    isMobile, isIOS, isPublicHostedPage, isLocalProxyHost,
+    resolveProxyUrl, proxyReachableFromPage, proxyHintMessage,
+  };
 })();

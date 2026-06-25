@@ -8,11 +8,39 @@ const YoutubeSearch = (() => {
   const PAGE_SIZE = 30;
 
   const INVIDIOUS = [
-    'https://yewtu.be',
-    'https://invidious.jing.rocks',
-    'https://iv.melmac.space',
+    'https://invidious.materialio.us',
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
     'https://invidious.privacydev.net',
+    'https://iv.melmac.space',
+    'https://invidious.jing.rocks',
+    'https://yewtu.be',
+    'https://invidious.f5.si',
+    'https://invidious.protokolla.fi',
   ];
+
+  const PIPED = [
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.tokhmi.xyz',
+    'https://piped-api.garudalinux.org',
+  ];
+
+  function _proxyReachable() {
+    return typeof DeviceUtils !== 'undefined'
+      ? DeviceUtils.proxyReachableFromPage(getProxyUrl())
+      : true;
+  }
+
+  function _mapInvidiousItem(v) {
+    const thumb = (v.videoThumbnails || []).find(t => t.quality === 'medium') || v.videoThumbnails?.[0];
+    return {
+      videoId: v.videoId,
+      title: v.title || '',
+      author: v.author || '',
+      lengthSeconds: v.lengthSeconds,
+      thumbUrl: thumb?.url || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+    };
+  }
 
   function getProxyUrl() {
     const u = window.BOUZOUKI_CONFIG?.stemProxyUrl || DEFAULT_PROXY;
@@ -71,6 +99,9 @@ const YoutubeSearch = (() => {
   }
 
   async function checkProxy() {
+    if (!_proxyReachable()) {
+      return { online: false, url: getProxyUrl(), reason: 'unreachable', skip: true };
+    }
     const url = getProxyUrl();
     try {
       const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(4000) });
@@ -82,7 +113,29 @@ const YoutubeSearch = (() => {
     }
   }
 
+  async function _sameOriginSearch(query, page = 1) {
+    try {
+      const r = await fetch(
+        `/api/youtube-search?q=${encodeURIComponent(query)}&page=${page}&limit=${PAGE_SIZE}`,
+        { signal: AbortSignal.timeout(25000) }
+      );
+      if (r.status === 404) return { results: [], hasMore: false, unavailable: true };
+      if (!r.ok) return { results: [], hasMore: false };
+      const data = await r.json();
+      return {
+        results: Array.isArray(data.results) ? data.results : [],
+        hasMore: !!data.hasMore,
+        online: true,
+      };
+    } catch {
+      return { results: [], hasMore: false, unavailable: true };
+    }
+  }
+
   async function _proxySearch(query, page = 1) {
+    if (!_proxyReachable()) {
+      return { results: [], online: false, error: 'unreachable', hasMore: false, skip: true };
+    }
     const base = getProxyUrl();
     try {
       const r = await fetch(
@@ -117,22 +170,51 @@ const YoutubeSearch = (() => {
       try {
         const r = await fetch(
           `${base}/api/v1/search?q=${encodeURIComponent(query)}&type=video&page=${page}&fields=videoId,title,author,lengthSeconds,videoThumbnails`,
-          { signal: AbortSignal.timeout(10000) }
+          { signal: AbortSignal.timeout(12000) }
         );
         if (!r.ok) continue;
         const data = await r.json();
         if (!Array.isArray(data) || !data.length) continue;
-        const results = data.map(v => {
-          const thumb = (v.videoThumbnails || []).find(t => t.quality === 'medium') || v.videoThumbnails?.[0];
-          return {
-            videoId: v.videoId,
-            title: v.title || '',
-            author: v.author || '',
-            lengthSeconds: v.lengthSeconds,
-            thumbUrl: thumb?.url || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
-          };
-        });
+        const results = data
+          .filter(v => v.videoId && v.type !== 'channel')
+          .map(_mapInvidiousItem);
+        if (!results.length) continue;
         return { results, hasMore: results.length >= PAGE_SIZE };
+      } catch { /* next */ }
+    }
+    return { results: [], hasMore: false };
+  }
+
+  async function _pipedSearch(query, page = 1) {
+    for (const base of PIPED) {
+      try {
+        const r = await fetch(
+          `${base}/search?q=${encodeURIComponent(query)}&filter=videos`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!r.ok) continue;
+        const data = await r.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (!items.length) continue;
+        const results = items
+          .filter(it => it.type === 'stream' || (it.url || '').includes('watch'))
+          .map(it => {
+            const id = it.url?.match(/[?&]v=([A-Za-z0-9_-]{11})/)?.[1]
+              || (typeof it.id === 'string' && it.id.length === 11 ? it.id : null);
+            if (!id) return null;
+            return {
+              videoId: id,
+              title: it.title || '',
+              author: it.uploaderName || it.uploader || '',
+              lengthSeconds: typeof it.duration === 'number' ? it.duration : null,
+              thumbUrl: it.thumbnail || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+            };
+          })
+          .filter(Boolean);
+        if (!results.length) continue;
+        const start = (page - 1) * PAGE_SIZE;
+        const slice = results.slice(start, start + PAGE_SIZE);
+        return { results: slice, hasMore: start + PAGE_SIZE < results.length };
       } catch { /* next */ }
     }
     return { results: [], hasMore: false };
@@ -146,20 +228,37 @@ const YoutubeSearch = (() => {
     }
 
     const local = page === 1 ? searchLocal(q) : [];
-    const proxy = await _proxySearch(q, page);
+    const proxyReachable = _proxyReachable();
+    const proxy = proxyReachable ? await _proxySearch(q, page) : { results: [], online: false, skip: true, hasMore: false };
     let remote = proxy.results || [];
     let hasMore = proxy.hasMore;
     let source = null;
 
-    if (!remote.length && (!proxy.online || proxy.needsRestart)) {
+    if (!remote.length) {
+      const origin = await _sameOriginSearch(q, page);
+      if (origin.results?.length) {
+        remote = origin.results;
+        hasMore = origin.hasMore;
+        source = 'origin-api';
+      }
+    }
+
+    if (!remote.length && (!proxy.online || proxy.needsRestart || proxy.skip)) {
       const inv = await _invidiousSearch(q, page);
       remote = inv.results;
       hasMore = inv.hasMore;
+      if (remote.length) source = 'invidious';
     }
 
-    if (remote.length && proxy.online && !proxy.needsRestart) source = 'ytdlp';
-    else if (remote.length) source = 'invidious';
-    else if (local.length) source = 'library';
+    if (!remote.length) {
+      const piped = await _pipedSearch(q, page);
+      remote = piped.results;
+      hasMore = piped.hasMore;
+      if (remote.length) source = 'piped';
+    }
+
+    if (remote.length && proxy.online && !proxy.needsRestart && !source) source = 'ytdlp';
+    else if (!source && local.length) source = 'library';
 
     const merged = page === 1 ? dedupeById([...local, ...remote]) : remote;
 
@@ -167,6 +266,7 @@ const YoutubeSearch = (() => {
       results: merged,
       source,
       proxyOnline: proxy.online,
+      proxyReachable,
       proxyError: proxy.error,
       needsRestart: proxy.needsRestart,
       localCount: local.length,
@@ -233,7 +333,13 @@ const YoutubeSearch = (() => {
     const proxyUrl = esc(getProxyUrl());
 
     let html = '';
-    if (!meta.proxyOnline) {
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    if (!meta.proxyOnline && !meta.proxyReachable && onPublic) {
+      html += `<div class="learn-search-help card">
+        <p><b>ℹ️ חיפוש YouTube</b> — רשימת הסרטונים נטענת מהשרת. להורדת MP3 וניתוח stems צריך <b>stem-proxy</b> (Render או מקומי).</p>
+        <p class="hint">אפשר גם להדביק קישור YouTube למטה ב«קישור ידני».</p>
+      </div>`;
+    } else if (!meta.proxyOnline) {
       html += `<div class="learn-search-help card">
         <p><b>⚙️ stem-proxy לא פעיל</b> — לחיפוש מלא ב-YouTube והורדת MP3:</p>
         <ol class="learn-search-help-steps">
@@ -280,8 +386,24 @@ const YoutubeSearch = (() => {
     _renderLoadMore(container, opts);
   }
 
+  function renderYoutubeFallback(container, query) {
+    if (!container || !query) return;
+    const q = encodeURIComponent(query);
+    const block = document.createElement('div');
+    block.className = 'learn-search-yt-fallback card';
+    block.innerHTML = `
+      <p><b>לא נמצאו תוצאות ברשימה</b> — חיפוש ישיר ב-YouTube:</p>
+      <div class="learn-search-yt-embed">
+        <iframe src="https://www.youtube-nocookie.com/embed?listType=search&list=${q}"
+          title="${esc(query)}" loading="lazy"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <a class="btn secondary" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">פתחו ב-YouTube ↗</a>`;
+    container.appendChild(block);
+  }
+
   return {
-    search, searchLocal, checkProxy, renderGrid, dedupeById,
+    search, searchLocal, checkProxy, renderGrid, renderYoutubeFallback, dedupeById,
     getProxyUrl, fmtDuration, esc, PAGE_SIZE,
   };
 })();

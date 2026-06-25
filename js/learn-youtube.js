@@ -674,7 +674,7 @@ const LearnHub = (() => {
 
     try {
       const meta = await YoutubeSearch.search(q, { page: nextPage });
-      const { results, source, proxyOnline, localCount, needsRestart, hasMore } = meta;
+      const { results, source, proxyOnline, proxyReachable, localCount, needsRestart, hasMore } = meta;
 
       let fresh = [];
       if (append) {
@@ -693,9 +693,11 @@ const LearnHub = (() => {
           const parts = [`${_searchResults.length} תוצאות`];
           if (!append && localCount) parts.push(`${localCount} מהספרייה`);
           if (source === 'ytdlp') parts.push('YouTube');
-          else if (source === 'invidious') parts.push('YouTube');
+          else if (source === 'origin-api' || source === 'invidious' || source === 'piped') parts.push('YouTube');
           if (hasMore) parts.push('יש עוד — לחצו למטה');
           status.textContent = parts.join(' · ');
+        } else if (!proxyOnline && !proxyReachable && typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage()) {
+          status.textContent = 'חיפוש YouTube פעיל · להורדת MP3 צריך stem-proxy';
         } else if (needsRestart) {
           status.textContent = 'הפעילו מחדש את stem-proxy לחיפוש YouTube מלא (ראו הוראות למטה)';
         } else if (!proxyOnline) {
@@ -705,7 +707,7 @@ const LearnHub = (() => {
         }
       }
 
-      _updateProxyBanner(proxyOnline, needsRestart);
+      _updateProxyBanner(proxyOnline, needsRestart, proxyReachable, _searchResults.length);
 
       const gridOpts = {
         activeId: _currentVideoId,
@@ -727,19 +729,39 @@ const LearnHub = (() => {
         YoutubeSearch.renderGrid(grid, fresh, gridOpts);
       } else {
         YoutubeSearch.renderGrid(grid, _searchResults, gridOpts);
+        grid.querySelector('.learn-search-yt-fallback')?.remove();
+        if (_searchResults.length <= 3 && q.length >= 2) {
+          const remoteCount = _searchResults.length - (localCount || 0);
+          if (remoteCount < 2) {
+            YoutubeSearch.renderYoutubeFallback(grid, q);
+          }
+        }
       }
     } finally {
       _searchLoading = false;
     }
   }
 
-  async function _updateProxyBanner(online, needsRestart) {
+  async function _updateProxyBanner(online, needsRestart, proxyReachable, resultCount = 0) {
     const el = document.getElementById('learn-proxy-banner');
     if (!el) return;
+    const reachable = proxyReachable !== false;
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+
     if (online && !needsRestart) {
       el.hidden = true;
       return;
     }
+
+    if (!reachable && onPublic && resultCount > 1) {
+      el.hidden = false;
+      el.className = 'learn-proxy-banner info';
+      el.innerHTML = `
+        <span>ℹ️ <b>חיפוש YouTube פעיל.</b> להורדת MP3 וניתוח stems — פרסו stem-proxy (Render / מקומי) ועדכנו <code>stemProxyUrl</code> ב-config.js</span>`;
+      return;
+    }
+
+    el.className = 'learn-proxy-banner';
     const url = typeof YoutubeSearch !== 'undefined' ? YoutubeSearch.getProxyUrl()
       : (typeof StemAPI !== 'undefined' ? StemAPI.getProxyUrl() : 'http://127.0.0.1:3456');
     const mobileHint = typeof DeviceUtils !== 'undefined'
@@ -767,7 +789,10 @@ const LearnHub = (() => {
         needsRestart = r.status === 404;
       } catch { /* noop */ }
     }
-    _updateProxyBanner(health.online, needsRestart);
+    const reachable = typeof DeviceUtils !== 'undefined'
+      ? DeviceUtils.proxyReachableFromPage(YoutubeSearch.getProxyUrl())
+      : true;
+    _updateProxyBanner(health.online, needsRestart, reachable, 0);
   }
 
   function _injectLearnStyles() {
@@ -796,6 +821,10 @@ const LearnHub = (() => {
       .learn-yt-card-meta { margin:0; font-size:12px; color:var(--text-dim,#999); }
       .learn-yt-card-badge { position:absolute; top:6px; right:6px; background:rgba(79,179,217,.9); color:#0b1623; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; }
       .learn-proxy-banner { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 14px; margin-bottom:10px; background:rgba(217,100,89,.12); border:1px solid rgba(217,100,89,.35); border-radius:10px; font-size:13px; }
+      .learn-proxy-banner.info { background:rgba(90,160,220,.1); border-color:rgba(90,160,220,.35); }
+      .learn-search-yt-fallback { margin-top:12px; }
+      .learn-search-yt-embed { position:relative; padding-bottom:56%; height:0; margin:10px 0; border-radius:10px; overflow:hidden; background:#000; }
+      .learn-search-yt-embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
       .learn-proxy-cmd { background:var(--bg-elev,#222); padding:4px 8px; border-radius:6px; font-size:12px; direction:ltr; }
       .learn-search-help { padding:14px; margin:8px 0; background:var(--bg-elev,#222); border-radius:10px; border-right:3px solid var(--gold,#e3b341); }
       .learn-search-help-steps { margin:8px 0; padding-right:20px; font-size:13px; line-height:1.7; }
