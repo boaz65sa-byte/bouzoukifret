@@ -37,21 +37,93 @@ const FretboardScale = (() => {
       const open = TUNING[ci].midi;
       for (let f = base; f <= base + span && f <= NUM_FRETS; f++) {
         if (f < 0) continue;
-        if (pcs.has(normPc(open + f))) path.push({ ci, f });
+        if (pcs.has(normPc(open + f))) path.push({ ci, fret: f });
       }
     }
     return path;
   }
 
+  /**
+   * מסלול סולם עולה בפוזיציה — 4 מיתרים, תיבת span סריגים, מעבר מיתר + Shift.
+   * @returns {{ci,fret,midi,degree}[]}
+   */
+  function buildScaleDegreePath(intervals, rootPc, base = 0, span = MELODY_POS_SPAN) {
+    const courses = [3, 2, 1, 0];
+    const openLow = TUNING[courses[0]].midi;
+    const upToRoot = (((normPc(rootPc) - normPc(openLow + base)) % 12) + 12) % 12;
+    const startMidi = openLow + base + upToRoot;
+    const degrees = [...(intervals || []), 12];
+    const road = [];
+    let ciIdx = 0;
+    let windowStart = base + upToRoot;
+    let prevMidi = -Infinity;
+
+    function fitsWindow(f) {
+      return f >= windowStart && f <= windowStart + span && f >= 0 && f <= NUM_FRETS;
+    }
+
+    degrees.forEach((iv, i) => {
+      const target = startMidi + iv;
+      if (target <= prevMidi) return;
+      let placed = false;
+
+      while (ciIdx < courses.length) {
+        const ci = courses[ciIdx];
+        const f = fretFromMidi(ci, target);
+        if (f == null) {
+          ciIdx++;
+          continue;
+        }
+        if (f > windowStart + span) {
+          windowStart = Math.max(base, f - span);
+        }
+        if (fitsWindow(f)) {
+          road.push({ ci, fret: f, midi: target, degree: i + 1 });
+          prevMidi = target;
+          placed = true;
+          break;
+        }
+        ciIdx++;
+        if (ciIdx < courses.length) {
+          const fNext = fretFromMidi(courses[ciIdx], target);
+          if (fNext != null) windowStart = Math.max(base, fNext - span);
+        }
+      }
+
+      if (!placed) {
+        for (const ci of courses) {
+          const f = fretFromMidi(ci, target);
+          if (f == null) continue;
+          const bases = legalBasesForFret(f, span).filter(b => b >= base);
+          const b = bases.find(x => f >= x && f <= x + span);
+          if (b == null) continue;
+          road.push({ ci, fret: f, midi: target, degree: i + 1 });
+          windowStart = b;
+          ciIdx = courses.indexOf(ci);
+          prevMidi = target;
+          break;
+        }
+      }
+    });
+    return road;
+  }
+
+  /** עלייה + ירידה לנגינת סולם */
+  function scalePlaySequence(path, descending = true) {
+    if (!path?.length) return [];
+    if (!descending) return [...path];
+    return [...path, ...[...path].reverse().slice(1)];
+  }
+
   /** מסלול על מיתר D בלבד (פראזה) */
   function buildDPath(frets) {
-    return (frets || []).map(f => ({ ci: 0, f }));
+    return (frets || []).map(f => ({ ci: 0, fret: f }));
   }
 
   function makeState(pcs, rootPc, opts = {}) {
     const root = normPc(rootPc);
     const path = opts.path || [];
-    const pathSet = new Set(path.map(p => `${p.ci}-${p.f}`));
+    const pathSet = new Set(path.map(p => `${p.ci}-${p.fret ?? p.f}`));
     const phraseOnD = opts.phraseFrets
       ? new Map(opts.phraseFrets.map((f, i) => [f, i + 1]))
       : null;
@@ -74,7 +146,7 @@ const FretboardScale = (() => {
       let label = NOTE_NAMES[pc];
       if (phraseStep != null) label = active ? '▶' : String(phraseStep);
       else if (inPath && opts.pathLabels) {
-        const idx = path.findIndex(p => p.ci === ci && p.f === f);
+        const idx = path.findIndex(p => p.ci === ci && (p.fret ?? p.f) === f);
         if (idx >= 0) label = String(idx + 1);
       } else if (opts.showFretOnD && ci === 0) {
         label = String(f);
@@ -91,7 +163,7 @@ const FretboardScale = (() => {
   function drawPathOverlay(svg, path, color = '#f0cc74') {
     if (!svg || !path?.length || typeof courseY !== 'function' || typeof fretCenterX !== 'function') return;
     svg.querySelectorAll('.fs-scale-path, .fs-path-label').forEach(el => el.remove());
-    const pts = path.map(p => `${fretCenterX(p.fret)},${courseY(p.ci)}`).join(' ');
+    const pts = path.map(p => `${fretCenterX(p.fret ?? p.f)},${courseY(p.ci)}`).join(' ');
     const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     poly.setAttribute('points', pts);
     poly.setAttribute('fill', 'none');
@@ -104,7 +176,7 @@ const FretboardScale = (() => {
     svg.appendChild(poly);
     path.forEach((p, i) => {
       const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', fretCenterX(p.fret));
+      t.setAttribute('x', fretCenterX(p.fret ?? p.f));
       t.setAttribute('y', courseY(p.ci) - 16);
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('fill', color);
@@ -764,6 +836,8 @@ const FretboardScale = (() => {
     pcsFromIntervals,
     allPositions,
     buildBoxPath,
+    buildScaleDegreePath,
+    scalePlaySequence,
     buildDPath,
     makeState,
     mount,

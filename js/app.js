@@ -580,22 +580,30 @@ function renderDromos() {
     degRow.appendChild(cell);
   });
 
-  // לוח סריגים — כל צלילי הדרומוס על כל המיתרים + מסלול בפוזיציה
+  // לוח סריגים — צלילי הדרומוס בתיבת הפוזיציה + מסלול ממוספר
   const pcs = d.intervals.map(iv => (currentRoot + iv) % 12);
   const pcsSet = new Set(pcs);
   if (!_dromoiPosBase && _dromoiPosBase !== 0) _dromoiPosBase = 0;
+  const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
+  const scalePath = typeof FretboardScale !== 'undefined'
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span)
+    : [];
+  const pathKey = (ci, f) => `${ci}-${f}`;
+  const pathMap = new Map(scalePath.map(p => [pathKey(p.ci, p.fret), p]));
+
   drawFretboard($('#fb-dromos'), (ci, f, midi) => {
     const pc = midi % 12;
     if (!pcsSet.has(pc)) return null;
+    if (f < _dromoiPosBase || f > _dromoiPosBase + span) return null;
+    const onPath = pathMap.get(pathKey(ci, f));
     const idx = pcs.indexOf(pc);
     return {
-      type: idx === 0 ? 'root' : 'note',
-      label: NOTE_NAMES[pc],
+      type: (onPath?.degree === 1 || idx === 0) ? 'root' : 'note',
+      label: onPath ? String(onPath.degree) : NOTE_NAMES[pc],
     };
   });
-  if (typeof FretboardScale !== 'undefined') {
-    const path = FretboardScale.buildBoxPath(pcsSet, _dromoiPosBase);
-    FretboardScale.drawPathOverlay($('#fb-dromos'), path);
+  if (typeof FretboardScale !== 'undefined' && scalePath.length) {
+    FretboardScale.drawPathOverlay($('#fb-dromos'), scalePath);
   }
   if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
 
@@ -620,12 +628,21 @@ function renderSingleString() {
   const wrap = $('#dr-single');
   wrap.innerHTML = '';
   const d = currentDromos;
-  // על מיתר D (קורס 0): הסריג של הטוניקה
-  const openPc = TUNING[0].midi % 12;
-  let rootFret = ((currentRoot - openPc) + 12) % 12;
-  const fretsUp = d.intervals.map(iv => rootFret + iv);
-  fretsUp.push(rootFret + 12);
-  const seq = [...fretsUp, ...[...fretsUp].reverse().slice(1)];
+  const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
+  const scalePath = typeof FretboardScale !== 'undefined'
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span)
+    : [];
+  const dNotes = scalePath.filter(p => p.ci === 0);
+  const seq = dNotes.length
+    ? FretboardScale.scalePlaySequence(dNotes).map(p => p.fret)
+    : (() => {
+      const openPc = TUNING[0].midi % 12;
+      let rootFret = ((currentRoot - openPc) + 12) % 12;
+      const fretsUp = d.intervals.map(iv => rootFret + iv)
+        .filter(f => f >= _dromoiPosBase && f <= _dromoiPosBase + span);
+      fretsUp.push(rootFret + 12);
+      return [...fretsUp, ...[...fretsUp].reverse().slice(1)];
+    })();
   seq.forEach((f, i) => {
     const div = document.createElement('div');
     div.className = 'ss-note';
@@ -641,16 +658,41 @@ function playScale(msPerNote) {
   AudioEngine.ensureCtx();
   clearTimeout(scaleTimer);
   scaleTimer = null;
+  AudioEngine.stopModeScale();
   const svg = $('#fb-dromos');
-  AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
-    gapMs: msPerNote,
-    gain: 0.52,
-    onStep(fret) {
-      const midi = TUNING[0].midi + fret;
-      if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
-      else flashDot(svg, 0, fret);
-    },
-  });
+  const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
+  const path = typeof FretboardScale !== 'undefined'
+    ? FretboardScale.buildScaleDegreePath(currentDromos.intervals, currentRoot, _dromoiPosBase, span)
+    : [];
+  const seq = typeof FretboardScale !== 'undefined'
+    ? FretboardScale.scalePlaySequence(path)
+    : [];
+
+  if (!seq.length) {
+    AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
+      gapMs: msPerNote,
+      gain: 0.52,
+      onStep(fret) {
+        const midi = TUNING[0].midi + fret;
+        if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
+        else flashDot(svg, 0, fret);
+      },
+    });
+    return;
+  }
+
+  let i = 0;
+  function step() {
+    if (i >= seq.length) { scaleTimer = null; return; }
+    const { ci, fret } = seq[i];
+    AudioEngine.pluckCourse(ci, fret, 0, 0.52);
+    const midi = TUNING[ci].midi + fret;
+    if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, midi);
+    else flashDot(svg, ci, fret);
+    i++;
+    scaleTimer = setTimeout(step, msPerNote);
+  }
+  step();
 }
 
 function playSingleString() {
