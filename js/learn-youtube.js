@@ -261,7 +261,7 @@ const LearnHub = (() => {
       if (typeof LearnFlow !== 'undefined') LearnFlow.afterDownload(id, title);
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
-      alert(e.message || String(e));
+      _showProxySetupModal(e.message || String(e));
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '📥 הורד MP3 ללימוד'; }
     }
@@ -742,6 +742,62 @@ const LearnHub = (() => {
     }
   }
 
+  function _showProxySetupModal(reason) {
+    if (document.getElementById('learn-proxy-modal')) {
+      document.getElementById('learn-proxy-modal').remove();
+    }
+    const cur = typeof ProxySettings !== 'undefined' ? ProxySettings.getRaw() : 'http://localhost:3456';
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const overlay = document.createElement('div');
+    overlay.id = 'learn-proxy-modal';
+    overlay.className = 'learn-proxy-modal-overlay';
+    overlay.innerHTML = `
+      <div class="learn-proxy-modal card" role="dialog">
+        <h3>📥 הורדת MP3 דורשת stem-proxy</h3>
+        <p class="hint">${_esc(reason || '')}</p>
+        <p>חיפוש סרטונים עובד מהאתר. להורדה וניתוח AI צריך שרת קטן עם yt-dlp.</p>
+        <ol class="learn-proxy-steps">
+          <li><b>מקומי (הכי פשוט):</b> הריצו <code>tools\\stem-proxy\\start-windows.bat</code></li>
+          <li>השאירו למטה <code>http://localhost:3456</code> ולחצו שמור</li>
+          <li><b>או Render:</b> פרסו מ-<code>render.yaml</code> והדביקו את כתובת השרת</li>
+        </ol>
+        <label for="learn-proxy-url-input">כתובת stem-proxy</label>
+        <input id="learn-proxy-url-input" type="url" dir="ltr" class="learn-proxy-url-input"
+          value="${_esc(cur)}" placeholder="http://localhost:3456" />
+        <p id="learn-proxy-test-status" class="hint"></p>
+        <div class="learn-proxy-modal-actions">
+          <button type="button" class="btn gold" id="learn-proxy-save">שמור ובדוק</button>
+          <button type="button" class="btn secondary" id="learn-proxy-test">בדוק חיבור</button>
+          <button type="button" class="btn secondary" id="learn-proxy-close">סגור</button>
+        </div>
+        ${onPublic ? '<p class="hint">טיפ: גם באתר Vercel — localhost עובד אם stem-proxy רץ על <b>אותו מחשב</b>.</p>' : ''}
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const statusEl = overlay.querySelector('#learn-proxy-test-status');
+    const input = overlay.querySelector('#learn-proxy-url-input');
+
+    async function testProxy() {
+      if (typeof ProxySettings === 'undefined' || typeof StemAPI === 'undefined') return;
+      ProxySettings.save(input.value);
+      statusEl.textContent = 'בודק…';
+      const h = await StemAPI.checkHealth();
+      if (h.ok) {
+        statusEl.textContent = '✓ stem-proxy פעיל — אפשר להוריד שוב';
+        _updateProxyBanner(true, false, true, 0);
+      } else {
+        statusEl.textContent = '✗ לא מגיב — ודאו שהשרת רץ והכתובת נכונה';
+      }
+    }
+
+    overlay.querySelector('#learn-proxy-save')?.addEventListener('click', async () => {
+      await testProxy();
+    });
+    overlay.querySelector('#learn-proxy-test')?.addEventListener('click', testProxy);
+    overlay.querySelector('#learn-proxy-close')?.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  }
+
   async function _updateProxyBanner(online, needsRestart, proxyReachable, resultCount = 0) {
     const el = document.getElementById('learn-proxy-banner');
     if (!el) return;
@@ -757,7 +813,9 @@ const LearnHub = (() => {
       el.hidden = false;
       el.className = 'learn-proxy-banner info';
       el.innerHTML = `
-        <span>ℹ️ <b>חיפוש YouTube פעיל.</b> להורדת MP3 וניתוח stems — פרסו stem-proxy (Render / מקומי) ועדכנו <code>stemProxyUrl</code> ב-config.js</span>`;
+        <span>ℹ️ <b>חיפוש YouTube פעיל.</b> להורדת MP3 — הריצו stem-proxy מקומי או הגדירו כתובת Render.</span>
+        <button type="button" class="btn secondary learn-proxy-setup-btn">⚙️ הגדרות פרוקסי</button>`;
+      el.querySelector('.learn-proxy-setup-btn')?.addEventListener('click', () => _showProxySetupModal());
       return;
     }
 
@@ -775,11 +833,14 @@ const LearnHub = (() => {
     } else {
       el.innerHTML = `
         <span>⚙️ <b>stem-proxy לא פעיל</b> — ${mobileHint}</span>
+        <button type="button" class="btn secondary learn-proxy-setup-btn">⚙️ הגדרות פרוקסי</button>
         <code class="learn-proxy-cmd">cd tools\\stem-proxy &amp;&amp; npm start</code>`;
+      el.querySelector('.learn-proxy-setup-btn')?.addEventListener('click', () => _showProxySetupModal());
     }
   }
 
   async function _checkProxyOnInit() {
+    if (typeof ProxySettings !== 'undefined') await ProxySettings.loadSiteConfig();
     if (typeof YoutubeSearch === 'undefined') return;
     const health = await YoutubeSearch.checkProxy();
     let needsRestart = false;
@@ -822,6 +883,16 @@ const LearnHub = (() => {
       .learn-yt-card-badge { position:absolute; top:6px; right:6px; background:rgba(79,179,217,.9); color:#0b1623; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; }
       .learn-proxy-banner { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 14px; margin-bottom:10px; background:rgba(217,100,89,.12); border:1px solid rgba(217,100,89,.35); border-radius:10px; font-size:13px; }
       .learn-proxy-banner.info { background:rgba(90,160,220,.1); border-color:rgba(90,160,220,.35); }
+      .learn-proxy-setup-btn { margin-inline-start:auto; flex-shrink:0; }
+      .learn-proxy-modal-overlay { position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,.75);
+        display:flex; align-items:center; justify-content:center; padding:16px; }
+      .learn-proxy-modal { max-width:480px; width:100%; padding:20px; }
+      .learn-proxy-modal h3 { margin:0 0 10px; color:var(--gold,#e3b341); }
+      .learn-proxy-steps { margin:12px 0; padding-right:20px; line-height:1.7; font-size:13px; }
+      .learn-proxy-steps code { background:var(--bg-elev,#222); padding:2px 6px; border-radius:4px; direction:ltr; }
+      .learn-proxy-url-input { width:100%; margin:8px 0 12px; padding:10px 12px; border-radius:8px;
+        border:1px solid var(--line,#444); background:var(--bg-elev,#222); color:var(--text,#eee); }
+      .learn-proxy-modal-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
       .learn-search-yt-fallback { margin-top:12px; }
       .learn-search-yt-embed { position:relative; padding-bottom:56%; height:0; margin:10px 0; border-radius:10px; overflow:hidden; background:#000; }
       .learn-search-yt-embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
@@ -856,7 +927,8 @@ const LearnHub = (() => {
         <ol>
           <li><strong>ניתוח בסיסי</strong> — העלאת MP3/WAV עובדת בדפדפן בלבד (Essentia.js).</li>
           <li><strong>config.js</strong> — העתיקו <code>config.example.js</code> ל-<code>config.js</code> והגדירו <code>stemProxyUrl: 'http://localhost:3456'</code>.</li>
-          <li><strong>Stem proxy</strong> — בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code></li>
+          <li><strong>Stem proxy</strong> — בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code>
+            או <code>start-windows.bat</code> · <button type="button" class="btn secondary" id="learn-open-proxy-setup" style="margin-top:6px">⚙️ הגדרות פרוקסי</button></li>
           <li><strong>YouTube</strong> — התקינו yt-dlp: <code>pip install yt-dlp</code> או <code>winget install yt-dlp</code></li>
           <li><strong>LALAL / Moises</strong> — הוסיפו מפתחות ב-<code>tools/stem-proxy/.env</code> (ראו <code>.env.example</code>).</li>
           <li>ריחוף על אקורד בכל האפליקציה → דיאגרמת fingering. בניתוח שיר: האטה עם שמירת pitch + זיהוי אקורד חי (Meyda).</li>
@@ -962,6 +1034,8 @@ const LearnHub = (() => {
         }
       });
     });
+
+    document.getElementById('learn-open-proxy-setup')?.addEventListener('click', () => _showProxySetupModal());
 
     document.getElementById('learn-analyze-video')?.addEventListener('click', () => _goAnalyzeVideo());
     document.getElementById('learn-open-youtube')?.addEventListener('click', () => _openExternalYoutube());

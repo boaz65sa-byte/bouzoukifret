@@ -10,6 +10,9 @@ const StemAPI = (() => {
       stemProxyUrl: 'http://127.0.0.1:3456',
       ...(window.BOUZOUKI_CONFIG || {}),
     };
+    if (typeof ProxySettings !== 'undefined') {
+      base.stemProxyUrl = ProxySettings.getRaw();
+    }
     base.stemProxyUrl = typeof DeviceUtils !== 'undefined'
       ? DeviceUtils.resolveProxyUrl(base.stemProxyUrl)
       : String(base.stemProxyUrl || '').replace(/\/$/, '');
@@ -112,21 +115,44 @@ const StemAPI = (() => {
    */
   async function fetchYoutube(videoId, onProgress, meta = {}) {
     const proxy = proxyUrl();
-    if (!proxy) throw new Error('הגדר stemProxyUrl ב-config.js והרץ stem-proxy');
-    onProgress?.('מוריד מ-YouTube (yt-dlp)…', 8);
     const qs = new URLSearchParams({ id: videoId, library: '1' });
     if (meta.title) qs.set('title', meta.title);
     if (meta.author) qs.set('author', meta.author);
-    const resp = await fetch(`${proxy}/api/youtube-audio?${qs}`, {
-      signal: AbortSignal.timeout(300000),
-    });
-    if (!resp.ok) {
-      let msg = `YouTube ${resp.status}`;
-      try { msg = (await resp.json()).error || msg; } catch { /* noop */ }
-      throw new Error(msg);
+
+    async function _fetchFrom(url, label) {
+      onProgress?.(`מוריד מ-YouTube (${label})…`, 8);
+      const resp = await fetch(`${url}?${qs}`, { signal: AbortSignal.timeout(300000) });
+      if (!resp.ok) {
+        let msg = `YouTube ${resp.status}`;
+        try { msg = (await resp.json()).error || msg; } catch { /* noop */ }
+        throw new Error(msg);
+      }
+      onProgress?.('הורדה הושלמה', 25);
+      return resp.blob();
     }
-    onProgress?.('הורדה הושלמה', 25);
-    return resp.blob();
+
+    if (proxy) {
+      try {
+        const health = await checkHealth();
+        if (health.ok) {
+          return _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+        }
+      } catch { /* try fallbacks */ }
+    }
+
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    if (onPublic) {
+      try {
+        const qs2 = new URLSearchParams({ id: videoId });
+        if (meta.title) qs2.set('title', meta.title);
+        return await _fetchFrom('/api/youtube-audio', 'שרת');
+      } catch (e) {
+        if (!proxy) throw e;
+      }
+    }
+
+    if (!proxy) throw new Error('הגדר stemProxyUrl ב-config.js או ב«הגדרות פרוקסי»');
+    return _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
   }
 
   async function saveBlobAsFile(blob, filename) {
@@ -175,12 +201,16 @@ const StemAPI = (() => {
 
     const health = await checkHealth();
     if (!health.ok) {
-      const hint = typeof DeviceUtils !== 'undefined'
-        ? DeviceUtils.proxyHintMessage(proxyUrl())
-        : 'הריצו tools/stem-proxy והגדירו config.js';
-      throw new Error(`stem-proxy לא פעיל — ${hint.replace(/<[^>]+>/g, '')}`);
+      const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+      if (!onPublic) {
+        const hint = typeof DeviceUtils !== 'undefined'
+          ? DeviceUtils.proxyHintMessage(proxyUrl())
+          : 'הריצו tools/stem-proxy והגדירו config.js';
+        throw new Error(`stem-proxy לא פעיל — ${hint.replace(/<[^>]+>/g, '')}`);
+      }
+    } else if (!health.ytdlp) {
+      throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
     }
-    if (!health.ytdlp) throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
 
     const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
     const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();

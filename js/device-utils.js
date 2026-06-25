@@ -48,20 +48,14 @@ const DeviceUtils = (() => {
     }
   }
 
-  /** stem-proxy על localhost לא נגיש מדפדפן באתר מפורסם */
-  function proxyReachableFromPage(proxyUrl) {
-    try {
-      const u = new URL(proxyUrl || resolveProxyUrl());
-      if (!isPublicHostedPage()) return true;
-      return !isLocalProxyHost(u.hostname);
-    } catch {
-      return false;
-    }
+  /** localhost:3456 עובד גם כשהאתר על Vercel — אם stem-proxy רץ על אותו מחשב */
+  function proxyReachableFromPage() {
+    return true;
   }
 
   function proxyHintMessage(proxyUrl) {
     if (isPublicHostedPage() && isLocalProxyHost(new URL(proxyUrl).hostname)) {
-      return 'חיפוש סרטונים עובד מהאתר. להורדת MP3 ו-stems: פרסו stem-proxy (Render / מקומי) ועדכנו <code>stemProxyUrl</code> ב-config.js';
+      return 'הריצו stem-proxy מקומי (start-windows.bat) והגדירו http://localhost:3456 ב«הגדרות פרוקסי» — עובד גם מ-Vercel על אותו מחשב';
     }
     if (!isMobile()) {
       return `הריצו stem-proxy: cd tools\\stem-proxy && npm start (${proxyUrl})`;
