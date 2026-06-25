@@ -2196,6 +2196,14 @@ select {
 }
 .st-engine-row { font-size: 13px; color: var(--text-dim); }
 .st-engine.active { background: var(--aegean-deep); color: #fff; }
+.st-export { padding: 12px 14px; }
+.st-export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.st-export-row b { color: var(--gold-soft); }
+.st-export-row .btn { min-width: auto; }
+
+/* ============================================================
+   Bouzouki Studio — אולפן בוזוקי
+   ============================================================ */
 
 /* ============================================================
    Bouzouki Studio — אולפן בוזוקי

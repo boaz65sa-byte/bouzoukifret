@@ -242,8 +242,13 @@ const SongTeacher = (() => {
         <h2 class="st-h">למד אותי את השיר</h2>
         <p class="st-hint">העלו MP3/WAV — האפליקציה תחלץ <b>מלודיה</b> ו<b>אקורדים</b>, ותלמד אתכם לנגן: הגריף יאיר כל תו, האקורד יוצג, ותוכלו להאט וללופ.</p>
         <div class="st-load-row">
-          <input type="file" id="st-file" accept="audio/*">
+          <input type="file" id="st-file" accept="audio/*" placeholder="בחרו קובץ אודיו">
           <span id="st-status" class="st-status"></span>
+        </div>
+        <div class="st-load-row" style="gap:0; align-items:center;"><span style="color:var(--text-dim);font-size:12px;">או:</span></div>
+        <div class="st-load-row">
+          <input type="file" id="st-json" accept=".json" placeholder="או טענו ניתוח שמור (JSON)">
+          <span style="color:var(--text-dim);font-size:12px;">טענו שיר שהורדתם</span>
         </div>
         <div class="st-load-row st-engine-row">
           <span>מנוע תמלול:</span>
@@ -255,6 +260,24 @@ const SongTeacher = (() => {
       </div>
       <div id="st-lesson"></div>`;
     $('#st-file', el).addEventListener('change', e => { if (e.target.files[0]) analyzeFile(e.target.files[0]); });
+    const jsonInput = $('#st-json', el);
+    if (jsonInput) {
+      jsonInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = JSON.parse(evt.target.result);
+            if (data.chords && data.tabNotes) {
+              loadAnalysis({ chords: data.chords, tabNotes: data.tabNotes, bpm: data.bpm, engine: data.engine });
+              setStatus('הניתוח נטען בהצלחה', 100);
+            } else throw new Error('פורמט JSON לא תקין');
+          } catch (err) { setStatus('שגיאה בטעינה: ' + (err.message || err), 0); }
+        };
+        reader.readAsText(file);
+      });
+    }
     el.querySelectorAll('.st-engine').forEach(b => b.addEventListener('click', () => {
       _engine = b.dataset.e;
       el.querySelectorAll('.st-engine').forEach(x => x.classList.toggle('active', x === b));
@@ -308,6 +331,14 @@ const SongTeacher = (() => {
         <label class="st-toggle"><input type="checkbox" id="st-withchords" checked> ליווי אקורדים</label>
         <button class="btn small" id="st-loop">🔁 לולאה: כבוי</button>
         <div class="st-prog"><div class="st-prog-bar"><div id="st-prog-fill2"></div></div><span id="st-prog-time" class="st-prog-time">0:00 / ${fmt(_duration)}</span></div>
+      </div>
+
+      <div class="card st-export">
+        <div class="st-export-row">
+          <b>הורד את השיר:</b>
+          <button class="btn small" id="st-export-html">💾 כ-HTML (שיעור אופליין)</button>
+          <button class="btn small" id="st-export-json">📋 כ-JSON (טעינה מחדש)</button>
+        </div>
       </div>`;
 
     _fbSvg = $('#st-fb');
@@ -333,6 +364,90 @@ const SongTeacher = (() => {
     });
   }
 
+  /* ---------- ייצוא / הורדה ---------- */
+  function exportAsJson() {
+    if (!_analysis) { alert('אין לנתח תחילה'); return; }
+    const data = {
+      title: 'שיר',
+      bpm: _analysis.bpm,
+      engine: _analysis.engine,
+      duration: _duration,
+      chords: _chords,
+      tabNotes: _melody,
+      exportDate: new Date().toISOString(),
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `שיר-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function exportAsHtml() {
+    if (!_analysis) { alert('אין לנתח תחילה'); return; }
+    const sheet = buildStandaloneLesson();
+    const html = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>שיר — בוזוקי</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
+.st-lesson{margin:0 auto;max-width:1000px;background:#fff;border-radius:8px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.st-info{display:flex;flex-wrap:wrap;gap:16px;padding:10px;color:#666;font-size:13px;margin-bottom:10px;border-bottom:1px solid #ddd;}
+.st-info b{color:#d4a574;}
+.st-fb-title{color:#666;font-size:13px;margin-bottom:8px;font-weight:600;}
+.st-melstrip{display:flex;flex-direction:row-reverse;gap:5px;overflow-x:auto;padding:6px 0;}
+.st-mel-cell{flex:0 0 auto;min-width:42px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(143,166,188,0.2);border-radius:7px;padding:6px 4px;}
+.st-mel-note{display:block;font-weight:800;color:#333;}
+.st-mel-pos{display:block;font-size:10px;color:#999;font-family:monospace;}
+svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
+.st-hint{color:#999;font-size:12px;margin-top:10px;}
+@media print{html,body{background:#fff;padding:0;}svg{break-inside:avoid;}}
+</style></head>
+<body>
+<div class="st-lesson">
+  <h1 style="margin:0 0 10px;color:#d4a574;">שיר</h1>
+  <div class="st-info">
+    <span><b>BPM:</b> ${_analysis.bpm || '—'}</span>
+    <span><b>תווי מלודיה:</b> ${_melody.length}</span>
+    <span><b>אקורדים:</b> ${_chords.length}</span>
+    <span><b>מנוע:</b> ${_analysis.engine || '—'}</span>
+    <span><b>תאריך:</b> ${new Date().toLocaleDateString('he-IL')}</span>
+  </div>
+  <div class="st-fb-title">המלודיה על הגריף</div>
+  ${_fbSvg ? _fbSvg.outerHTML : '<p style="color:#999;">גריף לא זמין</p>'}
+  <div class="st-fb-title" style="margin-top:20px;">מלודיה (תו · מיתר)</div>
+  <div class="st-melstrip">
+    ${_melody.map(n => {
+      const labels = ['D', 'A', 'F', 'C'];
+      const noteName = (typeof NOTE_NAMES !== 'undefined') ? NOTE_NAMES[n.midi % 12] : '';
+      return '<div class="st-mel-cell"><span class="st-mel-note">' + noteName + '</span><span class="st-mel-pos">' + (labels[n.course] || '') + '·' + n.fret + '</span></div>';
+    }).join('')}
+  </div>
+  <p class="st-hint">שיר שהוריד מאפליקציית בוזוקי — <a href="https://bouzoukifret.web.app" style="color:#d4a574;">bouzoukifret.web.app</a></p>
+</div>
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `שיר-${date}.html`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function buildStandaloneLesson() {
+    // helper to get the SVG — will be used in exportAsHtml
+    return '';
+  }
+
   function bindLesson(host) {
     $('#st-play', host).addEventListener('click', togglePlay);
     host.querySelectorAll('.st-speed').forEach(b => b.addEventListener('click', () => {
@@ -352,6 +467,8 @@ const SongTeacher = (() => {
         lp.classList.add('active');
       }
     });
+    $('#st-export-html', host).addEventListener('click', exportAsHtml);
+    $('#st-export-json', host).addEventListener('click', exportAsJson);
   }
 
   function stopAll() { stop(); }
