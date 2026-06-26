@@ -25,6 +25,8 @@ $$('.nav-btn').forEach(btn => {
       SongLibrary.resetMobileView();
     }
     if (btn.dataset.screen === 'learn-lib' && typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
+    // מצייר מחדש את מסך הדרומוסים בכל כניסה (הרינדור הראשוני רץ מוקדם מדי ומשאיר גריף ריק)
+    if (btn.dataset.screen === 'dromoi' && typeof renderDromos === 'function') renderDromos();
     stopAllPlayback();
   });
 });
