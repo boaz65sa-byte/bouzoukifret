@@ -259,8 +259,16 @@ const DromosLearn = (() => {
             <p class="dpc-prog">${stagesDone}/${dc.stages.length} שלבים · אקורדים: ${dc.common_chords.join(', ')}</p>
           </div>
         </div>
+        <div class="dpc-road-host" id="dpc-road-${dc.id}"></div>
         <div class="penia-practical-grid dpc-stages-grid"></div>`;
       const grid = section.querySelector('.dpc-stages-grid');
+
+      // "הכביש" — מסלול מעשי על 1–4 מיתרים + פוזיציות (רכיב משותף)
+      if (dromos && typeof DromosRoad !== 'undefined') {
+        DromosRoad.renderInto(section.querySelector(`#dpc-road-${dc.id}`), {
+          intervals: dromos.intervals, rootPc: 2, nameHe: dromos.nameHe || dc.title,
+        });
+      }
 
       dc.stages.forEach((stage, i) => {
         const key = stageKey(dc, i);
