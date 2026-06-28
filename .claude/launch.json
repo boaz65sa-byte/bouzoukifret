@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-l", "3334", "."],
       "port": 3334
+    },
+    {
+      "name": "supplier-orders",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3335", "C:/Users/user/AppData/Local/Temp/claude/C--Users-user-Desktop-bouzoukifret/208f72d9-5e6d-461f-88d5-90dee9b49893/scratchpad/supplier-preview"],
+      "port": 3335
     }
   ]
 }
