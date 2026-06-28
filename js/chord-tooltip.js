@@ -6,6 +6,8 @@
 const ChordTooltip = (() => {
   let _el = null;
   let _hideTimer = null;
+  let _activeAnchor = null;
+  let _docDismissBound = false;
 
   const SHARP_TO_FLAT = { 'A#': 'Bb', 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab' };
 
@@ -81,21 +83,51 @@ const ChordTooltip = (() => {
   function hide() {
     _hideTimer = setTimeout(() => {
       if (_el) _el.hidden = true;
+      _activeAnchor = null;
     }, 120);
+  }
+
+  // סגירה בלחיצה מחוץ ל-tooltip/לאלמנט — נדרש למובייל (אין mouseleave במגע)
+  function _bindDocDismiss() {
+    if (_docDismissBound) return;
+    _docDismissBound = true;
+    document.addEventListener('click', (e) => {
+      if (!_el || _el.hidden) return;
+      if (_el.contains(e.target)) return;
+      if (_activeAnchor && _activeAnchor.contains(e.target)) return;
+      _el.hidden = true;
+      _activeAnchor = null;
+    });
   }
 
   function bindHover(el, getChordName) {
     if (!el) return;
+    const resolve = () => (typeof getChordName === 'function' ? getChordName() : getChordName);
     el.addEventListener('mouseenter', () => {
-      const name = typeof getChordName === 'function' ? getChordName() : getChordName;
+      const name = resolve();
       if (name) show(name, el);
     });
     el.addEventListener('mouseleave', hide);
     el.addEventListener('focus', () => {
-      const name = typeof getChordName === 'function' ? getChordName() : getChordName;
+      const name = resolve();
       if (name) show(name, el);
     });
     el.addEventListener('blur', hide);
+    // מגע/קליק — toggle (במובייל אין hover)
+    el.addEventListener('click', () => {
+      const name = resolve();
+      if (!name) return;
+      if (_el && !_el.hidden && _activeAnchor === el) {
+        clearTimeout(_hideTimer);
+        _el.hidden = true;
+        _activeAnchor = null;
+      } else {
+        clearTimeout(_hideTimer);
+        show(name, el);
+        _activeAnchor = el;
+        _bindDocDismiss();
+      }
+    });
   }
 
   /** כל האלמנטים עם data-chord בתוך root */

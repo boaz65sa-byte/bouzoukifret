@@ -359,6 +359,7 @@ const ScaleExplorer = (() => {
         <div id="ex-chords-info" class="ex-chords-info"></div>
       </div>
       <div id="ex-fb-host"></div>
+      <div id="ex-road-host"></div>
       <div class="ex-compare">
         <label>השווה ל:
           <select id="ex-compare"><option value="-1">— ללא —</option>${DROMOI.map((d, i) => `<option value="${i}">${d.nameHe}</option>`).join('')}</select>
@@ -404,6 +405,7 @@ const ScaleExplorer = (() => {
         onChange(st) {
           _posBase = st.posBase;
           _stringMode = st.stringMode;
+          renderRoad(dr);
         },
       });
     } else if (host) {
@@ -430,6 +432,24 @@ const ScaleExplorer = (() => {
     } else if (svg2) {
       svg2.style.display = 'none';
     }
+
+    renderRoad(dr);
+  }
+
+  // "הכביש" — מסונכרן עם הפוזיציה/מיתרים של הפאנל (embedded)
+  function renderRoad(dr) {
+    const host = document.querySelector('#ex-road-host');
+    if (!host || typeof DromosRoad === 'undefined' || !dr) return;
+    const st = _panel?.getState?.() || { posBase: _posBase, stringMode: _stringMode };
+    DromosRoad.renderInto(host, {
+      intervals: dr.intervals,
+      rootPc,
+      nameHe: dr.nameHe,
+      fretboard: _panel?.getSvg?.() || document.querySelector('#fb-explorer'),
+      embedded: true,
+      posBase: st.posBase,
+      stringMode: st.stringMode,
+    });
   }
 
   function playScaleDir(dir) {
@@ -442,7 +462,7 @@ const ScaleExplorer = (() => {
     AudioEngine.playModeScale(dr.intervals, rootPc, {
       gapMs: 350,
       gain: 0.48,
-      descending: dir !== 'down',
+      descending: dir === 'down',
       posBase: st.posBase,
       stringMode: st.stringMode,
       onStep(fret, i, p) {
@@ -495,6 +515,7 @@ const ScaleChords = (() => {
         </label>
       </div>
       <div id="sc-degrees" class="sc-degrees"></div>
+      <div id="sc-road-host"></div>
       <div id="sc-progressions" class="sc-progressions"></div>
     `;
     document.querySelector('#sc-dromos').addEventListener('change', e => { selDromos = +e.target.value; render(); });
@@ -550,6 +571,12 @@ const ScaleChords = (() => {
     });
     html += '</div>';
     degs.innerHTML = html;
+
+    // "הכביש" — מסלול מעשי על 1–4 מיתרים + פוזיציות
+    const roadHost = document.querySelector('#sc-road-host');
+    if (roadHost && typeof DromosRoad !== 'undefined') {
+      DromosRoad.renderInto(roadHost, { intervals: dr.intervals, rootPc, nameHe: dr.nameHe });
+    }
 
     degs.querySelectorAll('.sc-hear').forEach(btn => {
       btn.addEventListener('click', e => {
@@ -1125,7 +1152,7 @@ const XpSystem = (() => {
 
         .jam-prog { margin: 10px 0; font-size: 15px; text-align: center; }
         .jam-chord { padding: 4px 10px; border-radius: 6px; background: var(--bg-elev, #222);
-          cursor: help; font-size: 13px; transition: background 0.15s; }
+          cursor: help; font-size: 13px; transition: background 0.15s;
           display: inline-block; margin: 2px; }
         .jam-chord.active { background: var(--gold, #e3b341); color: #111; font-weight: 700; }
         .jam-btns { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
