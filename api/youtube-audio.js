@@ -89,6 +89,13 @@ async function fetchAudioStream(url, headers = {}) {
 }
 
 const YTDLP_FORMAT = '140/ba[ext=m4a]/ba[ext=mp4]/bestaudio[ext=m4a]/bestaudio';
+const YTDLP_OPTS = {
+  quiet: true,
+  noWarnings: true,
+  noPlaylist: true,
+  noCallHome: true,
+  remoteComponents: 'ejs:github',
+};
 
 function pickYtDlpStreamUrl(info) {
   if (info?.url) return { url: info.url, type: 'audio/mp4' };
@@ -110,10 +117,7 @@ async function audioFromYtDlp(id) {
     const info = await ytdlp(watchUrl, {
       dumpSingleJson: true,
       format: YTDLP_FORMAT,
-      quiet: true,
-      noWarnings: true,
-      noPlaylist: true,
-      noCallHome: true,
+      ...YTDLP_OPTS,
     });
     const pick = pickYtDlpStreamUrl(info);
     if (!pick?.url) return null;
@@ -137,10 +141,7 @@ async function audioFromYtDlpFile(id) {
     await ytdlp(watchUrl, {
       format: YTDLP_FORMAT,
       output: out,
-      quiet: true,
-      noWarnings: true,
-      noPlaylist: true,
-      noCallHome: true,
+      ...YTDLP_OPTS,
     });
     const buf = await readFile(out);
     await unlink(out).catch(() => {});
@@ -148,7 +149,7 @@ async function audioFromYtDlpFile(id) {
     return { buffer: buf, type: 'audio/mp4' };
   } catch (err) {
     console.error('[youtube-audio] yt-dlp file', err.message || err);
-    await unlinkAsync(out).catch(() => {});
+    await unlink(out).catch(() => {});
     return null;
   }
 }
