@@ -261,7 +261,9 @@ const LearnHub = (() => {
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
       const msg = String(e.message || '');
-      if (/stem-proxy|yt-dlp|לא נמצא מקור|לא הצלחנו/i.test(msg)) {
+      const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+      const showProxy = !onPublic && /stem-proxy|yt-dlp|localhost:3456/i.test(msg);
+      if (showProxy) {
         _showProxySetupModal(msg);
       }
     } finally {
@@ -798,10 +800,10 @@ const LearnHub = (() => {
     overlay.className = 'learn-proxy-modal-overlay';
     overlay.innerHTML = `
       <div class="learn-proxy-modal card" role="dialog">
-        <h3>📥 בעיית הורדה</h3>
+        <h3>📥 בעיית הורדה (מחשב מקומי)</h3>
         <p class="hint">${_esc(reason || '')}</p>
-        <p><b>ההורדה אמורה להישמר במכשיר שבו אתם פתוחים</b> (ספריית לימוד) — לא על שרת חיצוני. נסו שוב בעוד דקה.</p>
-        <p class="hint">אופציונלי לשיפור מהירות במחשב: stem-proxy מקומי עם yt-dlp.</p>
+        <p><b>באתר / טלפון / טאבלט</b> — אין צורך ב-stem-proxy. נסו שוב בעוד דקה.</p>
+        <p class="hint">אופציונלי רק במחשב: stem-proxy + yt-dlp לשיפור מהירות.</p>
         <ol class="learn-proxy-steps">
           <li><b>מקומי (הכי פשוט):</b> הריצו <code>tools\\stem-proxy\\start-windows.bat</code></li>
           <li>השאירו למטה <code>http://localhost:3456</code> ולחצו שמור</li>

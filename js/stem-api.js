@@ -114,7 +114,7 @@ const StemAPI = (() => {
       } catch { /* next */ }
     }
 
-    throw new Error('לא נמצא מקור אודיו — הריצו stem-proxy מקומי (start-windows.bat) או נסו שוב מאוחר יותר');
+    throw new Error('לא הצלחנו להוריד את השיר — נסו שוב בעוד דקה. אין צורך ב-stem-proxy; ההורדה נשמרת במכשיר שלכם.');
   }
 
   /**
@@ -243,9 +243,15 @@ const StemAPI = (() => {
     const errors = [];
 
     if (hasApi) {
-      try {
-        return await _fetchFrom('/api/youtube-audio', 'אתר');
-      } catch (e) { errors.push(e); }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) {
+            onProgress?.(`מנסה שוב להוריד (${attempt + 1}/3)…`, 4 + attempt * 2);
+            await new Promise((r) => setTimeout(r, 1200 * attempt));
+          }
+          return await _fetchFrom('/api/youtube-audio', 'אתר');
+        } catch (e) { errors.push(e); }
+      }
     }
 
     if (proxy) {
@@ -257,9 +263,11 @@ const StemAPI = (() => {
       } catch (e) { errors.push(e); }
     }
 
-    try {
-      return await fetchViaPipedOrInvidious(videoId, onProgress);
-    } catch (e) { errors.push(e); }
+    if (!onPublic) {
+      try {
+        return await fetchViaPipedOrInvidious(videoId, onProgress);
+      } catch (e) { errors.push(e); }
+    }
 
     if (proxy) {
       try {

@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "api/youtube-audio.js": { "maxDuration": 60 },
+    "api/youtube-search.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/(.*)",
