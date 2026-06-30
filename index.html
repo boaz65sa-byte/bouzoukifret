@@ -15,6 +15,13 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <link rel="stylesheet" href="css/style.css">
+<script>
+(function () {
+  if (location.hostname === 'bouzoukifret.web.app') {
+    location.replace('https://bouzoukifret.vercel.app' + location.pathname + location.search + location.hash);
+  }
+})();
+</script>
 </head>
 <body>
 

@@ -264,21 +264,21 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'מזהה YouTube לא תקין' });
   }
 
-  const proxy = String(process.env.STEM_PROXY_URL || '').trim().replace(/\/$/, '');
+  const proxy = String(process.env.STEM_PROXY_URL || process.env.REMOTE_YT_PROXY || '').trim().replace(/\/$/, '');
   const qs = new URLSearchParams({ id, library: '0' });
   if (req.query.title) qs.set('title', String(req.query.title).slice(0, 120));
 
-  const attempts = [
+  const attempts = [];
+  if (proxy && !isLocalStemProxy(proxy)) {
+    attempts.push(() => audioFromStemProxy(proxy, qs));
+  }
+  attempts.push(
     () => audioFromYtDlp(id),
     () => audioFromYtDlpFile(id),
     () => audioFromInnerTube(id),
     () => audioFromPiped(id),
     () => audioFromInvidious(id),
-  ];
-
-  if (proxy && !isLocalStemProxy(proxy)) {
-    attempts.push(() => audioFromStemProxy(proxy, qs));
-  }
+  );
 
   for (const tryFn of attempts) {
     try {
