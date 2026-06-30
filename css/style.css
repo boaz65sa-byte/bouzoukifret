@@ -2201,10 +2201,14 @@ select {
 .st-vocal-lyrics { padding:12px 14px; }
 .st-vocal-scroll { max-height:240px; overflow-y:auto; margin-top:8px; }
 .st-vocal-sec-name { font-size:11px; color:var(--gold); font-weight:700; margin:10px 0 4px; }
-.st-vocal-line { margin:6px 0; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,.03); line-height:1.55; }
+.st-vocal-line { margin:6px 0; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,.03); line-height:1.55; transition:background .15s, box-shadow .15s; }
+.st-vocal-line.st-vocal-line-active { background:rgba(212,165,116,.18); box-shadow:inset 3px 0 0 var(--gold); }
+.st-vocal-line.st-vocal-line-dim { opacity:.55; }
 .st-vocal-greek { text-align:left; font-family:Georgia,serif; }
 .st-vocal-chords { display:block; font-size:11px; color:var(--aegean); margin-bottom:2px; font-family:monospace; }
-.st-vocal-text { font-size:15px; }
+.st-vocal-text { font-size:15px; display:inline; }
+.st-vocal-word { display:inline; padding:1px 3px; border-radius:4px; margin:0 1px; transition:background .12s, color .12s; }
+.st-vocal-word.st-vocal-word-active { background:var(--gold); color:#1a1408; font-weight:800; }
 .st-export { padding: 12px 14px; }
 .st-export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .st-export-row b { color: var(--gold-soft); }

@@ -33,6 +33,11 @@ const SongTeacher = (() => {
   let _vocalCtx = null;       // { title, song, videoId, vocalBlob }
   let _vocalUrl = null;
   let _vocalAudio = null;
+  let _lyricAlign = null;     // { lines, phraseToLine }
+  let _syncVocal = true;
+  let _vocalSyncedPlay = false;
+  let _lastLyricLine = -1;
+  let _lastWordIdx = -1;
   const STR_LABELS = ['D', 'A', 'F', 'C'];
 
   /* ---------- עזרים ---------- */
@@ -69,16 +74,121 @@ const SongTeacher = (() => {
   function rebuildPhrases() {
     if (!_melody.length || typeof FretboardScale === 'undefined') {
       _phrases = _melody.length ? [_melody] : [];
+      rebuildLyricAlign();
       return;
     }
     _phrases = FretboardScale.splitPhrases(_melody, 0.38, 16);
     if (_phraseIdx >= _phrases.length) _phraseIdx = 0;
+    rebuildLyricAlign();
+  }
+
+  function buildLyricAlign(song, phrases) {
+    const lines = [];
+    (song?.sections || []).forEach(sec => {
+      (sec.lines || []).forEach(line => {
+        const text = String(line.lyrics || '').trim();
+        if (!text) return;
+        lines.push({
+          section: sec.name,
+          lyrics: text,
+          words: text.split(/\s+/).filter(Boolean),
+          chords: (line.chords || []).filter(Boolean),
+        });
+      });
+    });
+    const phraseToLine = [];
+    const pN = phrases?.length || 0;
+    const lN = lines.length;
+    if (pN && lN) {
+      for (let p = 0; p < pN; p++) {
+        phraseToLine[p] = Math.min(lN - 1, Math.floor((p + 0.5) * lN / pN));
+      }
+    }
+    return { lines, phraseToLine };
+  }
+
+  function rebuildLyricAlign() {
+    if (!_vocalCtx?.song) {
+      _lyricAlign = null;
+      return;
+    }
+    _lyricAlign = buildLyricAlign(_vocalCtx.song, _phrases);
+  }
+
+  function clearLyricHighlight() {
+    _lastLyricLine = -1;
+    _lastWordIdx = -1;
+    document.querySelectorAll('.st-vocal-line-active').forEach(el => el.classList.remove('st-vocal-line-active'));
+    document.querySelectorAll('.st-vocal-word-active').forEach(el => el.classList.remove('st-vocal-word-active'));
+  }
+
+  function highlightLyricPlayback(phraseIdx, noteIdxInPhrase) {
+    if (!_lyricAlign?.lines?.length) return;
+    const lineIdx = _lyricAlign.phraseToLine[phraseIdx];
+    if (lineIdx == null) return;
+    const phraseLen = (_phrases[phraseIdx] || []).length || 1;
+    const words = _lyricAlign.lines[lineIdx].words.length || 1;
+    const wordIdx = words <= 1
+      ? 0
+      : Math.min(words - 1, Math.floor((noteIdxInPhrase / phraseLen) * words));
+
+    if (lineIdx === _lastLyricLine && wordIdx === _lastWordIdx) return;
+    _lastLyricLine = lineIdx;
+    _lastWordIdx = wordIdx;
+
+    document.querySelectorAll('.st-vocal-line').forEach(el => {
+      el.classList.toggle('st-vocal-line-active', parseInt(el.dataset.lyricIdx, 10) === lineIdx);
+    });
+    document.querySelectorAll('.st-vocal-word').forEach(el => {
+      const li = parseInt(el.dataset.lyricIdx, 10);
+      const wi = parseInt(el.dataset.wordIdx, 10);
+      el.classList.toggle('st-vocal-word-active', li === lineIdx && wi === wordIdx);
+    });
+    const activeLine = document.querySelector(`.st-vocal-line[data-lyric-idx="${lineIdx}"]`);
+    if (activeLine) {
+      try { activeLine.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
+  }
+
+  function noteIndexInPhrase(globalIdx) {
+    const n = _melody[globalIdx];
+    if (!n) return 0;
+    const pi = phraseIndexForTime(n.time);
+    const phrase = _phrases[pi] || [];
+    let idx = 0;
+    for (let i = 0; i < phrase.length; i++) {
+      const p = phrase[i];
+      if (p.time === n.time && p.course === n.course && p.fret === n.fret) return i;
+      if (p.time <= n.time) idx = i;
+    }
+    return idx;
+  }
+
+  function syncVocalAudio(elapsed, playing) {
+    if (!_vocalUrl || !_syncVocal || !_vocalCtx) return;
+    if (!_vocalAudio) _vocalAudio = new Audio(_vocalUrl);
+    _vocalAudio.playbackRate = _speed;
+    if (playing) {
+      if (Math.abs(_vocalAudio.currentTime - elapsed) > 0.25) {
+        _vocalAudio.currentTime = Math.max(0, elapsed);
+      }
+      if (_vocalAudio.paused) _vocalAudio.play().catch(() => {});
+      _vocalSyncedPlay = true;
+      const btn = $('#st-vocal-play');
+      if (btn) btn.textContent = '⏸ עצור קול';
+    }
   }
 
   function phraseLabel() {
     if (!_phrases.length) return '';
     const p = _phrases[_phraseIdx] || [];
-    return `משפט ${_phraseIdx + 1}/${_phrases.length} · ${p.length} תווים`;
+    let extra = '';
+    if (_lyricAlign?.phraseToLine && _lyricAlign.lines.length) {
+      const li = _lyricAlign.phraseToLine[_phraseIdx];
+      const text = li != null ? _lyricAlign.lines[li]?.lyrics : '';
+      if (text) extra = ` · «${text.length > 36 ? text.slice(0, 36) + '…' : text}»`;
+    }
+    return `משפט ${_phraseIdx + 1}/${_phrases.length} · ${p.length} תווים${extra}`;
   }
 
   function learnHint() {
@@ -129,6 +239,7 @@ const SongTeacher = (() => {
   function loadAnalysis(analysis) {
     if (!analysis) return;
     _vocalCtx = null;
+    _lyricAlign = null;
     revokeVocalUrl();
     _analysis = analysis;
     ingest(analysis);
@@ -162,33 +273,45 @@ const SongTeacher = (() => {
   }
 
   function renderVocalLyrics(song) {
-    if (!song?.sections?.length) return '';
+    rebuildLyricAlign();
+    if (!_lyricAlign?.lines?.length) {
+      return `<div class="card st-vocal-lyrics"><p class="hint">אין מילים במאגר לשיר זה — המלודיה על הגריף בלבד.</p></div>`;
+    }
     const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
-    const blocks = song.sections.map(sec => {
-      const lines = (sec.lines || []).map(line => {
-        if (!line.lyrics) return '';
-        const greek = /[Ͱ-Ͽ]/.test(line.lyrics);
-        const chords = (line.chords || []).filter(Boolean).join(' · ');
-        return `<div class="st-vocal-line${greek ? ' st-vocal-greek' : ''}" dir="${greek ? 'ltr' : 'rtl'}">
-          ${chords ? `<span class="st-vocal-chords">${esc(chords)}</span>` : ''}
-          <span class="st-vocal-text">${esc(line.lyrics)}</span>
-        </div>`;
-      }).join('');
-      return `<div class="st-vocal-sec"><div class="st-vocal-sec-name">[${esc(sec.name)}]</div>${lines}</div>`;
-    }).join('');
+    let lastSec = '';
+    const parts = [];
+    _lyricAlign.lines.forEach((line, i) => {
+      if (line.section !== lastSec) {
+        lastSec = line.section;
+        parts.push(`<div class="st-vocal-sec"><div class="st-vocal-sec-name">[${esc(line.section)}]</div>`);
+      }
+      const greek = /[Ͱ-Ͽ]/.test(line.lyrics);
+      const chords = line.chords.length ? `<span class="st-vocal-chords">${esc(line.chords.join(' · '))}</span>` : '';
+      const wordsHtml = line.words.map((w, wi) =>
+        `<span class="st-vocal-word" data-lyric-idx="${i}" data-word-idx="${wi}">${esc(w)}</span>`,
+      ).join(' ');
+      const mapped = _lyricAlign.phraseToLine.includes(i);
+      parts.push(`<div class="st-vocal-line${greek ? ' st-vocal-greek' : ''}${mapped ? '' : ' st-vocal-line-dim'}" data-lyric-idx="${i}" dir="${greek ? 'ltr' : 'rtl'}">
+        ${chords}
+        <span class="st-vocal-text">${wordsHtml}</span>
+      </div>`);
+      const nextSec = _lyricAlign.lines[i + 1]?.section;
+      if (nextSec !== line.section) parts.push('</div>');
+    });
+    if (!parts[parts.length - 1]?.endsWith('</div>')) parts.push('</div>');
+
     return `<div class="card st-vocal-lyrics">
-      <div class="st-fb-title">מילות השיר (מהמאגר)</div>
-      <p class="hint">המילים מסונכרנות לפי משפטים — תנגנו את המלודיה על הגריף בזמן שאתם שרים/שומעים.</p>
-      <div class="st-vocal-scroll">${blocks}</div>
+      <div class="st-fb-title">מילות השיר — מסונכרנות לנגינה</div>
+      <p class="hint">השורה והמילה המודגשות עוקבות אחרי המלודיה על הגריף. לחצו ▶ למד / נגן.</p>
+      <div class="st-vocal-scroll" id="st-vocal-scroll">${parts.join('')}</div>
     </div>`;
   }
 
   function playVocalStem() {
     if (!_vocalUrl) return;
     ensureAudio();
-    if (!_vocalAudio) {
-      _vocalAudio = new Audio(_vocalUrl);
-    }
+    if (!_vocalAudio) _vocalAudio = new Audio(_vocalUrl);
+    _vocalSyncedPlay = false;
     if (_vocalAudio.paused) {
       _vocalAudio.currentTime = 0;
       _vocalAudio.play().catch(() => {});
@@ -237,6 +360,8 @@ const SongTeacher = (() => {
     _startCtxTime = now() - startElapsed / _speed;
     if (typeof registerPlayback === 'function') registerPlayback('song-teacher', stop);
     setPlayBtn(true);
+    clearLyricHighlight();
+    syncVocalAudio(startElapsed, true);
     loop();
   }
 
@@ -259,14 +384,20 @@ const SongTeacher = (() => {
         _nextNoteIdx = firstIndexAt(restart);
         _lastChordShown = -1;
         clearActiveDots();
+        clearLyricHighlight();
       }
     }
+
+    syncVocalAudio(elapsed, true);
 
     // תווי מלודיה שהגיע זמנם
     while (_nextNoteIdx < _melody.length && _melody[_nextNoteIdx].time <= elapsed) {
       const n = _melody[_nextNoteIdx];
       if (!_loop || (n.time >= _loop.a && n.time <= _loop.b)) {
+        const pi = phraseIndexForTime(n.time);
+        const ni = noteIndexInPhrase(_nextNoteIdx);
         ensurePhraseVisible(_nextNoteIdx);
+        highlightLyricPlayback(pi, ni);
         AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
         flashDot(n.course, n.fret);
         highlightMelCell(_nextNoteIdx);
@@ -297,9 +428,11 @@ const SongTeacher = (() => {
     _playing = false;
     if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
     clearActiveDots();
+    clearLyricHighlight();
     setPlayBtn(false);
-    if (_vocalAudio) {
+    if (_vocalAudio && _vocalSyncedPlay) {
       try { _vocalAudio.pause(); } catch (_) {}
+      _vocalSyncedPlay = false;
       const btn = $('#st-vocal-play');
       if (btn) btn.textContent = '🎤 שמע קול הזמר';
     }
@@ -327,6 +460,7 @@ const SongTeacher = (() => {
       renderFretboard();
       const lbl = $('#st-phrase-label');
       if (lbl) lbl.textContent = phraseLabel();
+      highlightLyricPlayback(pi, 0);
     }
   }
 
@@ -507,6 +641,7 @@ const SongTeacher = (() => {
         <strong>🎤 מלודיית שירה → בוזוקי</strong>
         <span class="hint">${_vocalCtx.title || ''}</span>
         ${_vocalUrl ? '<button type="button" class="btn small gold" id="st-vocal-play">🎤 שמע קול הזמר</button>' : ''}
+        ${_vocalUrl ? `<label class="st-toggle"><input type="checkbox" id="st-sync-vocal" ${_syncVocal ? 'checked' : ''}> סנכרן קול עם נגינה</label>` : ''}
       </div>` : '';
 
     host.innerHTML = `
@@ -585,6 +720,9 @@ const SongTeacher = (() => {
     renderFretboard();
     buildMelStrip();
     bindLesson(host);
+    if (_vocalCtx?.song && _lyricAlign?.lines?.length) {
+      highlightLyricPlayback(_phraseIdx, 0);
+    }
   }
 
   function buildMelStrip() {
@@ -698,10 +836,20 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
   function bindLesson(host) {
     $('#st-play', host).addEventListener('click', togglePlay);
     $('#st-phrase-prev', host)?.addEventListener('click', () => {
-      if (_phraseIdx > 0) { _phraseIdx--; renderFretboard(); $('#st-phrase-label').textContent = phraseLabel(); }
+      if (_phraseIdx > 0) {
+        _phraseIdx--;
+        renderFretboard();
+        $('#st-phrase-label').textContent = phraseLabel();
+        highlightLyricPlayback(_phraseIdx, 0);
+      }
     });
     $('#st-phrase-next', host)?.addEventListener('click', () => {
-      if (_phraseIdx < _phrases.length - 1) { _phraseIdx++; renderFretboard(); $('#st-phrase-label').textContent = phraseLabel(); }
+      if (_phraseIdx < _phrases.length - 1) {
+        _phraseIdx++;
+        renderFretboard();
+        $('#st-phrase-label').textContent = phraseLabel();
+        highlightLyricPlayback(_phraseIdx, 0);
+      }
     });
     host.querySelectorAll('.st-learn-mode').forEach(b => b.addEventListener('click', () => {
       _learnMode = b.dataset.m;
@@ -747,6 +895,8 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
     $('#st-export-html', host).addEventListener('click', exportAsHtml);
     $('#st-export-json', host).addEventListener('click', exportAsJson);
     $('#st-vocal-play', host)?.addEventListener('click', playVocalStem);
+    const sv = $('#st-sync-vocal', host);
+    if (sv) sv.addEventListener('change', e => { _syncVocal = e.target.checked; });
   }
 
   function stopAll() {
