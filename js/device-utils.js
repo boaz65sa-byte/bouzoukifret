@@ -64,7 +64,7 @@ const DeviceUtils = (() => {
     if (LOCAL_HOSTS.includes(pageHost)) {
       return 'במובייל: פתחו את האפליקציה דרך IP המחשב (לא localhost). לדוגמה: http://192.168.1.5:8080 — והריצו stem-proxy על המחשב.';
     }
-    return `ודאו ש-stem-proxy רץ על המחשב ב-${proxyUrl} (אותה רשת WiFi). השיר נשמר תמיד ב<strong>ספריית לימוד</strong> באפליקציה.`;
+    return `ודאו שיש חיבור אינטרנט. השיר נשמר ב<strong>ספריית לימוד</strong> במכשיר הזה (טלפון / טאבלט / מחשב). stem-proxy מקומי (${proxyUrl}) אופציונלי לשיפור מהירות במחשב בלבד.`;
   }
 
   return {

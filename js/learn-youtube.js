@@ -238,7 +238,7 @@ const LearnHub = (() => {
     const btn = document.getElementById('learn-download-mp3');
     const title = titleOverride || _searchTitle || _currentSong?.titleHe || _currentSong?.title || id;
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מוריד…'; }
-    _setDownloadStatus('מתחיל הורדה…', null);
+    _setDownloadStatus('מתחיל הורדה למכשיר…', null);
 
     try {
       await StemAPI.downloadForLearning(id, {
@@ -248,12 +248,10 @@ const LearnHub = (() => {
         songId: _currentSong?.id || '',
         saveOffline: true,
         saveToDisk: true,
-        onProgress: (msg, pct) => _setDownloadStatus(`${msg} (${pct}%)`, null),
+        onProgress: (msg, pct) => _setDownloadStatus(`${msg}${pct != null ? ` (${pct}%)` : ''}`, null),
       });
       _setDownloadStatus(
-        (typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile())
-          ? '✓ נשמר בספריית לימוד — האזינו מ"ספריית לימוד" או שתפו את הקובץ'
-          : '✓ נשמר בספריית לימוד + בתיקייה learn-downloads',
+        '✓ נשמר במכשיר הזה — פתחו «ספריית לימוד» להאזנה, ניתוח ושירה על בוזוקי',
         true,
       );
       _renderOfflineLibrary();
@@ -262,7 +260,7 @@ const LearnHub = (() => {
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
       const msg = String(e.message || '');
-      if (/stem-proxy|לא זמינה|yt-dlp|לא נמצא מקור/i.test(msg)) {
+      if (/stem-proxy|yt-dlp|לא נמצא מקור|לא הצלחנו/i.test(msg)) {
         _showProxySetupModal(msg);
       }
     } finally {
@@ -467,7 +465,7 @@ const LearnHub = (() => {
       html += `
         <div class="learn-card card">
           <h4>לא נמצא בספרייה</h4>
-          <p>הדביקו קישור YouTube — נגן למטה. הורדה ללימוד דורשת stem-proxy + yt-dlp.</p>
+          <p>הדביקו קישור YouTube — נגן למטה. לחצו 📥 והשיר יישמר <strong>במכשיר הזה</strong> (ספריית לימוד).</p>
           <div class="learn-actions">
             <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
             <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
@@ -791,9 +789,10 @@ const LearnHub = (() => {
     overlay.className = 'learn-proxy-modal-overlay';
     overlay.innerHTML = `
       <div class="learn-proxy-modal card" role="dialog">
-        <h3>📥 הגדרות הורדה</h3>
+        <h3>📥 בעיית הורדה</h3>
         <p class="hint">${_esc(reason || '')}</p>
-        <p>הורדה מנסה קודם את השרת / Piped. לשיפור מהירות — stem-proxy מקומי עם yt-dlp.</p>
+        <p><b>ההורדה אמורה להישמר במכשיר שבו אתם פתוחים</b> (ספריית לימוד) — לא על שרת חיצוני. נסו שוב בעוד דקה.</p>
+        <p class="hint">אופציונלי לשיפור מהירות במחשב: stem-proxy מקומי עם yt-dlp.</p>
         <ol class="learn-proxy-steps">
           <li><b>מקומי (הכי פשוט):</b> הריצו <code>tools\\stem-proxy\\start-windows.bat</code></li>
           <li>השאירו למטה <code>http://localhost:3456</code> ולחצו שמור</li>
@@ -1021,7 +1020,7 @@ const LearnHub = (() => {
             <div id="learn-panel" class="learn-panel" style="margin-top:12px"></div>
             <div class="learn-offline card" id="learn-offline-card" style="margin-top:12px">
               <h4>📥 ספריית לימוד — שירים שמורים</h4>
-              <p class="hint learn-offline-note">הורדה אישית ללימוד בלבד · stem-proxy + yt-dlp</p>
+              <p class="hint learn-offline-note">הורדה אישית ללימוד · נשמרת במכשיר (טלפון / טאבלט / מחשב)</p>
               <div id="learn-offline-list"></div>
             </div>
           </div>

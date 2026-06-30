@@ -58,25 +58,23 @@ const StemAPI = (() => {
     }
   }
 
-  /** האם הורדה אפשרית (פרוקסי מקומי / relay בשרת / Piped) */
+  /** האם הורדה אפשרית — תמיד מנסים (אתר / Piped / פרוקסי מקומי) */
   async function checkDownloadReady() {
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    if (onPublic) {
+      return { ready: true, via: 'device', label: 'מכשיר' };
+    }
+
     const health = await checkHealth();
     if (health.ok && health.ytdlp !== false) {
       return { ready: true, via: 'proxy', label: 'stem-proxy' };
     }
 
-    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-    if (onPublic) {
-      const site = await loadSiteDownloadConfig();
-      if (site?.stemProxyUrl) {
-        return { ready: true, via: 'server-relay', label: 'שרת' };
-      }
+    const site = await loadSiteDownloadConfig();
+    if (site?.downloadViaPiped !== false) {
       return { ready: true, via: 'piped', label: 'Piped' };
     }
 
-    if (health.ok) {
-      return { ready: !!health.ytdlp, via: 'proxy', label: 'stem-proxy' };
-    }
     return { ready: true, via: 'piped', label: 'Piped' };
   }
 
@@ -214,11 +212,14 @@ const StemAPI = (() => {
     if (meta.author) qs.set('author', meta.author);
 
     async function _fetchFrom(url, label) {
-      onProgress?.(`מוריד מ-YouTube (${label})…`, 8);
+      onProgress?.(`מוריד למכשיר שלך (${label})…`, 8);
       const resp = await fetch(`${url}?${qs}`, { signal: AbortSignal.timeout(300000) });
       if (!resp.ok) {
-        let msg = `YouTube ${resp.status}`;
-        try { msg = (await resp.json()).error || msg; } catch { /* noop */ }
+        let msg = `הורדה נכשלה (${resp.status})`;
+        try {
+          const j = await resp.json();
+          msg = j.error || msg;
+        } catch { /* noop */ }
         throw new Error(msg);
       }
       const ct = resp.headers.get('content-type') || '';
@@ -231,26 +232,27 @@ const StemAPI = (() => {
           onProgress?.('הורדה הושלמה', 25);
           return ar.blob();
         }
-        throw new Error(j.error || 'שגיאת שרת');
+        throw new Error(j.error || 'לא הצלחנו להוריד את השיר — נסו שוב');
       }
-      onProgress?.('הורדה הושלמה', 25);
+      onProgress?.('הורדה הושלמה — שומר במכשיר…', 25);
       return resp.blob();
     }
 
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const hasApi = onPublic || location.protocol === 'https:' || location.hostname === 'localhost';
     const errors = [];
 
-    if (onPublic) {
+    if (hasApi) {
       try {
-        return await _fetchFrom('/api/youtube-audio', 'שרת');
+        return await _fetchFrom('/api/youtube-audio', 'אתר');
       } catch (e) { errors.push(e); }
     }
 
     if (proxy) {
       try {
         const health = await checkHealth();
-        if (health.ok) {
-          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+        if (health.ok && health.ytdlp !== false) {
+          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'מחשב מקומי');
         }
       } catch (e) { errors.push(e); }
     }
@@ -259,14 +261,17 @@ const StemAPI = (() => {
       return await fetchViaPipedOrInvidious(videoId, onProgress);
     } catch (e) { errors.push(e); }
 
-    if (!onPublic && proxy) {
+    if (proxy) {
       try {
-        return await _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+        const health = await checkHealth();
+        if (health.ok) {
+          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'פרוקסי מקומי');
+        }
       } catch (e) { errors.push(e); }
     }
 
     const last = errors[errors.length - 1];
-    throw last || new Error('לא ניתן להוריד את השיר');
+    throw last || new Error('לא הצלחנו להוריד — נסו שוב בעוד דקה');
   }
 
   async function saveBlobAsFile(blob, filename) {
@@ -313,36 +318,31 @@ const StemAPI = (() => {
       saveToDisk = true,
     } = opts;
 
-    const ready = await checkDownloadReady();
-    if (!ready.ready) {
-      const hint = typeof DeviceUtils !== 'undefined'
-        ? DeviceUtils.proxyHintMessage(proxyUrl())
-        : 'הריצו tools/stem-proxy והגדירו config.js';
-      throw new Error(`הורדה לא זמינה — ${hint.replace(/<[^>]+>/g, '')}`);
-    }
-
+    onProgress?.('מוריד למכשיר שלך…', 3);
     const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
     const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();
 
     if (saveOffline && typeof LearnOffline !== 'undefined') {
-      onProgress?.('שומר בספריית לימוד…', 90);
+      onProgress?.('שומר בספריית לימוד במכשיר…', 88);
       await LearnOffline.save(videoId, blob, {
         title, titleHe, author, songId,
         thumbUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       });
     }
 
-    if (saveToDisk) {
+    if (saveToDisk && !mobile) {
       const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-      const fileResult = await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
-      if (mobile && fileResult.method === 'share') {
-        onProgress?.('נשמר בספרייה + שותף מהמכשיר', 98);
-      } else if (mobile) {
-        onProgress?.('נשמר בספריית לימוד — האזינו מ"ספריית לימוד"', 98);
+      await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
+      onProgress?.('נשמר גם כקובץ במחשב', 96);
+    } else if (saveToDisk && mobile) {
+      const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
+      const fileResult = await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.m4a`);
+      if (fileResult.method === 'share') {
+        onProgress?.('נשמר באפליקציה + שותף מהמכשיר', 96);
       }
     }
 
-    onProgress?.('מוכן ללימוד', 100);
+    onProgress?.('מוכן ללימוד במכשיר הזה', 100);
     if (typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
     return blob;
   }
