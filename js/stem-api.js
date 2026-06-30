@@ -78,6 +78,21 @@ const StemAPI = (() => {
     return { ready: true, via: 'piped', label: 'Piped' };
   }
 
+  function downloadApiOrigins() {
+    const extras = cfg().downloadApiOrigins || ['https://bouzoukifret.web.app'];
+    const origins = [''];
+    for (const raw of extras) {
+      const o = String(raw || '').replace(/\/$/, '');
+      if (!o) continue;
+      try {
+        const origin = new URL(o).origin;
+        if (origin === location.origin || origins.includes(origin)) continue;
+        origins.push(origin);
+      } catch { /* skip */ }
+    }
+    return origins;
+  }
+
   async function fetchViaPipedOrInvidious(videoId, onProgress) {
     onProgress?.('מחפש מקור אודיו…', 10);
     for (const base of PIPED_BASES) {
@@ -92,7 +107,7 @@ const StemAPI = (() => {
         const audioR = await fetch(best.url, { signal: AbortSignal.timeout(300000) });
         if (!audioR.ok) continue;
         onProgress?.('הורדה הושלמה', 25);
-        return audioR.blob();
+        return ensureAudioBlob(await audioR.blob(), audioR.headers.get('content-type') || '');
       } catch { /* next */ }
     }
 
@@ -110,11 +125,11 @@ const StemAPI = (() => {
         const audioR = await fetch(fmt.url, { signal: AbortSignal.timeout(300000) });
         if (!audioR.ok) continue;
         onProgress?.('הורדה הושלמה', 25);
-        return audioR.blob();
+        return ensureAudioBlob(await audioR.blob(), audioR.headers.get('content-type') || '');
       } catch { /* next */ }
     }
 
-    throw new Error('לא הצלחנו להוריד את השיר — נסו שוב בעוד דקה. אין צורך ב-stem-proxy; ההורדה נשמרת במכשיר שלכם.');
+    throw new Error('לא הצלחנו להוריד — פתחו את האפליקציה ב-bouzoukifret.web.app או הריצו stem-proxy עם yt-dlp במחשב.');
   }
 
   /**
@@ -201,6 +216,28 @@ const StemAPI = (() => {
     throw new Error('LALAL timeout');
   }
 
+  async function ensureAudioBlob(blob, contentType = '') {
+    if (!blob || blob.size < 4096) {
+      throw new Error('קובץ אודיו ריק או לא שלם — נסו להוריד שוב');
+    }
+    const head = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+    const isWebm = head[0] === 0x1a && head[1] === 0x45;
+    const isMp4 = head[4] === 0x66 && head[5] === 0x74 && head[6] === 0x79 && head[7] === 0x70;
+    const isMp3 = (head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33)
+      || (head[0] === 0xff && (head[1] & 0xe0) === 0xe0);
+    if (!isWebm && !isMp4 && !isMp3) {
+      const peek = await blob.slice(0, 64).text().catch(() => '');
+      if (peek.includes('<!DOCTYPE') || peek.trim().startsWith('{')) {
+        throw new Error('הורדה נכשלה — התקבל קובץ שגוי מהשרת. נסו שוב בעוד דקה.');
+      }
+      throw new Error('פורמט אודיו לא נתמך — נסו להוריד שוב');
+    }
+    const type = contentType.split(';')[0]
+      || (isMp4 ? 'audio/mp4' : isWebm ? 'audio/webm' : 'audio/mpeg');
+    if (blob.type === type) return blob;
+    return new Blob([await blob.arrayBuffer()], { type });
+  }
+
   /**
    * @param {string} videoId
    * @param {(msg:string,pct:number)=>void} [onProgress]
@@ -230,26 +267,31 @@ const StemAPI = (() => {
           const ar = await fetch(j.streamUrl, { signal: AbortSignal.timeout(300000) });
           if (!ar.ok) throw new Error(`הורדת אודיו נכשלה (${ar.status})`);
           onProgress?.('הורדה הושלמה', 25);
-          return ar.blob();
+          return ensureAudioBlob(await ar.blob(), ar.headers.get('content-type') || '');
         }
         throw new Error(j.error || 'לא הצלחנו להוריד את השיר — נסו שוב');
       }
       onProgress?.('הורדה הושלמה — שומר במכשיר…', 25);
-      return resp.blob();
+      const raw = await resp.blob();
+      return ensureAudioBlob(raw, ct);
     }
 
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-    const hasApi = onPublic || location.protocol === 'https:' || location.hostname === 'localhost';
     const errors = [];
+    const apiPaths = downloadApiOrigins().map((origin) => ({
+      origin,
+      path: origin ? `${origin}/api/youtube-audio` : '/api/youtube-audio',
+      label: origin && origin !== location.origin ? 'שרת' : 'אתר',
+    }));
 
-    if (hasApi) {
+    for (const { path, label } of apiPaths) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           if (attempt > 0) {
             onProgress?.(`מנסה שוב להוריד (${attempt + 1}/3)…`, 4 + attempt * 2);
             await new Promise((r) => setTimeout(r, 1200 * attempt));
           }
-          return await _fetchFrom('/api/youtube-audio', 'אתר');
+          return await _fetchFrom(path, label);
         } catch (e) { errors.push(e); }
       }
     }

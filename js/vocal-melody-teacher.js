@@ -70,11 +70,19 @@ const VocalMelodyTeacher = (() => {
   }
 
   async function decodeBlob(blob) {
+    if (!blob || blob.size < 4096) {
+      throw new Error('קובץ אודיו ריק — הורידו את השיר מחדש (📥)');
+    }
     const buf = await blob.arrayBuffer();
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const audioBuffer = await ctx.decodeAudioData(buf);
-    try { ctx.close(); } catch { /* noop */ }
-    return audioBuffer;
+    try {
+      const audioBuffer = await ctx.decodeAudioData(buf.slice(0));
+      return audioBuffer;
+    } catch {
+      throw new Error('לא ניתן לפענח את השיר — מחקו מהספרייה והורידו שוב (📥)');
+    } finally {
+      try { ctx.close(); } catch { /* noop */ }
+    }
   }
 
   async function transcribeVocal(blob, onProgress) {

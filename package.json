@@ -1,0 +1,7 @@
+{
+  "name": "bouzoukifret",
+  "private": true,
+  "dependencies": {
+    "yt-dlp-exec": "^1.0.2"
+  }
+}

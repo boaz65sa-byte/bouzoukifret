@@ -849,10 +849,14 @@ const LearnHub = (() => {
   async function _updateProxyBanner(online, needsRestart, proxyReachable, resultCount = 0, downloadReady = null) {
     const el = document.getElementById('learn-proxy-banner');
     if (!el) return;
-    const reachable = proxyReachable !== false;
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    if (onPublic) {
+      el.hidden = true;
+      return;
+    }
     const dl = downloadReady
       || (typeof StemAPI !== 'undefined' ? await StemAPI.checkDownloadReady() : null);
+    const reachable = proxyReachable !== false;
 
     if (dl?.ready && (online || onPublic || resultCount > 0)) {
       el.hidden = true;

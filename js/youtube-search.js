@@ -386,11 +386,8 @@ const YoutubeSearch = (() => {
 
     let html = '';
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-    if (!meta.proxyOnline && !meta.proxyReachable && onPublic) {
-      html += `<div class="learn-search-help card">
-        <p><b>ℹ️ חיפוש YouTube פעיל.</b> לחצו <b>📥</b> על סרטון להורדה לספריית הלימוד.</p>
-        <p class="hint">למהירות מקסימלית — אפשר להריץ stem-proxy מקומי (הגדרות פרוקסי).</p>
-      </div>`;
+    if (onPublic) {
+      html += '<p class="learn-search-empty">לא נמצאו תוצאות — נסו מילים אחרות או שם אמן יווני</p>';
     } else if (!meta.proxyOnline) {
       html += `<div class="learn-search-help card">
         <p><b>⚙️ stem-proxy לא פעיל</b> — לחיפוש מלא ב-YouTube והורדת MP3:</p>

@@ -1,21 +1,29 @@
 /** Vercel — הורדת אודיו YouTube (streaming למכשיר המשתמש) */
 const { Readable } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
+
+let ytdlp;
+try {
+  ytdlp = require('yt-dlp-exec');
+} catch {
+  ytdlp = null;
+}
 
 const PIPED = [
+  'https://pipedapi.in.projectsegfau.lt',
   'https://pipedapi.kavin.rocks',
   'https://pipedapi.tokhmi.xyz',
   'https://piped-api.garudalinux.org',
   'https://pipedapi.adminforge.de',
-  'https://pipedapi.in.projectsegfau.lt',
 ];
 
 const INVIDIOUS = [
   'https://invidious.materialio.us',
-  'https://inv.nadeko.net',
   'https://invidious.f5.si',
   'https://invidious.protokolla.fi',
-  'https://yewtu.be',
   'https://invidious.nerdvpn.de',
+  'https://inv.nadeko.net',
+  'https://yewtu.be',
 ];
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
@@ -76,6 +84,37 @@ async function pipeToResponse(res, upstream) {
   });
 }
 
+async function streamYtDlpToResponse(res, id) {
+  if (!ytdlp) return false;
+  const watchUrl = `https://www.youtube.com/watch?v=${id}`;
+  const subprocess = ytdlp.exec(watchUrl, {
+    format: '140/ba[ext=m4a]/ba[ext=mp4]/bestaudio[ext=m4a]/bestaudio',
+    output: '-',
+    quiet: true,
+    noWarnings: true,
+    noPlaylist: true,
+    noCallHome: true,
+  });
+
+  res.setHeader('Content-Type', 'audio/mp4');
+  res.setHeader('Cache-Control', 'no-store');
+
+  let stderr = '';
+  subprocess.stderr?.on('data', (chunk) => { stderr += String(chunk); });
+
+  await Promise.all([
+    pipeline(subprocess.stdout, res),
+    new Promise((resolve, reject) => {
+      subprocess.on('error', reject);
+      subprocess.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`yt-dlp exit ${code}: ${stderr.slice(-300)}`));
+      });
+    }),
+  ]);
+  return true;
+}
+
 async function audioFromInnerTube(id) {
   for (const client of INNERTUBE_CLIENTS) {
     try {
@@ -116,6 +155,8 @@ async function audioFromPiped(id) {
     try {
       const r = await fetch(`${base}/streams/${id}`, { signal: AbortSignal.timeout(25000) });
       if (!r.ok) continue;
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('json')) continue;
       const data = await r.json();
       const streams = Array.isArray(data.audioStreams) ? data.audioStreams : [];
       const best = streams.slice().sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
@@ -147,6 +188,8 @@ async function audioFromInvidious(id) {
         headers: { Accept: 'application/json', 'User-Agent': UA },
       });
       if (!r.ok) continue;
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('json')) continue;
       const data = await r.json();
       const pick = pickDirectAudioUrl(data.adaptiveFormats || []);
       if (!pick?.url) continue;
@@ -180,6 +223,20 @@ module.exports = async function handler(req, res) {
   const proxy = String(process.env.STEM_PROXY_URL || '').trim().replace(/\/$/, '');
   const qs = new URLSearchParams({ id, library: '0' });
   if (req.query.title) qs.set('title', String(req.query.title).slice(0, 120));
+
+  if (ytdlp) {
+    try {
+      const ok = await streamYtDlpToResponse(res, id);
+      if (ok) return;
+    } catch (err) {
+      console.error('[youtube-audio] yt-dlp', err.message);
+      if (!res.headersSent) {
+        // fall through to other methods
+      } else {
+        return;
+      }
+    }
+  }
 
   const attempts = [
     () => audioFromInnerTube(id),
