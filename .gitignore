@@ -12,4 +12,5 @@ learn-downloads/*
 # החרגות — קבצים שכן צריכים להיכנס ל-git
 !package.json
 !package-lock.json
+!scripts/**
 !tools/stem-proxy/package.json

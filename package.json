@@ -1,6 +1,9 @@
 {
   "name": "bouzoukifret",
   "private": true,
+  "scripts": {
+    "vercel-build": "node scripts/ensure-deno.js"
+  },
   "dependencies": {
     "yt-dlp-exec": "^1.0.2"
   }

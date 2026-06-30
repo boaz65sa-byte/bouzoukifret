@@ -1,9 +1,15 @@
 /** Vercel — הורדת אודיו YouTube (streaming למכשיר המשתמש) */
 const { Readable } = require('node:stream');
+const { existsSync } = require('node:fs');
 const { readFile, unlink } = require('node:fs/promises');
 const { join } = require('node:path');
 const { tmpdir } = require('node:os');
 const { randomUUID } = require('node:crypto');
+
+const denoDir = join(process.cwd(), '.deno', 'bin');
+if (existsSync(denoDir)) {
+  process.env.PATH = `${denoDir}${require('node:path').delimiter}${process.env.PATH || ''}`;
+}
 
 let ytdlp;
 try {
@@ -142,7 +148,7 @@ async function audioFromYtDlpFile(id) {
     return { buffer: buf, type: 'audio/mp4' };
   } catch (err) {
     console.error('[youtube-audio] yt-dlp file', err.message || err);
-    await unlink(out).catch(() => {});
+    await unlinkAsync(out).catch(() => {});
     return null;
   }
 }
