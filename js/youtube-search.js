@@ -115,41 +115,45 @@ const YoutubeSearch = (() => {
     }
   }
 
-  async function _sameOriginSearch(query, page = 1, continuation = null) {
-    try {
-      let r;
-      if (continuation) {
-        r = await fetch('/api/youtube-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ q: query, continuation, limit: PAGE_SIZE }),
-          signal: AbortSignal.timeout(25000),
-        });
-      } else {
-        const params = new URLSearchParams({
-          q: query,
-          page: String(page),
-          limit: String(PAGE_SIZE),
-        });
-        r = await fetch(
-          `/api/youtube-search?${params}`,
-          { signal: AbortSignal.timeout(25000) }
-        );
-      }
-      if (r.status === 404) return { results: [], hasMore: false, continuationToken: null, unavailable: true };
-      const ct = r.headers.get('content-type') || '';
-      if (!ct.includes('json')) return { results: [], hasMore: false, continuationToken: null, unavailable: true };
-      if (!r.ok) return { results: [], hasMore: false, continuationToken: null };
-      const data = await r.json();
-      return {
-        results: Array.isArray(data.results) ? data.results : [],
-        hasMore: !!data.hasMore,
-        continuationToken: data.continuationToken || null,
-        online: true,
-      };
-    } catch {
-      return { results: [], hasMore: false, continuationToken: null, unavailable: true };
+  async function _remoteApiSearch(query, page = 1, continuation = null) {
+    const endpoints = typeof DeviceUtils !== 'undefined' && DeviceUtils.apiOriginUrls
+      ? DeviceUtils.apiOriginUrls('/api/youtube-search')
+      : ['/api/youtube-search'];
+
+    for (const endpoint of endpoints) {
+      try {
+        let r;
+        if (continuation) {
+          r = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: query, continuation, limit: PAGE_SIZE }),
+            signal: AbortSignal.timeout(25000),
+          });
+        } else {
+          const params = new URLSearchParams({
+            q: query,
+            page: String(page),
+            limit: String(PAGE_SIZE),
+          });
+          r = await fetch(`${endpoint}?${params}`, { signal: AbortSignal.timeout(25000) });
+        }
+        if (r.status === 404) continue;
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('json')) continue;
+        if (!r.ok) continue;
+        const data = await r.json();
+        const results = Array.isArray(data.results) ? data.results : [];
+        if (!results.length && !continuation) continue;
+        return {
+          results,
+          hasMore: !!data.hasMore,
+          continuationToken: data.continuationToken || null,
+          online: true,
+        };
+      } catch { /* next endpoint */ }
     }
+    return { results: [], hasMore: false, continuationToken: null, unavailable: true };
   }
 
   async function _proxySearch(query, page = 1) {
@@ -258,7 +262,7 @@ const YoutubeSearch = (() => {
     let proxy = { results: [], online: false, hasMore: false, skip: !proxyReachable };
 
     if (continuation || onPublic || !proxyReachable) {
-      const origin = await _sameOriginSearch(q, page, continuation);
+      const origin = await _remoteApiSearch(q, page, continuation);
       if (origin.results?.length) {
         remote = origin.results;
         hasMore = origin.hasMore;
@@ -286,7 +290,7 @@ const YoutubeSearch = (() => {
     }
 
     if (!remote.length && !continuation) {
-      const origin = await _sameOriginSearch(q, page, null);
+      const origin = await _remoteApiSearch(q, page, null);
       if (origin.results?.length) {
         remote = origin.results;
         hasMore = origin.hasMore;

@@ -78,19 +78,11 @@ const StemAPI = (() => {
     return { ready: true, via: 'piped', label: 'Piped' };
   }
 
-  function downloadApiOrigins() {
-    const extras = cfg().downloadApiOrigins || ['https://bouzoukifret.web.app'];
-    const origins = [''];
-    for (const raw of extras) {
-      const o = String(raw || '').replace(/\/$/, '');
-      if (!o) continue;
-      try {
-        const origin = new URL(o).origin;
-        if (origin === location.origin || origins.includes(origin)) continue;
-        origins.push(origin);
-      } catch { /* skip */ }
+  function downloadApiUrls() {
+    if (typeof DeviceUtils !== 'undefined' && DeviceUtils.apiOriginUrls) {
+      return DeviceUtils.apiOriginUrls('/api/youtube-audio');
     }
-    return origins;
+    return ['/api/youtube-audio', 'https://bouzoukifret.vercel.app/api/youtube-audio'];
   }
 
   async function fetchViaPipedOrInvidious(videoId, onProgress) {
@@ -129,7 +121,7 @@ const StemAPI = (() => {
       } catch { /* next */ }
     }
 
-    throw new Error('לא הצלחנו להוריד — פתחו את האפליקציה ב-bouzoukifret.web.app או הריצו stem-proxy עם yt-dlp במחשב.');
+    throw new Error('לא הצלחנו להוריד — נסו שוב בעוד דקה או פתחו את bouzoukifret.vercel.app');
   }
 
   /**
@@ -278,10 +270,9 @@ const StemAPI = (() => {
 
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
     const errors = [];
-    const apiPaths = downloadApiOrigins().map((origin) => ({
-      origin,
-      path: origin ? `${origin}/api/youtube-audio` : '/api/youtube-audio',
-      label: origin && origin !== location.origin ? 'שרת' : 'אתר',
+    const apiPaths = downloadApiUrls().map((path) => ({
+      path,
+      label: (!path.startsWith('http') || path.startsWith(location.origin)) ? 'אתר' : 'שרת',
     }));
 
     for (const { path, label } of apiPaths) {

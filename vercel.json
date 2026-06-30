@@ -1,6 +1,9 @@
 {
   "functions": {
-    "api/youtube-audio.js": { "maxDuration": 60 },
+    "api/youtube-audio.js": {
+      "maxDuration": 60,
+      "includeFiles": "node_modules/yt-dlp-exec/bin/**"
+    },
     "api/youtube-search.js": { "maxDuration": 30 }
   },
   "headers": [

@@ -53,6 +53,29 @@ const DeviceUtils = (() => {
     return true;
   }
 
+  const DEFAULT_API_ORIGIN = 'https://bouzoukifret.vercel.app';
+
+  /** כתובות API לנסות (יחסי + Vercel) — web.app אין לו /api */
+  function apiOriginUrls(apiPath) {
+    const path = String(apiPath || '').startsWith('/') ? apiPath : `/${apiPath || ''}`;
+    const configured = window.BOUZOUKI_CONFIG?.apiOrigins
+      || window.BOUZOUKI_CONFIG?.downloadApiOrigins
+      || [DEFAULT_API_ORIGIN];
+    const urls = [];
+    const add = (u) => { if (u && !urls.includes(u)) urls.push(u); };
+    if (typeof location !== 'undefined' && location.protocol.startsWith('http')) {
+      add(path);
+    }
+    for (const raw of configured) {
+      try {
+        const origin = new URL(String(raw).replace(/\/$/, '')).origin;
+        if (origin !== location?.origin) add(`${origin}${path}`);
+      } catch { /* skip */ }
+    }
+    if (!urls.length) add(`${DEFAULT_API_ORIGIN}${path}`);
+    return urls;
+  }
+
   function proxyHintMessage(proxyUrl) {
     if (isPublicHostedPage() && isLocalProxyHost(new URL(proxyUrl).hostname)) {
       return 'הריצו stem-proxy מקומי (start-windows.bat) והגדירו http://localhost:3456 ב«הגדרות פרוקסי» — עובד גם מ-Vercel על אותו מחשב';
@@ -70,5 +93,6 @@ const DeviceUtils = (() => {
   return {
     isMobile, isIOS, isPublicHostedPage, isLocalProxyHost,
     resolveProxyUrl, proxyReachableFromPage, proxyHintMessage,
+    apiOriginUrls, DEFAULT_API_ORIGIN,
   };
 })();
