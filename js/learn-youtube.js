@@ -17,6 +17,7 @@ const LearnHub = (() => {
   let _searchPage = 1;
   let _searchResults = [];
   let _searchHasMore = false;
+  let _searchContinuation = null;
   let _searchMeta = null;
   let _searchLoading = false;
   let _downloadAuthor = '';
@@ -699,29 +700,37 @@ const LearnHub = (() => {
     if (!append) {
       _searchQuery = q;
       _searchPage = 1;
+      _searchContinuation = null;
       _searchResults = [];
       grid.innerHTML = '<p class="learn-search-loading">מחפש בספרייה וב-YouTube…</p>';
       if (status) status.textContent = 'מחפש…';
     } else {
       const btn = grid.querySelector('.learn-search-more');
       if (btn) { btn.disabled = true; btn.textContent = 'טוען…'; }
-      if (status) status.textContent = `טוען עמוד ${nextPage}…`;
+      if (status) status.textContent = 'טוען עוד תוצאות…';
     }
 
     try {
-      const meta = await YoutubeSearch.search(q, { page: nextPage });
-      const { results, source, proxyOnline, proxyReachable, localCount, needsRestart, hasMore } = meta;
+      const meta = await YoutubeSearch.search(q, {
+        page: append ? _searchPage + 1 : 1,
+        continuation: append ? _searchContinuation : null,
+      });
+      const { results, source, proxyOnline, proxyReachable, localCount, needsRestart, hasMore, continuationToken } = meta;
 
       let fresh = [];
       if (append) {
         fresh = results.filter(v => !_searchResults.some(x => x.videoId === v.videoId));
         _searchResults = [..._searchResults, ...fresh];
-        _searchPage = nextPage;
+        _searchPage += 1;
+        _searchContinuation = continuationToken || null;
+        if (!fresh.length) _searchHasMore = false;
+        else _searchHasMore = hasMore;
       } else {
         _searchResults = results;
         _searchPage = 1;
+        _searchContinuation = continuationToken || null;
+        _searchHasMore = hasMore;
       }
-      _searchHasMore = hasMore;
       _searchMeta = meta;
 
       if (status) {

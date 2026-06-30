@@ -115,24 +115,40 @@ const YoutubeSearch = (() => {
     }
   }
 
-  async function _sameOriginSearch(query, page = 1) {
+  async function _sameOriginSearch(query, page = 1, continuation = null) {
     try {
-      const r = await fetch(
-        `/api/youtube-search?q=${encodeURIComponent(query)}&page=${page}&limit=${PAGE_SIZE}`,
-        { signal: AbortSignal.timeout(25000) }
-      );
-      if (r.status === 404) return { results: [], hasMore: false, unavailable: true };
+      let r;
+      if (continuation) {
+        r = await fetch('/api/youtube-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: query, continuation, limit: PAGE_SIZE }),
+          signal: AbortSignal.timeout(25000),
+        });
+      } else {
+        const params = new URLSearchParams({
+          q: query,
+          page: String(page),
+          limit: String(PAGE_SIZE),
+        });
+        r = await fetch(
+          `/api/youtube-search?${params}`,
+          { signal: AbortSignal.timeout(25000) }
+        );
+      }
+      if (r.status === 404) return { results: [], hasMore: false, continuationToken: null, unavailable: true };
       const ct = r.headers.get('content-type') || '';
-      if (!ct.includes('json')) return { results: [], hasMore: false, unavailable: true };
-      if (!r.ok) return { results: [], hasMore: false };
+      if (!ct.includes('json')) return { results: [], hasMore: false, continuationToken: null, unavailable: true };
+      if (!r.ok) return { results: [], hasMore: false, continuationToken: null };
       const data = await r.json();
       return {
         results: Array.isArray(data.results) ? data.results : [],
         hasMore: !!data.hasMore,
+        continuationToken: data.continuationToken || null,
         online: true,
       };
     } catch {
-      return { results: [], hasMore: false, unavailable: true };
+      return { results: [], hasMore: false, continuationToken: null, unavailable: true };
     }
   }
 
@@ -227,51 +243,66 @@ const YoutubeSearch = (() => {
   async function search(query, opts = {}) {
     const q = String(query || '').trim();
     const page = Math.max(1, parseInt(opts.page, 10) || 1);
+    const continuation = opts.continuation || null;
     if (q.length < 2) {
-      return { results: [], source: null, proxyOnline: false, localCount: 0, hasMore: false, page };
+      return { results: [], source: null, proxyOnline: false, localCount: 0, hasMore: false, page, continuationToken: null };
     }
 
-    const local = page === 1 ? searchLocal(q) : [];
+    const local = page === 1 && !continuation ? searchLocal(q) : [];
     const proxyReachable = _proxyReachable();
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
     let remote = [];
     let hasMore = false;
+    let continuationToken = null;
     let source = null;
     let proxy = { results: [], online: false, hasMore: false, skip: !proxyReachable };
 
-    if (onPublic || !proxyReachable) {
-      const origin = await _sameOriginSearch(q, page);
+    if (continuation || onPublic || !proxyReachable) {
+      const origin = await _sameOriginSearch(q, page, continuation);
       if (origin.results?.length) {
         remote = origin.results;
         hasMore = origin.hasMore;
+        continuationToken = origin.continuationToken;
         source = 'origin-api';
+      } else if (continuation) {
+        return {
+          results: [],
+          source: 'origin-api',
+          proxyOnline: false,
+          proxyReachable,
+          localCount: 0,
+          hasMore: false,
+          page,
+          continuationToken: null,
+        };
       }
     }
 
-    if (!remote.length && proxyReachable) {
+    if (!remote.length && proxyReachable && !continuation) {
       proxy = await _proxySearch(q, page);
       remote = proxy.results || [];
       hasMore = proxy.hasMore;
       if (remote.length) source = 'ytdlp';
     }
 
-    if (!remote.length) {
-      const origin = await _sameOriginSearch(q, page);
+    if (!remote.length && !continuation) {
+      const origin = await _sameOriginSearch(q, page, null);
       if (origin.results?.length) {
         remote = origin.results;
         hasMore = origin.hasMore;
+        continuationToken = origin.continuationToken;
         source = 'origin-api';
       }
     }
 
-    if (!remote.length && (!proxy.online || proxy.needsRestart || proxy.skip)) {
+    if (!remote.length && !continuation && (!proxy.online || proxy.needsRestart || proxy.skip)) {
       const inv = await _invidiousSearch(q, page);
       remote = inv.results;
       hasMore = inv.hasMore;
       if (remote.length) source = 'invidious';
     }
 
-    if (!remote.length) {
+    if (!remote.length && !continuation) {
       const piped = await _pipedSearch(q, page);
       remote = piped.results;
       hasMore = piped.hasMore;
@@ -280,7 +311,7 @@ const YoutubeSearch = (() => {
 
     if (!source && local.length) source = 'library';
 
-    const merged = page === 1 ? dedupeById([...local, ...remote]) : remote;
+    const merged = (page === 1 && !continuation) ? dedupeById([...local, ...remote]) : remote;
 
     return {
       results: merged,
@@ -291,6 +322,7 @@ const YoutubeSearch = (() => {
       needsRestart: proxy.needsRestart,
       localCount: local.length,
       hasMore,
+      continuationToken,
       page,
     };
   }
