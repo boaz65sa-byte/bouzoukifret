@@ -44,6 +44,9 @@
       <button class="nav-btn nav-featured" data-screen="learn-lib" data-nav-priority="1b">
         <span class="nav-ico">📥</span> ספריית לימוד
       </button>
+      <button class="nav-btn nav-featured" data-screen="vocal-melody" data-nav-priority="1b2">
+        <span class="nav-ico">🎤</span> שירה על בוזוקי
+      </button>
       <button class="nav-btn nav-featured" data-screen="bouzouki-studio" data-nav-priority="1c">
         <span class="nav-ico">🎛️</span> אולפן בוזוקי
       </button>
@@ -841,6 +844,15 @@
       <div id="learn-lib-app"></div>
     </section>
 
+    <!-- ========== מסך: שירה על בוזוקי ========== -->
+    <section class="screen" id="screen-vocal-melody">
+      <header class="screen-head">
+        <h1>שירה על בוזוקי 🎤</h1>
+        <p class="lead">שומעים את הזמר — האפליקציה מחלצת את המלודיה מהקול ומלמדת לנגן על הגריף, עם מילים מהמאגר כשזמינות</p>
+      </header>
+      <div id="vocal-melody-app"></div>
+    </section>
+
     <!-- ========== מסך: Dashboard התקדמות ========== -->
     <section class="screen" id="screen-progress">
       <header class="screen-head">
@@ -1171,6 +1183,7 @@
 <script src="js/worksheets.js"></script>
 <script src="js/basic-pitch-engine.js"></script>
 <script src="js/song-teacher.js"></script>
+<script src="js/vocal-melody-teacher.js"></script>
 <script src="js/song-learn.js"></script>
 <script src="js/song-academy.js"></script>
 <script src="js/adaptive.js"></script>
@@ -1210,6 +1223,7 @@ if (typeof ArpStudio !== 'undefined') ArpStudio.init();
 if (typeof ReferenceCards !== 'undefined') ReferenceCards.init();
 if (typeof Worksheets !== 'undefined') Worksheets.init();
 if (typeof SongTeacher !== 'undefined') SongTeacher.init();
+if (typeof VocalMelodyTeacher !== 'undefined') VocalMelodyTeacher.init();
 if (typeof BouzoukiStudio !== 'undefined') BouzoukiStudio.init();
 if (typeof SongLearn !== 'undefined') SongLearn.init();
 if (typeof SongAcademy !== 'undefined') SongAcademy.init();

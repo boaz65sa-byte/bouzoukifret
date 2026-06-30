@@ -9,8 +9,8 @@
 
 const ModusPath = (() => {
 
-  /* מיתר D פתוח = MIDI 74 (D5). סריג = תוספת חצאי-טונים. */
-  const D_OPEN = 74;
+  /* מיתר D פתוח = MIDI 62 (D4). סריג = תוספת חצאי-טונים. */
+  const D_OPEN = typeof TUNING !== 'undefined' ? TUNING[0].midi : 62;
   const NN = ['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B'];
   const HE = ['דו','דו#','רה','מי♭','מי','פה','פה#','סול','סול#','לה','סי♭','סי'];
 
@@ -120,6 +120,9 @@ const ModusPath = (() => {
 
   /* ---------- מצב ---------- */
   let currentPath = null, currentStageIdx = 0;
+  let _mpPosBase = 0;
+  let _mpStringMode = 4;
+  let _mpScalePanel = null;
   let mic = { stream: null, ctx: null, analyser: null, timer: null };
   const PROGRESS_KEY = 'modus-path-progress';
 
@@ -321,14 +324,83 @@ const ModusPath = (() => {
     </svg>`;
   }
 
-  function mountNeck(host, frets, color, phraseFrets) {
+  function pathIntervals(p) {
+    if (typeof DROMOI !== 'undefined' && p?.id) {
+      const dr = DROMOI.find(d => d.id === p.id);
+      if (dr?.intervals?.length) return dr.intervals;
+    }
+    if (typeof FretboardScale !== 'undefined' && p?.scale?.frets) {
+      return FretboardScale.fretsOnDToIntervals(p.scale.frets);
+    }
+    return [];
+  }
+
+  function syncModusRoad(path) {
+    const roadHost = document.getElementById('mp-road-host');
+    if (!roadHost || !path || typeof DromosRoad === 'undefined') return;
+    const ivs = pathIntervals(path);
+    DromosRoad.renderInto(roadHost, {
+      intervals: ivs,
+      rootPc: D_OPEN % 12,
+      nameHe: path.name,
+      embedded: true,
+      posBase: _mpPosBase,
+      stringMode: _mpStringMode,
+      fretboard: _mpScalePanel?.getSvg?.(),
+    });
+  }
+
+  function mountNeck(host, path, color, phraseFrets) {
     if (!host || typeof FretboardScale === 'undefined') return;
-    FretboardScale.mountWithPositions(host, {
-      frets: phraseFrets ? (frets.length ? frets : phraseFrets) : frets,
-      phraseFrets,
-      color: color || '#e3b341',
-      bases: [0, 2, 5, 7, 9],
-      pathLabels: !!phraseFrets,
+    const frets = path.scale.frets;
+    if (phraseFrets) {
+      _mpScalePanel = null;
+      FretboardScale.mount(host, {
+        frets: path.scale.frets,
+        phraseFrets,
+        color: color || '#e3b341',
+        pathLabels: true,
+        base: _mpPosBase,
+      });
+      return;
+    }
+    const intervals = pathIntervals(path);
+    _mpScalePanel = FretboardScale.mountDromosScalePanel(host, {
+      intervals: intervals.length ? intervals : undefined,
+      frets: intervals.length ? undefined : frets,
+      rootPc: D_OPEN % 12,
+      posBase: _mpPosBase,
+      stringMode: _mpStringMode,
+      onChange(st) {
+        _mpPosBase = st.posBase;
+        _mpStringMode = st.stringMode;
+        syncModusRoad(path);
+      },
+    });
+  }
+
+  function playScaleAtPosition(path) {
+    const ivs = pathIntervals(path);
+    if (!ivs.length || typeof AudioEngine === 'undefined') {
+      playFrets([...path.scale.frets, ...[...path.scale.frets].reverse().slice(1)]);
+      return;
+    }
+    const st = _mpScalePanel?.getState?.() || { posBase: _mpPosBase, stringMode: _mpStringMode };
+    _mpPosBase = st.posBase;
+    _mpStringMode = st.stringMode;
+    const svg = _mpScalePanel?.getSvg?.() || document.querySelector('#mp-neck-host svg');
+    AudioEngine.stopModeScale?.();
+    AudioEngine.ensureCtx();
+    AudioEngine.playModeScale(ivs, D_OPEN % 12, {
+      gapMs: 320,
+      gain: 0.5,
+      posBase: st.posBase,
+      stringMode: st.stringMode,
+      onStep(fret, i, pt) {
+        if (pt && svg && typeof FretboardScale !== 'undefined') {
+          FretboardScale.flashMidi(svg, pt.midi);
+        }
+      },
     });
   }
 
@@ -373,25 +445,9 @@ const ModusPath = (() => {
       <div class="mp-listen-status" id="mp-listen-status"></div>
       ${stageNav()}
     `;
-    mountNeck(document.getElementById('mp-neck-host'), p.scale.frets, p.color);
-    // "הכביש" — מסלול מעשי על 2 / 3 / 4 מיתרים (רכיב משותף)
-    if (typeof DromosRoad !== 'undefined') {
-      DromosRoad.renderInto(document.getElementById('mp-road-host'), {
-        frets: p.scale.frets,
-        rootPc: D_OPEN % 12,
-        nameHe: p.nameHe || p.name || 'הסולם',
-      });
-    }
-    document.getElementById('mp-play').addEventListener('click', () => {
-      const ivs = typeof FretboardScale !== 'undefined'
-        ? FretboardScale.fretsOnDToIntervals(p.scale.frets)
-        : [];
-      if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
-        AudioEngine.playModeScale(ivs, D_OPEN % 12, { gapMs: 320, gain: 0.5, posBase: 0, stringMode: 4 });
-      } else {
-        playFrets([...p.scale.frets, ...[...p.scale.frets].reverse().slice(1)]);
-      }
-    });
+    mountNeck(document.getElementById('mp-neck-host'), p, p.color);
+    syncModusRoad(p);
+    document.getElementById('mp-play').addEventListener('click', () => playScaleAtPosition(p));
     document.getElementById('mp-listen').addEventListener('click', () => startScaleListen(p.scale.frets));
     wireNav();
   }
@@ -428,7 +484,7 @@ const ModusPath = (() => {
       <div class="mp-listen-status" id="mp-listen-status"></div>
       ${stageNav()}
     `;
-    mountNeck(document.getElementById('mp-neck-host'), p.scale.frets, p.color, p.phrase.frets);
+    mountNeck(document.getElementById('mp-neck-host'), p, p.color, p.phrase.frets);
     document.getElementById('mp-play').addEventListener('click', () => playFrets(p.phrase.frets, 320));
     document.getElementById('mp-listen').addEventListener('click', () => startPhraseListen(p.phrase.frets));
     wireNav();

@@ -142,12 +142,23 @@ async function downloadBuffer(url) {
   return Buffer.from(await resp.arrayBuffer());
 }
 
+function pickLalalTrack(tracks, stem) {
+  const list = tracks || [];
+  const wantVocal = /vocal|voice|sing/i.test(String(stem || ''));
+  if (wantVocal) {
+    return list.find(t => /vocal|voice|sing/i.test(t.label || ''))
+      || list.find(t => !/string|stem|instrument|drum|bass|piano|guitar|other|accompan/i.test(t.label || ''))
+      || list[0];
+  }
+  return list.find(t => /string|stem|instrument/i.test(t.label || '')) || list[0];
+}
+
 async function separateLalal(filePath, originalName, stem) {
   const sourceId = await lalalUpload(filePath, originalName);
   const taskId = await lalalSplit(sourceId, stem);
   const result = await lalalWait(taskId);
   const tracks = result?.tracks || [];
-  const stemTrack = tracks.find(t => /string|stem|instrument/i.test(t.label || '')) || tracks[0];
+  const stemTrack = pickLalalTrack(tracks, stem);
   if (!stemTrack?.url) throw new Error('No stem track');
   return downloadBuffer(stemTrack.url);
 }
@@ -158,7 +169,7 @@ function publicFileUrl(req, id, ext) {
   return `${proto}://${host}/tmp/${id}${ext}`;
 }
 
-async function separateMoises(filePath, originalName, req) {
+async function separateMoises(filePath, originalName, req, stem = 'other') {
   const id = randomUUID();
   const ext = originalName.includes('.') ? originalName.slice(originalName.lastIndexOf('.')) : '.mp3';
   const dest = join(TMP, `${id}${ext}`);
@@ -183,9 +194,12 @@ async function separateMoises(filePath, originalName, req) {
     });
     const job = await poll.json();
     if (job.status === 'SUCCEEDED') {
-      const otherUrl = job.result?.other || job.result?.accompaniments;
-      if (!otherUrl) throw new Error('Moises: no other stem');
-      const audio = await downloadBuffer(otherUrl);
+      const wantVocal = /vocal|voice|sing/i.test(String(stem || ''));
+      const stemUrl = wantVocal
+        ? (job.result?.vocals || job.result?.voice || job.result?.vocal)
+        : (job.result?.other || job.result?.accompaniments);
+      if (!stemUrl) throw new Error(wantVocal ? 'Moises: no vocals stem' : 'Moises: no other stem');
+      const audio = await downloadBuffer(stemUrl);
       try { unlinkSync(dest); } catch { /* noop */ }
       return audio;
     }
@@ -230,7 +244,7 @@ app.post('/api/separate', upload.single('file'), async (req, res) => {
     let audio;
     if (provider === 'moises') {
       if (!MOISES_KEY) return res.status(400).json({ error: 'MOISES_API_KEY not configured' });
-      audio = await separateMoises(req.file.path, req.file.originalname, req);
+      audio = await separateMoises(req.file.path, req.file.originalname, req, stem);
     } else {
       if (!LALAL_KEY) return res.status(400).json({ error: 'LALAL_LICENSE_KEY not configured' });
       audio = await separateLalal(req.file.path, req.file.originalname, stem);

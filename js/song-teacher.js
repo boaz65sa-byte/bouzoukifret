@@ -30,6 +30,9 @@ const SongTeacher = (() => {
   let _phraseIdx = 0;
   let _fbHost = null;
   let _rawMelody = [];
+  let _vocalCtx = null;       // { title, song, videoId, vocalBlob }
+  let _vocalUrl = null;
+  let _vocalAudio = null;
   const STR_LABELS = ['D', 'A', 'F', 'C'];
 
   /* ---------- עזרים ---------- */
@@ -125,9 +128,77 @@ const SongTeacher = (() => {
   // קליטת ניתוח קיים (למשל מ-SongAnalyzer)
   function loadAnalysis(analysis) {
     if (!analysis) return;
+    _vocalCtx = null;
+    revokeVocalUrl();
     _analysis = analysis;
     ingest(analysis);
     renderLesson();
+  }
+
+  function revokeVocalUrl() {
+    if (_vocalAudio) {
+      try { _vocalAudio.pause(); } catch (_) {}
+      _vocalAudio = null;
+    }
+    if (_vocalUrl) {
+      URL.revokeObjectURL(_vocalUrl);
+      _vocalUrl = null;
+    }
+  }
+
+  /** שיעור ממלודיית שירה (VocalMelodyTeacher) */
+  function loadVocalLesson({ analysis, title, song, vocalBlob, videoId }) {
+    if (!analysis) return;
+    revokeVocalUrl();
+    _vocalCtx = { title: title || 'שירה על בוזוקי', song: song || null, videoId: videoId || '' };
+    _withChords = false;
+    if (vocalBlob) {
+      _vocalUrl = URL.createObjectURL(vocalBlob);
+    }
+    _analysis = { ...analysis, engine: analysis.engine || 'basic-pitch-vocal' };
+    ingest(_analysis);
+    setStatus('מוכן — שמעו את הזמר ונגנו על הגריף', 100);
+    renderLesson();
+  }
+
+  function renderVocalLyrics(song) {
+    if (!song?.sections?.length) return '';
+    const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const blocks = song.sections.map(sec => {
+      const lines = (sec.lines || []).map(line => {
+        if (!line.lyrics) return '';
+        const greek = /[Ͱ-Ͽ]/.test(line.lyrics);
+        const chords = (line.chords || []).filter(Boolean).join(' · ');
+        return `<div class="st-vocal-line${greek ? ' st-vocal-greek' : ''}" dir="${greek ? 'ltr' : 'rtl'}">
+          ${chords ? `<span class="st-vocal-chords">${esc(chords)}</span>` : ''}
+          <span class="st-vocal-text">${esc(line.lyrics)}</span>
+        </div>`;
+      }).join('');
+      return `<div class="st-vocal-sec"><div class="st-vocal-sec-name">[${esc(sec.name)}]</div>${lines}</div>`;
+    }).join('');
+    return `<div class="card st-vocal-lyrics">
+      <div class="st-fb-title">מילות השיר (מהמאגר)</div>
+      <p class="hint">המילים מסונכרנות לפי משפטים — תנגנו את המלודיה על הגריף בזמן שאתם שרים/שומעים.</p>
+      <div class="st-vocal-scroll">${blocks}</div>
+    </div>`;
+  }
+
+  function playVocalStem() {
+    if (!_vocalUrl) return;
+    ensureAudio();
+    if (!_vocalAudio) {
+      _vocalAudio = new Audio(_vocalUrl);
+    }
+    if (_vocalAudio.paused) {
+      _vocalAudio.currentTime = 0;
+      _vocalAudio.play().catch(() => {});
+      const btn = $('#st-vocal-play');
+      if (btn) btn.textContent = '⏸ עצור קול';
+    } else {
+      _vocalAudio.pause();
+      const btn = $('#st-vocal-play');
+      if (btn) btn.textContent = '🎤 שמע קול הזמר';
+    }
   }
 
   function ingest(a) {
@@ -227,6 +298,11 @@ const SongTeacher = (() => {
     if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
     clearActiveDots();
     setPlayBtn(false);
+    if (_vocalAudio) {
+      try { _vocalAudio.pause(); } catch (_) {}
+      const btn = $('#st-vocal-play');
+      if (btn) btn.textContent = '🎤 שמע קול הזמר';
+    }
     if (typeof unregisterPlayback === 'function') unregisterPlayback('song-teacher');
   }
 
@@ -426,7 +502,16 @@ const SongTeacher = (() => {
     const dromosName = _dromos?.dromos?.nameHe || '—';
     const dromosConf = _dromos?.confidence ? Math.round(_dromos.confidence) + '%' : '—';
 
+    const vocalBanner = _vocalCtx ? `
+      <div class="card st-vocal-banner">
+        <strong>🎤 מלודיית שירה → בוזוקי</strong>
+        <span class="hint">${_vocalCtx.title || ''}</span>
+        ${_vocalUrl ? '<button type="button" class="btn small gold" id="st-vocal-play">🎤 שמע קול הזמר</button>' : ''}
+      </div>` : '';
+
     host.innerHTML = `
+      ${vocalBanner}
+      ${(_vocalCtx?.song) ? renderVocalLyrics(_vocalCtx.song) : ''}
       <div class="card st-info">
         <span>BPM: <b>${a.bpm || '—'}</b></span>
         <span>תווי מלודיה: <b>${_melody.length}</b></span>
@@ -483,7 +568,7 @@ const SongTeacher = (() => {
           <button class="btn small st-speed" data-s="0.75">×0.75</button>
           <button class="btn small st-speed active" data-s="1">×1</button>
         </div>
-        <label class="st-toggle"><input type="checkbox" id="st-withchords" checked> ליווי אקורדים</label>
+        <label class="st-toggle"><input type="checkbox" id="st-withchords" ${_withChords ? 'checked' : ''}> ליווי אקורדים</label>
         <button class="btn small" id="st-loop">🔁 לולאה: כבוי</button>
         <div class="st-prog"><div class="st-prog-bar"><div id="st-prog-fill2"></div></div><span id="st-prog-time" class="st-prog-time">0:00 / ${fmt(_duration)}</span></div>
       </div>
@@ -661,9 +746,13 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
     });
     $('#st-export-html', host).addEventListener('click', exportAsHtml);
     $('#st-export-json', host).addEventListener('click', exportAsJson);
+    $('#st-vocal-play', host)?.addEventListener('click', playVocalStem);
   }
 
-  function stopAll() { stop(); }
+  function stopAll() {
+    stop();
+    revokeVocalUrl();
+  }
 
-  return { init, stop: stopAll, analyzeFile, loadAnalysis };
+  return { init, stop: stopAll, analyzeFile, loadAnalysis, loadVocalLesson };
 })();

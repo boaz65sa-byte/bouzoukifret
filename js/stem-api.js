@@ -34,6 +34,91 @@ const StemAPI = (() => {
     }
   }
 
+  const PIPED_BASES = [
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.tokhmi.xyz',
+    'https://piped-api.garudalinux.org',
+  ];
+
+  const INVIDIOUS_BASES = [
+    'https://invidious.materialio.us',
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
+    'https://yewtu.be',
+    'https://invidious.f5.si',
+  ];
+
+  async function loadSiteDownloadConfig() {
+    try {
+      const r = await fetch('/api/site-config', { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return null;
+      return r.json();
+    } catch {
+      return null;
+    }
+  }
+
+  /** האם הורדה אפשרית (פרוקסי מקומי / relay בשרת / Piped) */
+  async function checkDownloadReady() {
+    const health = await checkHealth();
+    if (health.ok && health.ytdlp !== false) {
+      return { ready: true, via: 'proxy', label: 'stem-proxy' };
+    }
+
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    if (onPublic) {
+      const site = await loadSiteDownloadConfig();
+      if (site?.stemProxyUrl) {
+        return { ready: true, via: 'server-relay', label: 'שרת' };
+      }
+      return { ready: true, via: 'piped', label: 'Piped' };
+    }
+
+    if (health.ok) {
+      return { ready: !!health.ytdlp, via: 'proxy', label: 'stem-proxy' };
+    }
+    return { ready: true, via: 'piped', label: 'Piped' };
+  }
+
+  async function fetchViaPipedOrInvidious(videoId, onProgress) {
+    onProgress?.('מחפש מקור אודיו…', 10);
+    for (const base of PIPED_BASES) {
+      try {
+        const r = await fetch(`${base}/streams/${videoId}`, { signal: AbortSignal.timeout(25000) });
+        if (!r.ok) continue;
+        const data = await r.json();
+        const streams = Array.isArray(data.audioStreams) ? data.audioStreams : [];
+        const best = streams.slice().sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+        if (!best?.url) continue;
+        onProgress?.('מוריד אודיו (Piped)…', 18);
+        const audioR = await fetch(best.url, { signal: AbortSignal.timeout(300000) });
+        if (!audioR.ok) continue;
+        onProgress?.('הורדה הושלמה', 25);
+        return audioR.blob();
+      } catch { /* next */ }
+    }
+
+    for (const base of INVIDIOUS_BASES) {
+      try {
+        const r = await fetch(
+          `${base}/api/v1/videos/${videoId}?fields=adaptiveFormats`,
+          { signal: AbortSignal.timeout(20000), headers: { Accept: 'application/json' } },
+        );
+        if (!r.ok) continue;
+        const data = await r.json();
+        const fmt = (data.adaptiveFormats || []).find(f => String(f.type || '').startsWith('audio/'));
+        if (!fmt?.url) continue;
+        onProgress?.('מוריד אודיו (Invidious)…', 18);
+        const audioR = await fetch(fmt.url, { signal: AbortSignal.timeout(300000) });
+        if (!audioR.ok) continue;
+        onProgress?.('הורדה הושלמה', 25);
+        return audioR.blob();
+      } catch { /* next */ }
+    }
+
+    throw new Error('לא נמצא מקור אודיו — הריצו stem-proxy מקומי (start-windows.bat) או נסו שוב מאוחר יותר');
+  }
+
   /**
    * @param {File|Blob} file
    * @param {{ provider?: 'lalal'|'moises', stem?: string, onProgress?: (msg:string,pct:number)=>void }} opts
@@ -55,7 +140,10 @@ const StemAPI = (() => {
         try { msg = (await resp.json()).error || msg; } catch { /* noop */ }
         throw new Error(msg);
       }
-      onProgress?.('מיתרים מבודדים — מוכן לניתוח', 100);
+      const stemDone = /vocal|voice|sing/i.test(stem)
+        ? 'קול הזמר מבודד — מוכן לתמלול'
+        : 'מיתרים מבודדים — מוכן לניתוח';
+      onProgress?.(stemDone, 100);
       return resp.blob();
     }
 
@@ -75,7 +163,8 @@ const StemAPI = (() => {
     if (!respUp.ok) throw new Error(`LALAL upload: ${respUp.status} (ייתכן CORS — הרץ את stem-proxy)`);
     const { id: sourceId } = await respUp.json();
 
-    onProgress?.('מפריד stems (strings)…', 20);
+    const stemLabel = /vocal|voice|sing/i.test(stem) ? 'vocals' : stem;
+    onProgress?.(`מפריד stems (${stemLabel})…`, 20);
     const respSplit = await fetch('https://www.lalal.ai/api/v1/split/stem_separator/', {
       method: 'POST',
       headers: { 'X-License-Key': key, 'Content-Type': 'application/json' },
@@ -99,7 +188,12 @@ const StemAPI = (() => {
       const pct = Math.min(95, 25 + (task?.progress || i));
       onProgress?.(`LALAL: ${task?.status || '…'} ${pct}%`, pct);
       if (task?.status === 'success') {
-        const url = task.result?.tracks?.[0]?.url;
+        const tracks = task.result?.tracks || [];
+        const wantVocal = /vocal|voice|sing/i.test(stem);
+        const track = wantVocal
+          ? tracks.find(t => /vocal|voice|sing/i.test(t.label || '')) || tracks[0]
+          : tracks.find(t => /string|stem|instrument/i.test(t.label || '')) || tracks[0];
+        const url = track?.url;
         if (!url) throw new Error('No track URL');
         const dl = await fetch(url);
         return dl.blob();
@@ -127,32 +221,52 @@ const StemAPI = (() => {
         try { msg = (await resp.json()).error || msg; } catch { /* noop */ }
         throw new Error(msg);
       }
+      const ct = resp.headers.get('content-type') || '';
+      if (ct.includes('json')) {
+        const j = await resp.json();
+        if (j.streamUrl) {
+          onProgress?.('מוריד אודיו…', 15);
+          const ar = await fetch(j.streamUrl, { signal: AbortSignal.timeout(300000) });
+          if (!ar.ok) throw new Error(`הורדת אודיו נכשלה (${ar.status})`);
+          onProgress?.('הורדה הושלמה', 25);
+          return ar.blob();
+        }
+        throw new Error(j.error || 'שגיאת שרת');
+      }
       onProgress?.('הורדה הושלמה', 25);
       return resp.blob();
+    }
+
+    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const errors = [];
+
+    if (onPublic) {
+      try {
+        return await _fetchFrom('/api/youtube-audio', 'שרת');
+      } catch (e) { errors.push(e); }
     }
 
     if (proxy) {
       try {
         const health = await checkHealth();
         if (health.ok) {
-          return _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
         }
-      } catch { /* try fallbacks */ }
+      } catch (e) { errors.push(e); }
     }
 
-    const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-    if (onPublic) {
+    try {
+      return await fetchViaPipedOrInvidious(videoId, onProgress);
+    } catch (e) { errors.push(e); }
+
+    if (!onPublic && proxy) {
       try {
-        const qs2 = new URLSearchParams({ id: videoId });
-        if (meta.title) qs2.set('title', meta.title);
-        return await _fetchFrom('/api/youtube-audio', 'שרת');
-      } catch (e) {
-        if (!proxy) throw e;
-      }
+        return await _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+      } catch (e) { errors.push(e); }
     }
 
-    if (!proxy) throw new Error('הגדר stemProxyUrl ב-config.js או ב«הגדרות פרוקסי»');
-    return _fetchFrom(`${proxy}/api/youtube-audio`, 'yt-dlp');
+    const last = errors[errors.length - 1];
+    throw last || new Error('לא ניתן להוריד את השיר');
   }
 
   async function saveBlobAsFile(blob, filename) {
@@ -199,17 +313,12 @@ const StemAPI = (() => {
       saveToDisk = true,
     } = opts;
 
-    const health = await checkHealth();
-    if (!health.ok) {
-      const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-      if (!onPublic) {
-        const hint = typeof DeviceUtils !== 'undefined'
-          ? DeviceUtils.proxyHintMessage(proxyUrl())
-          : 'הריצו tools/stem-proxy והגדירו config.js';
-        throw new Error(`stem-proxy לא פעיל — ${hint.replace(/<[^>]+>/g, '')}`);
-      }
-    } else if (!health.ytdlp) {
-      throw new Error('yt-dlp לא מותקן — pip install yt-dlp');
+    const ready = await checkDownloadReady();
+    if (!ready.ready) {
+      const hint = typeof DeviceUtils !== 'undefined'
+        ? DeviceUtils.proxyHintMessage(proxyUrl())
+        : 'הריצו tools/stem-proxy והגדירו config.js';
+      throw new Error(`הורדה לא זמינה — ${hint.replace(/<[^>]+>/g, '')}`);
     }
 
     const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
@@ -250,5 +359,20 @@ const StemAPI = (() => {
     }
   }
 
-  return { separate, checkHealth, fetchYoutube, saveBlobAsFile, downloadForLearning, listDiskLibrary, getProxyUrl: proxyUrl };
+  /** בידוד קול הזמר בלבד */
+  async function separateVocals(file, opts = {}) {
+    return separate(file, { ...opts, stem: 'vocals' });
+  }
+
+  return {
+    separate,
+    separateVocals,
+    checkHealth,
+    checkDownloadReady,
+    fetchYoutube,
+    saveBlobAsFile,
+    downloadForLearning,
+    listDiskLibrary,
+    getProxyUrl: proxyUrl,
+  };
 })();

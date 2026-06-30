@@ -2196,6 +2196,15 @@ select {
 }
 .st-engine-row { font-size: 13px; color: var(--text-dim); }
 .st-engine.active { background: var(--aegean-deep); color: #fff; }
+
+.st-vocal-banner { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 14px; border-right:3px solid var(--gold); }
+.st-vocal-lyrics { padding:12px 14px; }
+.st-vocal-scroll { max-height:240px; overflow-y:auto; margin-top:8px; }
+.st-vocal-sec-name { font-size:11px; color:var(--gold); font-weight:700; margin:10px 0 4px; }
+.st-vocal-line { margin:6px 0; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,.03); line-height:1.55; }
+.st-vocal-greek { text-align:left; font-family:Georgia,serif; }
+.st-vocal-chords { display:block; font-size:11px; color:var(--aegean); margin-bottom:2px; font-family:monospace; }
+.st-vocal-text { font-size:15px; }
 .st-export { padding: 12px 14px; }
 .st-export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .st-export-row b { color: var(--gold-soft); }

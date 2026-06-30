@@ -25,6 +25,7 @@ $$('.nav-btn').forEach(btn => {
       SongLibrary.resetMobileView();
     }
     if (btn.dataset.screen === 'learn-lib' && typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
+    if (btn.dataset.screen === 'vocal-melody' && typeof VocalMelodyTeacher !== 'undefined') VocalMelodyTeacher.refresh();
     // מצייר מחדש את מסך הדרומוסים בכל כניסה (הרינדור הראשוני רץ מוקדם מדי ומשאיר גריף ריק)
     if (btn.dataset.screen === 'dromoi' && typeof renderDromos === 'function') renderDromos();
     stopAllPlayback();
@@ -95,6 +96,7 @@ function stopAllPlayback() {
   if (typeof SongAcademy !== 'undefined') SongAcademy.stop();
   if (typeof LearnHub !== 'undefined') LearnHub.stop();
   if (typeof LearnLibrary !== 'undefined') LearnLibrary.stop();
+  if (typeof VocalMelodyTeacher !== 'undefined') VocalMelodyTeacher.stop();
   if (typeof SongAnalyzer !== 'undefined') SongAnalyzer.stop();
   if (typeof ProgressDashboard !== 'undefined') ProgressDashboard.stop();
   if (typeof PitchPreservingPlayer !== 'undefined' && PitchPreservingPlayer.isPlaying()) {

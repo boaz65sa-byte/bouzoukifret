@@ -215,6 +215,7 @@ const LearnLibrary = (() => {
           <div class="learn-lib-badges">${badges}</div>
           <div class="learn-lib-actions">
             <button type="button" class="btn primary ll-analyze" data-id="${esc(t.videoId)}">🔬 נתח</button>
+            <button type="button" class="btn gold ll-vocal" data-id="${esc(t.videoId)}" data-title="${label}">🎤 מהזמר</button>
             <button type="button" class="btn secondary ll-yt" data-id="${esc(t.videoId)}" data-title="${label}">▶ YouTube</button>
             ${!t.inApp && t.onDisk ? `<button type="button" class="btn secondary ll-import" data-id="${esc(t.videoId)}">⬇ ייבא</button>` : ''}
             ${t.inApp ? `<button type="button" class="btn secondary ll-save" data-id="${esc(t.videoId)}">💾 שמור קובץ</button>` : ''}
@@ -230,6 +231,13 @@ const LearnLibrary = (() => {
     });
     grid.querySelectorAll('.ll-analyze').forEach(btn => {
       btn.addEventListener('click', () => _analyze(btn.dataset.id));
+    });
+    grid.querySelectorAll('.ll-vocal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (typeof VocalMelodyTeacher !== 'undefined' && VocalMelodyTeacher.runFromLibrary) {
+          VocalMelodyTeacher.runFromLibrary(btn.dataset.id, btn.dataset.title);
+        }
+      });
     });
     grid.querySelectorAll('.ll-yt').forEach(btn => {
       btn.addEventListener('click', () => _openInLearnHub(btn.dataset.id, btn.dataset.title));

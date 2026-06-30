@@ -69,9 +69,9 @@ const LearnOnboarding = (() => {
     } else if (st.needsRestart) {
       statusHtml = '<div class="learn-onboard-status warn">🔄 stem-proxy דורש הפעלה מחדש (npm start ב-tools/stem-proxy)</div>';
     } else if (onPublic) {
-      statusHtml = '<div class="learn-onboard-status ok">✓ חיפוש YouTube עובד מהאתר. להורדת MP3 — stem-proxy (Render / מקומי)</div>';
+      statusHtml = '<div class="learn-onboard-status ok">✓ חיפוש והורדה זמינים מהאתר — לחצו 📥 על סרטון. לשיפור איכות: stem-proxy מקומי (אופציונלי)</div>';
     } else {
-      statusHtml = '<div class="learn-onboard-status warn">⚙️ stem-proxy לא פעיל — חיפוש מלא והורדה דורשים הפעלה מקומית</div>';
+      statusHtml = '<div class="learn-onboard-status ok">✓ אפשר לחפש ולהוריד — stem-proxy מקומי משפר מהירות (אופציונלי)</div>';
     }
 
     const overlay = document.createElement('div');
@@ -80,7 +80,7 @@ const LearnOnboarding = (() => {
     overlay.innerHTML = `
       <div class="learn-onboard-card" role="dialog" aria-labelledby="learn-onboard-title">
         <h2 id="learn-onboard-title">🎓 ברוכים הבאים ללימוד מהשיר</h2>
-        <p>כדי לחפש ב-YouTube, להוריד ולשמור בספריית הלימוד — צריך שרת מקומי קטן (פעם אחת):</p>
+        <p>חפשו שיר, לחצו 📥 להורדה לספריית הלימוד. stem-proxy מקומי משפר מהירות (אופציונלי):</p>
         <ol class="learn-onboard-steps">
           <li>העתיקו <code>config.example.js</code> → <code>config.js</code>${hasConfig ? ' ✓' : ''}</li>
           <li>בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code></li>

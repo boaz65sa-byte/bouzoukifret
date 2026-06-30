@@ -356,8 +356,8 @@ const YoutubeSearch = (() => {
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
     if (!meta.proxyOnline && !meta.proxyReachable && onPublic) {
       html += `<div class="learn-search-help card">
-        <p><b>ℹ️ חיפוש YouTube</b> — רשימת הסרטונים נטענת מהשרת. להורדת MP3 וניתוח stems צריך <b>stem-proxy</b> (Render או מקומי).</p>
-        <p class="hint">אפשר גם להדביק קישור YouTube למטה ב«קישור ידני».</p>
+        <p><b>ℹ️ חיפוש YouTube פעיל.</b> לחצו <b>📥</b> על סרטון להורדה לספריית הלימוד.</p>
+        <p class="hint">למהירות מקסימלית — אפשר להריץ stem-proxy מקומי (הגדרות פרוקסי).</p>
       </div>`;
     } else if (!meta.proxyOnline) {
       html += `<div class="learn-search-help card">

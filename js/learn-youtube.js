@@ -261,10 +261,39 @@ const LearnHub = (() => {
       if (typeof LearnFlow !== 'undefined') LearnFlow.afterDownload(id, title);
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
-      _showProxySetupModal(e.message || String(e));
+      const msg = String(e.message || '');
+      if (/stem-proxy|לא זמינה|yt-dlp|לא נמצא מקור/i.test(msg)) {
+        _showProxySetupModal(msg);
+      }
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '📥 הורד MP3 ללימוד'; }
     }
+  }
+
+  async function _runVocalTeach(videoId) {
+    const id = videoId || _currentVideoId;
+    if (!id) {
+      alert('בחרו שיר תחילה');
+      return;
+    }
+    if (typeof VocalMelodyTeacher === 'undefined') {
+      alert('מודול שירה על בוזוקי לא זמין');
+      return;
+    }
+    _pauseYoutube();
+    let rec = typeof LearnOffline !== 'undefined' ? await LearnOffline.get(id) : null;
+    if (!rec?.blob) {
+      const ok = confirm('כדי לחלץ מלודיה מהזמר צריך להוריד את השיר קודם. להוריד עכשיו?');
+      if (!ok) return;
+      await _downloadForLearning(id, _currentSong?.titleGr || _currentSong?.title);
+      rec = await LearnOffline.get(id);
+    }
+    if (!rec?.blob) {
+      alert('השיר לא נמצא בספרייה — נסו להוריד שוב');
+      return;
+    }
+    const title = _currentSong?.titleHe || _currentSong?.titleGr || rec.titleHe || rec.title;
+    await VocalMelodyTeacher.runFromLibrary(id, title);
   }
 
   async function _analyzeOfflineTrack(videoId) {
@@ -308,6 +337,7 @@ const LearnHub = (() => {
         </div>
         <div class="learn-offline-actions">
           <button type="button" class="btn primary learn-offline-analyze" data-video="${_esc(t.videoId)}">🔬 נתח</button>
+          <button type="button" class="btn gold learn-offline-vocal" data-video="${_esc(t.videoId)}">🎤 מהזמר</button>
           <button type="button" class="btn secondary learn-offline-dl" data-video="${_esc(t.videoId)}">⬇ שמור שוב</button>
           <button type="button" class="btn secondary learn-offline-del" data-video="${_esc(t.videoId)}">🗑</button>
         </div>
@@ -320,6 +350,9 @@ const LearnHub = (() => {
 
     list.querySelectorAll('.learn-offline-analyze').forEach(btn => {
       btn.addEventListener('click', () => _analyzeOfflineTrack(btn.dataset.video));
+    });
+    list.querySelectorAll('.learn-offline-vocal').forEach(btn => {
+      btn.addEventListener('click', () => _runVocalTeach(btn.dataset.video));
     });
     list.querySelectorAll('.learn-offline-dl').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -427,6 +460,7 @@ const LearnHub = (() => {
           <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
           <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
           <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI (TAB + אקורדים)</button>
+          <button type="button" class="btn gold learn-vocal-teach">🎤 למד מלודיית שירה</button>
           <button type="button" class="btn primary learn-open-song" data-song="${song.id}">פתח בספריית שירים (אקורדים + גלילה)</button>
         </div>`;
     } else if (_currentVideoId) {
@@ -438,6 +472,7 @@ const LearnHub = (() => {
             <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
             <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
             <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
+            <button type="button" class="btn gold learn-vocal-teach">🎤 למד מלודיית שירה</button>
           </div>
           <label class="learn-label">דרומוס משוער
             <select id="learn-manual-dromos" class="learn-select">
@@ -469,6 +504,9 @@ const LearnHub = (() => {
     if (!panel) return;
     panel.querySelectorAll('.learn-analyze-video').forEach(btn => {
       btn.addEventListener('click', () => _goAnalyzeVideo());
+    });
+    panel.querySelectorAll('.learn-vocal-teach').forEach(btn => {
+      btn.addEventListener('click', () => _runVocalTeach());
     });
     panel.querySelectorAll('.learn-open-youtube').forEach(btn => {
       btn.addEventListener('click', () => _openExternalYoutube());
@@ -697,7 +735,7 @@ const LearnHub = (() => {
           if (hasMore) parts.push('יש עוד — לחצו למטה');
           status.textContent = parts.join(' · ');
         } else if (!proxyOnline && !proxyReachable && typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage()) {
-          status.textContent = 'חיפוש YouTube פעיל · להורדת MP3 צריך stem-proxy';
+          status.textContent = 'חיפוש YouTube פעיל · לחצו 📥 להורדה';
         } else if (needsRestart) {
           status.textContent = 'הפעילו מחדש את stem-proxy לחיפוש YouTube מלא (ראו הוראות למטה)';
         } else if (!proxyOnline) {
@@ -753,9 +791,9 @@ const LearnHub = (() => {
     overlay.className = 'learn-proxy-modal-overlay';
     overlay.innerHTML = `
       <div class="learn-proxy-modal card" role="dialog">
-        <h3>📥 הורדת MP3 דורשת stem-proxy</h3>
+        <h3>📥 הגדרות הורדה</h3>
         <p class="hint">${_esc(reason || '')}</p>
-        <p>חיפוש סרטונים עובד מהאתר. להורדה וניתוח AI צריך שרת קטן עם yt-dlp.</p>
+        <p>הורדה מנסה קודם את השרת / Piped. לשיפור מהירות — stem-proxy מקומי עם yt-dlp.</p>
         <ol class="learn-proxy-steps">
           <li><b>מקומי (הכי פשוט):</b> הריצו <code>tools\\stem-proxy\\start-windows.bat</code></li>
           <li>השאירו למטה <code>http://localhost:3456</code> ולחצו שמור</li>
@@ -798,11 +836,18 @@ const LearnHub = (() => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   }
 
-  async function _updateProxyBanner(online, needsRestart, proxyReachable, resultCount = 0) {
+  async function _updateProxyBanner(online, needsRestart, proxyReachable, resultCount = 0, downloadReady = null) {
     const el = document.getElementById('learn-proxy-banner');
     if (!el) return;
     const reachable = proxyReachable !== false;
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const dl = downloadReady
+      || (typeof StemAPI !== 'undefined' ? await StemAPI.checkDownloadReady() : null);
+
+    if (dl?.ready && (online || onPublic || resultCount > 0)) {
+      el.hidden = true;
+      return;
+    }
 
     if (online && !needsRestart) {
       el.hidden = true;
@@ -810,12 +855,7 @@ const LearnHub = (() => {
     }
 
     if (!reachable && onPublic && resultCount > 1) {
-      el.hidden = false;
-      el.className = 'learn-proxy-banner info';
-      el.innerHTML = `
-        <span>ℹ️ <b>חיפוש YouTube פעיל.</b> להורדת MP3 — הריצו stem-proxy מקומי או הגדירו כתובת Render.</span>
-        <button type="button" class="btn secondary learn-proxy-setup-btn">⚙️ הגדרות פרוקסי</button>`;
-      el.querySelector('.learn-proxy-setup-btn')?.addEventListener('click', () => _showProxySetupModal());
+      el.hidden = true;
       return;
     }
 
@@ -853,7 +893,8 @@ const LearnHub = (() => {
     const reachable = typeof DeviceUtils !== 'undefined'
       ? DeviceUtils.proxyReachableFromPage(YoutubeSearch.getProxyUrl())
       : true;
-    _updateProxyBanner(health.online, needsRestart, reachable, 0);
+    const dl = typeof StemAPI !== 'undefined' ? await StemAPI.checkDownloadReady() : null;
+    await _updateProxyBanner(health.online, needsRestart, reachable, 0, dl);
   }
 
   function _injectLearnStyles() {
