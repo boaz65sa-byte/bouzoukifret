@@ -1,5 +1,9 @@
 /** Vercel — הורדת אודיו YouTube (streaming למכשיר המשתמש) */
 const { Readable } = require('node:stream');
+const { readFile, unlink } = require('node:fs/promises');
+const { join } = require('node:path');
+const { tmpdir } = require('node:os');
+const { randomUUID } = require('node:crypto');
 
 let ytdlp;
 try {
@@ -56,6 +60,13 @@ function pickDirectAudioUrl(formats) {
   return null;
 }
 
+function isAudioContentType(ct) {
+  const t = String(ct || '').toLowerCase();
+  if (!t) return true;
+  if (t.includes('text/') || t.includes('json') || t.includes('html')) return false;
+  return t.startsWith('audio/') || t.startsWith('video/') || t.includes('octet-stream');
+}
+
 async function fetchAudioStream(url, headers = {}) {
   const r = await fetch(url, {
     headers: { 'User-Agent': UA, ...headers },
@@ -63,9 +74,11 @@ async function fetchAudioStream(url, headers = {}) {
     redirect: 'follow',
   });
   if (!r.ok || !r.body) return null;
+  const ct = r.headers.get('content-type') || '';
+  if (!isAudioContentType(ct)) return null;
   return {
     response: r,
-    type: (r.headers.get('content-type') || 'audio/mp4').split(';')[0],
+    type: ct.split(';')[0] || 'audio/mp4',
   };
 }
 
@@ -105,7 +118,31 @@ async function audioFromYtDlp(id) {
     if (stream) stream.type = pick.type || stream.type;
     return stream;
   } catch (err) {
-    console.error('[youtube-audio] yt-dlp', err.message || err);
+    console.error('[youtube-audio] yt-dlp url', err.message || err);
+    return null;
+  }
+}
+
+async function audioFromYtDlpFile(id) {
+  if (!ytdlp) return null;
+  const watchUrl = `https://www.youtube.com/watch?v=${id}`;
+  const out = join(tmpdir(), `yt-${id}-${randomUUID()}.m4a`);
+  try {
+    await ytdlp(watchUrl, {
+      format: YTDLP_FORMAT,
+      output: out,
+      quiet: true,
+      noWarnings: true,
+      noPlaylist: true,
+      noCallHome: true,
+    });
+    const buf = await readFile(out);
+    await unlink(out).catch(() => {});
+    if (buf.length < 4096) return null;
+    return { buffer: buf, type: 'audio/mp4' };
+  } catch (err) {
+    console.error('[youtube-audio] yt-dlp file', err.message || err);
+    await unlink(out).catch(() => {});
     return null;
   }
 }
@@ -181,16 +218,7 @@ async function audioFromPiped(id) {
 }
 
 async function audioFromInvidious(id) {
-  const itags = ['140', '139', '251'];
   for (const base of INVIDIOUS) {
-    for (const itag of itags) {
-      try {
-        const stream = await fetchAudioStream(`${base}/latest_version?id=${id}&itag=${itag}`, {
-          Accept: 'audio/*,*/*',
-        });
-        if (stream) return stream;
-      } catch { /* next */ }
-    }
     try {
       const r = await fetch(`${base}/api/v1/videos/${id}?fields=adaptiveFormats`, {
         signal: AbortSignal.timeout(20000),
@@ -235,6 +263,7 @@ module.exports = async function handler(req, res) {
 
   const attempts = [
     () => audioFromYtDlp(id),
+    () => audioFromYtDlpFile(id),
     () => audioFromInnerTube(id),
     () => audioFromPiped(id),
     () => audioFromInvidious(id),
@@ -247,6 +276,13 @@ module.exports = async function handler(req, res) {
   for (const tryFn of attempts) {
     try {
       const got = await tryFn();
+      if (got?.buffer?.length) {
+        res.setHeader('Content-Type', got.type || 'audio/mp4');
+        res.setHeader('Content-Length', String(got.buffer.length));
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(got.buffer);
+        return;
+      }
       if (got?.response?.body) {
         await pipeToResponse(res, got);
         return;
