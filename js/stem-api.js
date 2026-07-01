@@ -23,6 +23,37 @@ const StemAPI = (() => {
     return cfg().stemProxyUrl?.replace(/\/$/, '') || '';
   }
 
+  const DL_FORMAT_KEY = 'bouzouki_download_format_v1';
+
+  function normalizeDownloadFormat(fmt) {
+    return fmt === 'mp3' ? 'mp3' : 'm4a';
+  }
+
+  function getDownloadFormat() {
+    try {
+      return normalizeDownloadFormat(localStorage.getItem(DL_FORMAT_KEY));
+    } catch {
+      return 'm4a';
+    }
+  }
+
+  function setDownloadFormat(fmt) {
+    try {
+      localStorage.setItem(DL_FORMAT_KEY, normalizeDownloadFormat(fmt));
+    } catch { /* noop */ }
+  }
+
+  function blobAudioExt(blob) {
+    const t = String(blob?.type || '').toLowerCase();
+    if (t.includes('mpeg') || t.includes('mp3')) return 'mp3';
+    return 'm4a';
+  }
+
+  function downloadFilename(base, videoId, blob, preferredFormat) {
+    const ext = blobAudioExt(blob) || normalizeDownloadFormat(preferredFormat);
+    return `${base || videoId}_${videoId}.${ext}`;
+  }
+
   async function checkHealth() {
     const url = proxyUrl();
     if (!url) return { ok: false, reason: 'no_proxy' };
@@ -236,7 +267,8 @@ const StemAPI = (() => {
    */
   async function fetchYoutube(videoId, onProgress, meta = {}) {
     const proxy = proxyUrl();
-    const qs = new URLSearchParams({ id: videoId, library: '1' });
+    const format = normalizeDownloadFormat(meta.format || getDownloadFormat());
+    const qs = new URLSearchParams({ id: videoId, library: '1', format });
     if (meta.title) qs.set('title', meta.title);
     if (meta.author) qs.set('author', meta.author);
 
@@ -312,6 +344,19 @@ const StemAPI = (() => {
     throw last || new Error('לא הצלחנו להוריד — נסו שוב בעוד דקה');
   }
 
+  /** שמירת שיר שכבר בספריית הלימוד — בלי הורדה מחדש */
+  async function saveLibraryTrack(videoId, opts = {}) {
+    if (typeof LearnOffline === 'undefined') throw new Error('ספריית לימוד לא זמינה');
+    const rec = await LearnOffline.get(videoId);
+    if (!rec?.blob) throw new Error('השיר לא מוכן בספרייה — הורידו אותו קודם (📥)');
+    const safe = String(rec.titleHe || rec.title || videoId)
+      .replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
+    const format = normalizeDownloadFormat(opts.format || rec.audioFormat || getDownloadFormat());
+    const filename = downloadFilename(safe, videoId, rec.blob, format);
+    const result = await saveBlobAsFile(rec.blob, filename);
+    return { filename, method: result.method, size: rec.blob.size };
+  }
+
   async function saveBlobAsFile(blob, filename) {
     const name = filename || 'audio.mp3';
     const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();
@@ -354,10 +399,13 @@ const StemAPI = (() => {
       onProgress,
       saveOffline = true,
       saveToDisk = true,
+      format: formatOpt,
     } = opts;
 
-    onProgress?.('מוריד למכשיר שלך…', 3);
-    const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author });
+    const format = normalizeDownloadFormat(formatOpt || getDownloadFormat());
+
+    onProgress?.(`מוריד למכשיר שלך (${format.toUpperCase()})…`, 3);
+    const blob = await fetchYoutube(videoId, onProgress, { title: titleHe || title, author, format });
     const mobile = typeof DeviceUtils !== 'undefined' && DeviceUtils.isMobile();
 
     if (saveOffline && typeof LearnOffline !== 'undefined') {
@@ -365,18 +413,17 @@ const StemAPI = (() => {
       await LearnOffline.save(videoId, blob, {
         title, titleHe, author, songId,
         thumbUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        audioFormat: blobAudioExt(blob),
       });
     }
 
-    if (saveToDisk && !mobile) {
+    if (saveToDisk) {
       const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-      await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.mp3`);
-      onProgress?.('נשמר גם כקובץ במחשב', 96);
-    } else if (saveToDisk && mobile) {
-      const safe = String(titleHe || title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-      const fileResult = await saveBlobAsFile(blob, `${safe || videoId}_${videoId}.m4a`);
+      const fileResult = await saveBlobAsFile(blob, downloadFilename(safe, videoId, blob, format));
       if (fileResult.method === 'share') {
         onProgress?.('נשמר באפליקציה + שותף מהמכשיר', 96);
+      } else if (!mobile) {
+        onProgress?.('נשמר גם כקובץ במחשב', 96);
       }
     }
 
@@ -417,7 +464,13 @@ const StemAPI = (() => {
     checkDownloadReady,
     fetchYoutube,
     saveBlobAsFile,
+    saveLibraryTrack,
     downloadForLearning,
+    getDownloadFormat,
+    setDownloadFormat,
+    normalizeDownloadFormat,
+    downloadFilename,
+    blobAudioExt,
     listDiskLibrary,
     getProxyUrl: proxyUrl,
   };

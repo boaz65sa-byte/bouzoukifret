@@ -34,6 +34,7 @@ const LearnOffline = (() => {
       author: meta.author || '',
       songId: meta.songId || '',
       thumbUrl: meta.thumbUrl || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      audioFormat: meta.audioFormat || '',
       size: blob.size,
       savedAt: Date.now(),
       blob,

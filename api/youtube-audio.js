@@ -90,7 +90,7 @@ async function fetchAudioStream(url, headers = {}) {
   };
 }
 
-const YTDLP_FORMAT = '140/ba[ext=m4a]/ba[ext=mp4]/bestaudio[ext=m4a]/bestaudio';
+const YTDLP_FORMAT_M4A = '140/ba[ext=m4a]/ba[ext=mp4]/bestaudio[ext=m4a]/bestaudio';
 const YTDLP_OPTS = {
   quiet: true,
   noWarnings: true,
@@ -98,6 +98,14 @@ const YTDLP_OPTS = {
   noCallHome: true,
   remoteComponents: 'ejs:github',
 };
+
+function normalizeAudioFormat(q) {
+  return String(q || '').toLowerCase() === 'mp3' ? 'mp3' : 'm4a';
+}
+
+function ytdlpMime(ext) {
+  return ext === 'mp3' ? 'audio/mpeg' : 'audio/mp4';
+}
 
 function pickYtDlpStreamUrl(info) {
   if (info?.url) return { url: info.url, type: 'audio/mp4' };
@@ -112,13 +120,15 @@ function pickYtDlpStreamUrl(info) {
   return null;
 }
 
-async function audioFromYtDlp(id) {
+async function audioFromYtDlp(id, audioFormat = 'm4a') {
   if (!ytdlp) return null;
   const watchUrl = `https://www.youtube.com/watch?v=${id}`;
+  const wantMp3 = normalizeAudioFormat(audioFormat) === 'mp3';
   try {
     const info = await ytdlp(watchUrl, {
       dumpSingleJson: true,
-      format: YTDLP_FORMAT,
+      format: wantMp3 ? 'bestaudio/best' : YTDLP_FORMAT_M4A,
+      ...(wantMp3 ? { extractAudio: true, audioFormat: 'mp3' } : {}),
       ...YTDLP_OPTS,
     });
     const pick = pickYtDlpStreamUrl(info);
@@ -127,7 +137,7 @@ async function audioFromYtDlp(id) {
       Referer: watchUrl,
       Origin: 'https://www.youtube.com',
     });
-    if (stream) stream.type = pick.type || stream.type;
+    if (stream) stream.type = wantMp3 ? 'audio/mpeg' : (pick.type || stream.type);
     return stream;
   } catch (err) {
     console.error('[youtube-audio] yt-dlp url', err.message || err);
@@ -135,20 +145,23 @@ async function audioFromYtDlp(id) {
   }
 }
 
-async function audioFromYtDlpFile(id) {
+async function audioFromYtDlpFile(id, audioFormat = 'm4a') {
   if (!ytdlp) return null;
   const watchUrl = `https://www.youtube.com/watch?v=${id}`;
-  const out = join(tmpdir(), `yt-${id}-${randomUUID()}.m4a`);
+  const wantMp3 = normalizeAudioFormat(audioFormat) === 'mp3';
+  const ext = wantMp3 ? 'mp3' : 'm4a';
+  const out = join(tmpdir(), `yt-${id}-${randomUUID()}.${ext}`);
   try {
     await ytdlp(watchUrl, {
-      format: YTDLP_FORMAT,
-      output: out,
+      format: wantMp3 ? 'bestaudio/best' : YTDLP_FORMAT_M4A,
+      output: wantMp3 ? out.replace(/\.mp3$/, '') : out,
+      ...(wantMp3 ? { extractAudio: true, audioFormat: 'mp3' } : {}),
       ...YTDLP_OPTS,
     });
     const buf = await readFile(out);
     await unlink(out).catch(() => {});
     if (buf.length < 4096) return null;
-    return { buffer: buf, type: 'audio/mp4' };
+    return { buffer: buf, type: ytdlpMime(ext) };
   } catch (err) {
     console.error('[youtube-audio] yt-dlp file', err.message || err);
     await unlink(out).catch(() => {});
@@ -266,8 +279,9 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'מזהה YouTube לא תקין' });
   }
 
+  const audioFormat = normalizeAudioFormat(req.query.format);
   const proxy = String(process.env.STEM_PROXY_URL || process.env.REMOTE_YT_PROXY || '').trim().replace(/\/$/, '');
-  const qs = new URLSearchParams({ id, library: '0' });
+  const qs = new URLSearchParams({ id, library: '0', format: audioFormat });
   if (req.query.title) qs.set('title', String(req.query.title).slice(0, 120));
 
   const attempts = [];
@@ -275,8 +289,8 @@ module.exports = async function handler(req, res) {
     attempts.push(() => audioFromStemProxy(proxy, qs));
   }
   attempts.push(
-    () => audioFromYtDlp(id),
-    () => audioFromYtDlpFile(id),
+    () => audioFromYtDlp(id, audioFormat),
+    () => audioFromYtDlpFile(id, audioFormat),
     () => audioFromInnerTube(id),
     () => audioFromPiped(id),
     () => audioFromInvidious(id),

@@ -231,10 +231,16 @@ app.get('/api/youtube-audio', (req, res) => {
   const saveLibrary = req.query.library === '1';
   const libTitle = String(req.query.title || '').trim();
   const libAuthor = String(req.query.author || '').trim();
+  const wantMp3 = String(req.query.format || '').toLowerCase() === 'mp3';
+  const ext = wantMp3 ? 'mp3' : 'm4a';
+  const mime = wantMp3 ? 'audio/mpeg' : 'audio/mp4';
 
-  const tmp = path.join(os.tmpdir(), `yt-${id}-${Date.now()}.m4a`);
-  console.log(`[youtube] downloading ${id}`);
-  const args = ['-f', 'bestaudio[ext=m4a]/bestaudio', '--no-playlist', '-o', tmp, `https://www.youtube.com/watch?v=${id}`];
+  const tmpBase = path.join(os.tmpdir(), `yt-${id}-${Date.now()}`);
+  const tmp = `${tmpBase}.${ext}`;
+  console.log(`[youtube] downloading ${id} as ${ext}`);
+  const args = wantMp3
+    ? ['-x', '--audio-format', 'mp3', '-f', 'bestaudio/best', '--no-playlist', '-o', tmpBase, `https://www.youtube.com/watch?v=${id}`]
+    : ['-f', 'bestaudio[ext=m4a]/bestaudio', '--no-playlist', '-o', tmp, `https://www.youtube.com/watch?v=${id}`];
   const proc = spawn(YTDLP, args);
   let errBuf = '';
   proc.stderr.on('data', (d) => { errBuf += d.toString(); });
@@ -250,7 +256,7 @@ app.get('/api/youtube-audio', (req, res) => {
     if (saveLibrary) {
       try {
         ensureLearnLibDir();
-        const fname = `${safeFilename(libTitle, id)}_${id}.m4a`;
+        const fname = `${safeFilename(libTitle, id)}_${id}.${ext}`;
         const dest = path.join(LEARN_LIB_DIR, fname);
         fs.copyFileSync(tmp, dest);
         const st = fs.statSync(dest);
@@ -267,7 +273,7 @@ app.get('/api/youtube-audio', (req, res) => {
       }
     }
 
-    res.set('Content-Type', 'audio/mp4');
+    res.set('Content-Type', mime);
     res.sendFile(tmp, (err) => {
       fs.unlink(tmp, () => {});
       if (err) console.error('[youtube] send error:', err.message);

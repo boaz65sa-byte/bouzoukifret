@@ -218,7 +218,7 @@ const LearnLibrary = (() => {
             <button type="button" class="btn gold ll-vocal" data-id="${esc(t.videoId)}" data-title="${label}">🎤 Φωνή→Bridge</button>
             <button type="button" class="btn secondary ll-yt" data-id="${esc(t.videoId)}" data-title="${label}">▶ YouTube</button>
             ${!t.inApp && t.onDisk ? `<button type="button" class="btn secondary ll-import" data-id="${esc(t.videoId)}">⬇ ייבא</button>` : ''}
-            ${t.inApp ? `<button type="button" class="btn secondary ll-save" data-id="${esc(t.videoId)}">💾 שמור קובץ</button>` : ''}
+            ${t.inApp ? `<button type="button" class="btn secondary ll-save" data-id="${esc(t.videoId)}">💾 שמור למחשב</button>` : ''}
             ${t.songId ? `<button type="button" class="btn secondary ll-song" data-song="${esc(t.songId)}">📖 שיר</button>` : ''}
             <button type="button" class="btn secondary ll-del" data-id="${esc(t.videoId)}">🗑</button>
           </div>
@@ -247,10 +247,19 @@ const LearnLibrary = (() => {
     });
     grid.querySelectorAll('.ll-save').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const rec = await LearnOffline.get(btn.dataset.id);
-        if (rec?.blob && typeof StemAPI !== 'undefined') {
-          const safe = String(rec.titleHe || rec.title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-          await StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.m4a`);
+        if (typeof StemAPI === 'undefined' || !StemAPI.saveLibraryTrack) return;
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = '⏳…';
+        try {
+          const r = await StemAPI.saveLibraryTrack(btn.dataset.id);
+          const msg = r.method === 'share' ? 'נשלח לשיתוף' : `נשמר: ${r.filename}`;
+          alert('✓ ' + msg);
+        } catch (e) {
+          alert(e.message || String(e));
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prev;
         }
       });
     });
@@ -322,6 +331,7 @@ const LearnLibrary = (() => {
     root.innerHTML = `
       <div class="learn-lib-toolbar card">
         <input type="search" id="learn-lib-search" class="learn-lib-search" placeholder="חפשו בספרייה — שם, אמן, מזהה…" autocomplete="off" />
+        <button type="button" class="btn secondary" id="learn-lib-save-all">💾 שמור הכל למחשב</button>
         <button type="button" class="btn gold" id="learn-lib-goto-hub">➕ הורד שיר חדש</button>
         <button type="button" class="btn secondary" id="learn-lib-refresh">↻ רענן</button>
       </div>
@@ -335,6 +345,21 @@ const LearnLibrary = (() => {
     document.getElementById('learn-lib-search')?.addEventListener('input', e => _renderGrid(e.target.value));
     document.getElementById('learn-lib-goto-hub')?.addEventListener('click', () => {
       document.querySelector('.nav-btn[data-screen="learn"]')?.click();
+    });
+    document.getElementById('learn-lib-save-all')?.addEventListener('click', async () => {
+      if (typeof LearnOffline === 'undefined' || typeof StemAPI === 'undefined' || !StemAPI.saveLibraryTrack) return;
+      const tracks = await LearnOffline.list();
+      if (!tracks.length) { alert('אין שירים מוכנים בספרייה'); return; }
+      if (!confirm(`לשמור ${tracks.length} שירים למחשב? (לפי פורמט שנבחר בלמד מהשיר)`)) return;
+      let ok = 0;
+      for (const t of tracks) {
+        try {
+          await StemAPI.saveLibraryTrack(t.videoId);
+          ok++;
+          await new Promise(r => setTimeout(r, 500));
+        } catch { /* skip */ }
+      }
+      alert(`נשמרו ${ok} מתוך ${tracks.length} שירים`);
     });
     document.getElementById('learn-lib-refresh')?.addEventListener('click', () => refresh());
 

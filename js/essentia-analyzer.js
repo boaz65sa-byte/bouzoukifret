@@ -61,15 +61,17 @@ const AudioAnalyzer = (() => {
     return out;
   }
 
-  function _midiToPosition(midi, prev = null) {
+  function _midiToPosition(midi, prev = null, courses = null) {
+    const allowed = courses ?? [0, 1, 2, 3];
     const candidates = [];
-    for (let c = 0; c <= 1; c++) {
+    allowed.forEach(c => {
+      if (c < 0 || c >= TUNING.length) return;
       for (let f = 0; f <= NUM_FRETS; f++) {
         const m = TUNING[c].midi + f;
         const d = Math.abs(m - midi);
         if (d <= 0.6) candidates.push({ course: c, fret: f, midi: m, ci: c });
       }
-    }
+    });
     if (!candidates.length) return null;
     const prevP = prev ? { ci: prev.course ?? prev.ci, fret: prev.fret } : null;
     let pick;
@@ -342,6 +344,69 @@ const AudioAnalyzer = (() => {
     return { bpm, chords, tabNotes, beats, engine: 'essentia' };
   }
 
+  /** מלודיה בלבד מקול / ווקאל — PredominantPitch ללא אקורדים וללא poly */
+  async function _vocalMelodyFromSignal(signal, sampleRate, onProgress) {
+    const ess = await _loadEssentia();
+    onProgress?.('Essentia — קו שירה (PredominantPitch)…', 55);
+    let bpm = 120;
+    try {
+      const vec = ess.arrayToVector(signal);
+      const rhythm = ess.RhythmExtractor2013(vec, sampleRate);
+      if (rhythm.bpm > 40 && rhythm.bpm < 240) bpm = Math.round(rhythm.bpm);
+      ess.delete(vec);
+    } catch { /* noop */ }
+
+    const pitches = [];
+    try {
+      const vec = ess.arrayToVector(signal);
+      let mel = null;
+      try {
+        mel = ess.PredominantPitchMelodia(
+          vec, 10, 3, 2048, false, 0.85, 128, 1, 35, 8000, 80, 80, 20, 0.85, 0.85, 27.5625, 55, sampleRate,
+        );
+      } catch {
+        mel = ess.PitchMelodia(vec, sampleRate);
+      }
+      const pitchArr = ess.vectorToArray(mel.pitch);
+      const conf = ess.vectorToArray(mel.pitchConfidence);
+      const hopMel = mel.hopSize || 128;
+      let lastPos = null;
+      pitchArr.forEach((p, i) => {
+        if (p > 55 && (conf[i] || 0) > 0.32) {
+          const midi = Math.round(69 + 12 * Math.log2(p / 440));
+          const pos = _midiToPosition(midi, lastPos, [0, 1]);
+          if (pos) {
+            pitches.push({ time: (i * hopMel) / sampleRate, ...pos, midi, duration: 0.12 });
+            lastPos = pos;
+          }
+        }
+      });
+      try { ess.delete(vec); } catch { /* noop */ }
+    } catch {
+      return { bpm, tabNotes: [], engine: 'essentia-vocal' };
+    }
+
+    let tabNotes = _mergePitches(pitches);
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+      tabNotes = FretboardScale.normalizeMelody(tabNotes, { mode: 'da' }).notes;
+    } else {
+      tabNotes = _finalizeTabNotes(tabNotes);
+    }
+    onProgress?.('קו השירה חולץ', 100);
+    return { bpm, tabNotes, engine: 'essentia-vocal' };
+  }
+
+  async function analyzeVocalMelody(audioBuffer, onProgress) {
+    onProgress?.('מכין קול לתמלול…', 5);
+    const signal = _resampleMono(audioBuffer, 22050);
+    try {
+      return await _vocalMelodyFromSignal(signal, 22050, onProgress);
+    } catch (e) {
+      console.warn('Essentia vocal failed:', e);
+      return { bpm: 120, tabNotes: [], engine: 'essentia-vocal' };
+    }
+  }
+
   /**
    * @param {AudioBuffer} audioBuffer
    * @param {(msg:string,pct:number)=>void} onProgress
@@ -461,7 +526,7 @@ const AudioAnalyzer = (() => {
   }
 
   return {
-    analyze, decodeBlob, midiToPosition: _midiToPosition,
+    analyze, analyzeVocalMelody, decodeBlob, midiToPosition: _midiToPosition,
     detectDromos, transposeChord, transposeTabNotes, computeWavePeaks,
   };
 })();

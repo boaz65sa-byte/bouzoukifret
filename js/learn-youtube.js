@@ -22,6 +22,97 @@ const LearnHub = (() => {
   let _searchLoading = false;
   let _downloadAuthor = '';
 
+  function _getDownloadFormat() {
+    return typeof StemAPI !== 'undefined' && StemAPI.getDownloadFormat
+      ? StemAPI.getDownloadFormat()
+      : 'm4a';
+  }
+
+  function _downloadButtonLabel(fmt) {
+    return fmt === 'mp3' ? '📥 הורד MP3 ללימוד' : '📥 הורד M4A ללימוד';
+  }
+
+  function _syncDownloadFormatUI() {
+    const fmt = _getDownloadFormat();
+    document.querySelectorAll('input[name="learn-dl-format"]').forEach(inp => {
+      inp.checked = inp.value === fmt;
+    });
+    document.querySelectorAll('#learn-download-mp3, .learn-download-mp3').forEach(btn => {
+      if (!btn.disabled) btn.textContent = _downloadButtonLabel(fmt);
+    });
+  }
+
+  function _bindDownloadFormatRadios() {
+    document.querySelectorAll('input[name="learn-dl-format"]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        if (!inp.checked) return;
+        if (typeof StemAPI !== 'undefined' && StemAPI.setDownloadFormat) {
+          StemAPI.setDownloadFormat(inp.value);
+        }
+        _syncDownloadFormatUI();
+        _refreshReadySaveUI();
+      });
+    });
+    const saveFile = document.getElementById('learn-dl-save-file');
+    if (saveFile) {
+      saveFile.checked = _getSaveToDiskPref();
+      saveFile.addEventListener('change', () => {
+        try {
+          localStorage.setItem('bouzouki_dl_save_file_v1', saveFile.checked ? '1' : '0');
+        } catch { /* noop */ }
+      });
+    }
+    _syncDownloadFormatUI();
+  }
+
+  function _getSaveToDiskPref() {
+    try {
+      return localStorage.getItem('bouzouki_dl_save_file_v1') !== '0';
+    } catch {
+      return true;
+    }
+  }
+
+  async function _refreshReadySaveUI() {
+    const btn = document.getElementById('learn-save-ready');
+    if (!btn) return;
+    if (!_currentVideoId || typeof LearnOffline === 'undefined') {
+      btn.hidden = true;
+      return;
+    }
+    const has = await LearnOffline.has(_currentVideoId);
+    btn.hidden = !has;
+    if (has) {
+      const ext = (_getDownloadFormat() || 'm4a').toUpperCase();
+      btn.textContent = `💾 שמור למחשב (${ext})`;
+    }
+  }
+
+  async function _saveLibraryToDisk(videoId) {
+    const id = videoId || _currentVideoId;
+    if (!id || typeof StemAPI === 'undefined' || !StemAPI.saveLibraryTrack) {
+      alert('לא ניתן לשמור — השיר לא בספרייה');
+      return;
+    }
+    const btn = document.getElementById('learn-save-ready');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ שומר…'; }
+    try {
+      const r = await StemAPI.saveLibraryTrack(id, { format: _getDownloadFormat() });
+      const msg = r.method === 'share'
+        ? 'נשלח לשיתוף / שמירה במכשיר'
+        : r.method === 'cancelled'
+          ? 'השמירה בוטלה'
+          : `נשמר: ${r.filename}`;
+      _setDownloadStatus('✓ ' + msg, true);
+    } catch (e) {
+      _setDownloadStatus(e.message || String(e), false);
+      alert(e.message || String(e));
+    } finally {
+      if (btn) btn.disabled = false;
+      await _refreshReadySaveUI();
+    }
+  }
+
   function _esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
@@ -158,6 +249,7 @@ const LearnHub = (() => {
         },
       });
     });
+    _refreshReadySaveUI();
   }
 
   async function _goAnalyzeVideo() {
@@ -255,8 +347,9 @@ const LearnHub = (() => {
         titleHe: _currentSong?.titleHe || '',
         author: _downloadAuthor || '',
         songId: _currentSong?.id || '',
+        format: _getDownloadFormat(),
         saveOffline: true,
-        saveToDisk: true,
+        saveToDisk: _getSaveToDiskPref(),
         onProgress: (msg, pct) => _setDownloadStatus(`${msg}${pct != null ? ` (${pct}%)` : ''}`, null),
       });
       _setDownloadStatus(
@@ -264,6 +357,7 @@ const LearnHub = (() => {
         true,
       );
       _renderOfflineLibrary();
+      await _refreshReadySaveUI();
       if (typeof LearnLibrary !== 'undefined') LearnLibrary.refresh();
       if (typeof LearnFlow !== 'undefined') LearnFlow.afterDownload(id, title);
     } catch (e) {
@@ -273,7 +367,7 @@ const LearnHub = (() => {
         _showProxySetupModal(e.message);
       }
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '📥 הורד MP3 ללימוד'; }
+      if (btn) { btn.disabled = false; btn.textContent = _downloadButtonLabel(_getDownloadFormat()); }
     }
   }
 
@@ -345,7 +439,7 @@ const LearnHub = (() => {
         <div class="learn-offline-actions">
           <button type="button" class="btn primary learn-offline-analyze" data-video="${_esc(t.videoId)}">🔬 נתח</button>
           <button type="button" class="btn gold learn-offline-vocal" data-video="${_esc(t.videoId)}">🎤 Φωνή→Bridge</button>
-          <button type="button" class="btn secondary learn-offline-dl" data-video="${_esc(t.videoId)}">⬇ שמור שוב</button>
+          <button type="button" class="btn secondary learn-offline-save" data-video="${_esc(t.videoId)}">💾 שמור למחשב</button>
           <button type="button" class="btn secondary learn-offline-del" data-video="${_esc(t.videoId)}">🗑</button>
         </div>
       </div>`).join('') + openLib;
@@ -361,14 +455,8 @@ const LearnHub = (() => {
     list.querySelectorAll('.learn-offline-vocal').forEach(btn => {
       btn.addEventListener('click', () => _runVocalTeach(btn.dataset.video));
     });
-    list.querySelectorAll('.learn-offline-dl').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const rec = await LearnOffline.get(btn.dataset.video);
-        if (rec?.blob && typeof StemAPI !== 'undefined') {
-          const safe = String(rec.titleHe || rec.title).replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40);
-          await StemAPI.saveBlobAsFile(rec.blob, `${safe || rec.videoId}_${rec.videoId}.mp3`);
-        }
-      });
+    list.querySelectorAll('.learn-offline-save').forEach(btn => {
+      btn.addEventListener('click', () => _saveLibraryToDisk(btn.dataset.video));
     });
     list.querySelectorAll('.learn-offline-del').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -465,7 +553,7 @@ const LearnHub = (() => {
       html += `
         <div class="learn-actions">
           <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
-          <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
+          <button type="button" class="btn secondary learn-download-mp3">📥 הורד ללימוד</button>
           <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI (TAB + אקורדים)</button>
           <button type="button" class="btn gold learn-vocal-teach">🎤 Φωνή→Bridge</button>
           <button type="button" class="btn primary learn-open-song" data-song="${song.id}">פתח בספריית שירים (אקורדים + גלילה)</button>
@@ -477,7 +565,7 @@ const LearnHub = (() => {
           <p>הדביקו קישור YouTube — נגן למטה. לחצו 📥 והשיר יישמר <strong>במכשיר הזה</strong> (ספריית לימוד).</p>
           <div class="learn-actions">
             <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
-            <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
+            <button type="button" class="btn secondary learn-download-mp3">📥 הורד ללימוד</button>
             <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
             <button type="button" class="btn gold learn-vocal-teach">🎤 Φωνή→Bridge</button>
           </div>
@@ -551,9 +639,8 @@ const LearnHub = (() => {
         _bindPathEvents(out);
       });
     }
+    _syncDownloadFormatUI();
   }
-
-  /* ---------- נתיבי דרומוס ---------- */
   function _renderStep(step, path) {
     switch (step.kind) {
       case 'theory':
@@ -1041,7 +1128,7 @@ const LearnHub = (() => {
             <div id="learn-panel" class="learn-panel" style="margin-top:12px"></div>
             <div class="learn-offline card" id="learn-offline-card" style="margin-top:12px">
               <h4>📥 ספריית לימוד — שירים שמורים</h4>
-              <p class="hint learn-offline-note">הורדה אישית ללימוד · נשמרת במכשיר (טלפון / טאבלט / מחשב)</p>
+              <p class="hint learn-offline-note">שירים מוכנים ללימוד באפליקציה · לחצו <b>שמור למחשב</b> לייצוא קובץ בלי הורדה מחדש</p>
               <div id="learn-offline-list"></div>
             </div>
           </div>
@@ -1053,7 +1140,16 @@ const LearnHub = (() => {
               <button type="button" class="learn-speed-btn active" data-rate="0.75">0.75×</button>
               <button type="button" class="learn-speed-btn" data-rate="1">1×</button>
               <button type="button" class="btn secondary" id="learn-open-youtube">↗ YouTube</button>
-              <button type="button" class="btn secondary" id="learn-download-mp3">📥 הורד MP3 ללימוד</button>
+              <div class="learn-dl-format-row">
+                <span class="hint">פורמט:</span>
+                <label class="learn-dl-fmt"><input type="radio" name="learn-dl-format" value="m4a"> M4A</label>
+                <label class="learn-dl-fmt"><input type="radio" name="learn-dl-format" value="mp3"> MP3</label>
+              </div>
+              <label class="learn-dl-save-file learn-dl-fmt">
+                <input type="checkbox" id="learn-dl-save-file" checked> שמור גם כקובץ
+              </label>
+              <button type="button" class="btn secondary" id="learn-download-mp3">📥 הורד ללימוד</button>
+              <button type="button" class="btn secondary" id="learn-save-ready" hidden>💾 שמור למחשב</button>
               <button type="button" class="btn gold" id="learn-analyze-video">🔬 נתח ב-AI</button>
             </div>
             <p id="learn-download-status" class="hint learn-download-status" hidden></p>
@@ -1101,6 +1197,8 @@ const LearnHub = (() => {
     document.getElementById('learn-analyze-video')?.addEventListener('click', () => _goAnalyzeVideo());
     document.getElementById('learn-open-youtube')?.addEventListener('click', () => _openExternalYoutube());
     document.getElementById('learn-download-mp3')?.addEventListener('click', () => _downloadForLearning());
+    document.getElementById('learn-save-ready')?.addEventListener('click', () => _saveLibraryToDisk());
+    _bindDownloadFormatRadios();
 
     document.getElementById('learn-url-load').addEventListener('click', () => {
       const id = _extractYoutubeId(document.getElementById('learn-url-input').value);

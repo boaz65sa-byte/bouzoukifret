@@ -271,7 +271,7 @@ const FretboardScale = (() => {
 
   function shiftCost(fromBase, toBase) {
     if (toBase <= fromBase) return 0;
-    return (toBase - fromBase) * 18;
+    return (toBase - fromBase) * 48;
   }
 
   function inPositionBox(fret, base, span = MELODY_POS_SPAN) {
@@ -313,15 +313,22 @@ const FretboardScale = (() => {
     return placementsForMidi(midi).filter(p => courses.includes(p.ci));
   }
 
-  /** עלות מעבר בין שתי נקודות — ורטיקלי (מיתר) עדיף על הוריזונטלי (ריצה על מיתר) */
+  /** עלות מעבר — χιγκίζ: מעבר מיתר D↔A קרוב, בלי ריצות ארוכות על מיתר */
   function transitionCostGreek(a, b) {
     if (!a || !b) return 0;
     const df = Math.abs(a.fret - b.fret);
     const dc = Math.abs(a.ci - b.ci);
-    if (dc > 0 && df <= 2) return dc * 2 + df;
-    if (dc === 0 && df <= 1) return df * 2;
-    if (dc === 0 && df > 1) return df * 14;
-    return df * 5 + dc * 4;
+    if (dc === 1) {
+      if (df <= 3) return 1 + df * 0.6;
+      if (df <= 5) return 6 + df * 2.5;
+      return 28 + df * 8;
+    }
+    if (dc === 0) {
+      if (df <= 2) return df * 4;
+      if (df <= 4) return df * 12;
+      return df * 28;
+    }
+    return df * 10 + dc * 20;
   }
 
   /** אצבע 1 = סריג בסיס הפוזיציה … 4 = בסיס+3; 0 = מיתר פתוח */
@@ -334,8 +341,8 @@ const FretboardScale = (() => {
 
   function coursesForMode(mode) {
     if (mode === 'd') return [0];
-    if (mode === 'da') return [0, 1];
-    if (mode === 'greek' || mode === 'box') return [0, 1, 2, 3];
+    if (mode === 'da' || mode === 'box') return [0, 1];
+    if (mode === 'greek') return [0, 1, 2, 3];
     return MELODY_COURSES;
   }
 
@@ -361,7 +368,8 @@ const FretboardScale = (() => {
     let s = 0;
     if (p.fret === 0) s -= 28;
     if (p.open && !p.inBox) s += 6;
-    if (inPositionBox(p.fret, base)) s -= 6;
+    if (base != null && inPositionBox(p.fret, base)) s -= 10;
+    else if (base != null && !inPositionBox(p.fret, base)) s += 140;
     s += coursePenalty(p.ci);
     if (prev) s += transitionCostGreek(prev, p);
     return s;
@@ -376,12 +384,20 @@ const FretboardScale = (() => {
     const span = opts.span ?? MELODY_POS_SPAN;
     const mode = opts.mode || 'da';
     const courses = opts.courses ?? coursesForMode(mode);
-    const fixedBase = opts.base;
+    let fixedBase = opts.base;
     const dynamicShift = fixedBase == null;
     const allowOpen = opts.allowOpen !== false;
 
     if (!sorted.length) {
       return { notes: [], base: fixedBase ?? 0, span, path: [] };
+    }
+
+    if (dynamicShift && !opts._noBaseRetry && (mode === 'da' || mode === 'd' || mode === 'box')) {
+      const bestBase = findBestGreekBase(sorted, { mode: mode === 'box' ? 'da' : mode, span, courses });
+      const trial = computeGreekPath(sorted, {
+        ...opts, base: bestBase, _noBaseRetry: true,
+      });
+      if (trial.notes.length >= sorted.length * 0.8) return trial;
     }
 
     const layers = sorted.map(n => {
@@ -568,7 +584,8 @@ const FretboardScale = (() => {
   }
 
   function findBestBase(notes, mode = 'box') {
-    return findBestGreekBase(notes, { mode: mode === 'box' ? 'greek' : mode });
+    const m = mode === 'box' ? 'da' : mode;
+    return findBestGreekBase(notes, { mode: m });
   }
 
   function splitPhrases(notes, gapSec = 0.35, maxSize = 14) {
@@ -601,12 +618,32 @@ const FretboardScale = (() => {
       return { notes: greek.notes, segments: [{ mode: 'd', base: 0, notes: greek.notes }], mode: 'd', base: 0 };
     }
     if (opts.mode === 'da') {
-      const greek = computeGreekPath(sorted, { mode: 'da', base: opts.base });
+      const gap = opts.gapSec ?? 0.35;
+      const phrases = splitPhrases(sorted, gap, opts.phraseSize ?? 22);
+      const allNotes = [];
+      const segments = [];
+      phrases.forEach(phrase => {
+        const base = findBestGreekBase(phrase, { mode: 'da' });
+        const greek = computeGreekPath(phrase, { mode: 'da', base, _noBaseRetry: true });
+        if (!greek.notes.length) return;
+        segments.push({ mode: 'da', base: greek.base, notes: greek.notes });
+        allNotes.push(...greek.notes);
+      });
+      if (allNotes.length >= sorted.length * 0.72) {
+        allNotes.sort((a, b) => a.time - b.time);
+        return {
+          notes: allNotes,
+          segments,
+          mode: 'da',
+          base: segments[0]?.base ?? 0,
+        };
+      }
+      const greek = computeGreekPath(sorted, { mode: 'da', base: findBestGreekBase(sorted, { mode: 'da' }) });
       return { notes: greek.notes, segments: [{ mode: 'da', base: greek.base, notes: greek.notes }], mode: 'da', base: greek.base };
     }
     if (opts.mode === 'box') {
-      const base = opts.base ?? findBestGreekBase(sorted, { mode: 'greek' });
-      const greek = computeGreekPath(sorted, { mode: 'greek', base });
+      const base = opts.base ?? findBestGreekBase(sorted, { mode: 'da' });
+      const greek = computeGreekPath(sorted, { mode: 'da', base, _noBaseRetry: true });
       return { notes: greek.notes, segments: [{ mode: 'box', base: greek.base, notes: greek.notes }], mode: 'box', base: greek.base };
     }
 
@@ -694,13 +731,27 @@ const FretboardScale = (() => {
   function mountMelody(container, opts = {}) {
     if (!container || typeof drawFretboard !== 'function') return { svg: null, remapped: [], path: [] };
     const mode = opts.mode || 'da';
-    const greek = computeGreekPath(opts.notes || [], {
-      mode: mode === 'box' ? 'greek' : mode,
-      base: opts.base,
-    });
-    const remapped = greek.notes;
-    const base = greek.base;
-    const path = greek.path;
+    const pathMode = mode === 'box' ? 'da' : mode;
+    let remapped;
+    let base;
+    let path;
+
+    if (opts.preservePlacement && opts.notes?.length) {
+      base = opts.base ?? opts.notes[0]?.positionBase ?? 0;
+      remapped = opts.notes.map(n => ({
+        ...n,
+        finger: n.finger ?? fingerForFret(n.fret, n.positionBase ?? base),
+      }));
+      path = remapped.map(n => ({ ci: n.course, fret: n.fret }));
+    } else {
+      const greek = computeGreekPath(opts.notes || [], {
+        mode: pathMode,
+        base: opts.base,
+      });
+      remapped = greek.notes;
+      base = greek.base;
+      path = greek.path;
+    }
     const stepAt = new Map();
     remapped.forEach((n, i) => stepAt.set(`${n.course}-${n.fret}`, i + 1));
 
@@ -733,8 +784,8 @@ const FretboardScale = (() => {
     if (!container) return null;
     const mode = opts.mode || 'da';
     let base = opts.base ?? (mode === 'box'
-      ? findBestGreekBase(opts.notes || [], { mode: 'greek' })
-      : findBestGreekBase(opts.notes || [], { mode }));
+      ? findBestGreekBase(opts.notes || [], { mode: 'da' })
+      : findBestGreekBase(opts.notes || [], { mode: mode === 'box' ? 'da' : mode }));
     const wrap = document.createElement('div');
     wrap.className = 'fs-melody-lesson';
 
@@ -747,7 +798,7 @@ const FretboardScale = (() => {
     board.className = 'fs-pos-board';
 
     function renderBoard() {
-      const res = mountMelody(board, { ...opts, mode, base, notes: opts.notes });
+      const res = mountMelody(board, { ...opts, mode, base, notes: opts.notes, preservePlacement: opts.preservePlacement });
       opts.onMount?.(res);
       return res;
     }

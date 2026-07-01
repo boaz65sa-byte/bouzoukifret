@@ -62,7 +62,61 @@ const VocalHarmonyEngine = (() => {
       if (clash < 0) mono.push({ ...n });
       else if ((n.amp || 1) >= (mono[clash].amp || 1)) mono[clash] = { ...n };
     }
-    return mono;
+    return mono.map((n, i) => {
+      const next = mono[i + 1];
+      if (next) {
+        const span = next.time - n.time - 0.02;
+        if (span > (n.duration || 0.15)) n.duration = +span.toFixed(3);
+      } else if (!n.duration || n.duration < 0.2) {
+        n.duration = 0.35;
+      }
+      return n;
+    });
+  }
+
+  function mergeVocalMelodyTracks(...lists) {
+    const all = lists.flat().filter(n => n?.midi != null && n.course != null);
+    if (!all.length) return [];
+    all.sort((a, b) => a.time - b.time || (b.amp || 0) - (a.amp || 0));
+    const out = [];
+    for (const n of all) {
+      const dup = out.findIndex(m =>
+        Math.abs(m.time - n.time) < 0.08 && Math.abs((m.midi || 0) - (n.midi || 0)) <= 1);
+      if (dup < 0) out.push({ ...n });
+      else if ((n.amp || 1) >= (out[dup].amp || 1)) out[dup] = { ...out[dup], ...n };
+    }
+    return cleanVocalMelody(out);
+  }
+
+  async function pitchTraceMelody(audioBuffer) {
+    if (typeof Listen === 'undefined' || !Listen.detectPitch || typeof AudioAnalyzer === 'undefined') {
+      return [];
+    }
+    const ch = audioBuffer.getChannelData(0);
+    const ch1 = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : null;
+    const sr = audioBuffer.sampleRate;
+    const hop = Math.max(512, Math.floor(sr * 0.045));
+    const frameSize = 4096;
+    const raw = [];
+    let lastPos = null;
+
+    for (let i = 0; i + frameSize < ch.length; i += hop) {
+      const frame = new Float32Array(frameSize);
+      for (let j = 0; j < frameSize; j++) {
+        const v = ch1 ? (ch[i + j] + ch1[i + j]) * 0.5 : ch[i + j];
+        frame[j] = v;
+      }
+      const { freq, rms } = Listen.detectPitch(frame, sr);
+      const t = i / sr;
+      if (!freq || rms < 0.008) continue;
+      const midi = Math.round(69 + 12 * Math.log2(freq / 440));
+      const pos = AudioAnalyzer.midiToPosition(midi, lastPos, [0, 1]);
+      if (pos) {
+        raw.push({ time: t, ...pos, midi, duration: hop / sr, amp: rms * 10 });
+        lastPos = pos;
+      }
+    }
+    return cleanVocalMelody(raw);
   }
 
   function splitPhrases(notes, gap = 0.38) {
@@ -245,33 +299,51 @@ const VocalHarmonyEngine = (() => {
     }
   }
 
-  async function extractMelodyFromVocal(vocalBlob, onProgress) {
+  async function extractMelodyFromVocal(vocalBlob, onProgress, opts = {}) {
+    const vocalOnly = !!opts.vocalOnly;
     const audioBuffer = await decodeBlob(vocalBlob);
-    onProgress?.('מתמללים את קו השירה…', 55);
+    onProgress?.('מחלצים את קו השירה מהווקאל…', 52);
 
-    let tabNotes = [];
+    const tracks = [];
     let bpm = 0;
 
-    if (typeof BasicPitchEngine !== 'undefined' && BasicPitchEngine.transcribe) {
-      const raw = await BasicPitchEngine.transcribe(audioBuffer, (msg, pct) => {
-        onProgress?.(msg, 50 + pct * 0.22);
+    if (typeof AudioAnalyzer !== 'undefined' && AudioAnalyzer.analyzeVocalMelody) {
+      const ess = await AudioAnalyzer.analyzeVocalMelody(audioBuffer, (msg, pct) => {
+        onProgress?.(msg, 52 + pct * 0.2);
       });
-      tabNotes = cleanVocalMelody(raw.tabNotes || []);
-      bpm = raw.bpm || 0;
+      if (ess.tabNotes?.length) tracks.push(ess.tabNotes);
+      if (ess.bpm) bpm = ess.bpm;
     }
 
-    if (tabNotes.length < 4 && typeof AudioAnalyzer !== 'undefined' && AudioAnalyzer.analyze) {
-      onProgress?.('משלים מלודיה עם Essentia על הקול…', 74);
-      const ess = await AudioAnalyzer.analyze(audioBuffer, (msg, pct) => {
-        onProgress?.(msg, 74 + pct * 0.1);
+    if (typeof BasicPitchEngine !== 'undefined' && BasicPitchEngine.transcribeVocal) {
+      const raw = await BasicPitchEngine.transcribeVocal(audioBuffer, (msg, pct) => {
+        onProgress?.(msg, 72 + pct * 0.15);
       });
-      const mono = cleanVocalMelody(ess.tabNotes || []);
-      if (mono.length > tabNotes.length) tabNotes = mono;
-      if (!bpm && ess.bpm) bpm = ess.bpm;
+      if (raw.tabNotes?.length) tracks.push(raw.tabNotes);
+      if (!bpm && raw.bpm) bpm = raw.bpm;
+    } else if (typeof BasicPitchEngine !== 'undefined' && BasicPitchEngine.transcribe) {
+      const raw = await BasicPitchEngine.transcribe(audioBuffer, (msg, pct) => {
+        onProgress?.(msg, 72 + pct * 0.15);
+      });
+      if (raw.tabNotes?.length) tracks.push(cleanVocalMelody(raw.tabNotes));
+    }
+
+    let tabNotes = mergeVocalMelodyTracks(...tracks);
+
+    if (tabNotes.length < 8) {
+      onProgress?.('משלים מעקב גובה צליל על הקול…', 88);
+      const traced = await pitchTraceMelody(audioBuffer);
+      if (traced.length > tabNotes.length) tabNotes = mergeVocalMelodyTracks(tabNotes, traced);
     }
 
     if (!bpm) bpm = estimateBpm(tabNotes);
-    return { tabNotes, bpm, audioBuffer };
+
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+      tabNotes = FretboardScale.normalizeMelody(tabNotes, { mode: 'da' }).notes;
+    }
+
+    onProgress?.(`קו שירה: ${tabNotes.length} תווים${vocalOnly ? ' (ווקאל בלבד)' : ''}`, 95);
+    return { tabNotes, bpm, audioBuffer, vocalOnly };
   }
 
   async function extractHarmonyFromAudio(blob, onProgress, tag = 'mix') {
@@ -297,6 +369,7 @@ const VocalHarmonyEngine = (() => {
     const onProgress = opts.onProgress || (() => {});
     const provider = opts.provider || 'lalal';
     const skipStem = !!opts.skipStem;
+    const vocalOnly = !!opts.vocalOnly || skipStem;
     const song = opts.song || null;
 
     let vocalBlob = sourceBlob;
@@ -329,7 +402,7 @@ const VocalHarmonyEngine = (() => {
     }
 
     onProgress('מחלצים מלודיה מהזמר…', 48);
-    const mel = await extractMelodyFromVocal(vocalBlob, onProgress);
+    const mel = await extractMelodyFromVocal(vocalBlob, onProgress, { vocalOnly });
     if (!mel.tabNotes.length) {
       throw new Error('לא זוהתה מלודיית שירה — נסו קול ברור יותר או stem-proxy');
     }
@@ -343,7 +416,7 @@ const VocalHarmonyEngine = (() => {
     }
 
     let harmMix = { chords: [], bpm: 0 };
-    if (!harmBacking.chords.length) {
+    if (!harmBacking.chords.length && !vocalOnly) {
       harmMix = await extractHarmonyFromAudio(sourceBlob, onProgress, 'mix');
     }
 
@@ -386,6 +459,7 @@ const VocalHarmonyEngine = (() => {
           chordEvents: chords.length,
           harmonySources: sources,
           stemUsed: !skipStem && vocalBlob !== sourceBlob,
+          vocalOnly: !!mel.vocalOnly,
         },
       },
       vocalBlob,

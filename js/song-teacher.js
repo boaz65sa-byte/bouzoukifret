@@ -38,7 +38,41 @@ const SongTeacher = (() => {
   let _vocalSyncedPlay = false;
   let _lastLyricLine = -1;
   let _lastWordIdx = -1;
+  let _lastHeldNoteIdx = -1;
+  let _tabCols = [];
   const STR_LABELS = ['D', 'A', 'F', 'C'];
+
+  function _esc(s) {
+    return String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+  }
+
+  function lessonTitle() {
+    return _vocalCtx?.title || 'שיר לבוזוקי';
+  }
+
+  function _isVocalLesson() { return !!_vocalCtx; }
+
+  function playbackElapsed() {
+    if (_isVocalLesson() && _syncVocal && _vocalAudio && _vocalSyncedPlay && !_vocalAudio.paused) {
+      return _vocalAudio.currentTime;
+    }
+    return (now() - _startCtxTime) * _speed;
+  }
+
+  function melodyNoteAt(t) {
+    if (!_melody.length) return null;
+    let idx = 0;
+    for (let i = 0; i < _melody.length; i++) {
+      if (_melody[i].time <= t + 0.02) idx = i;
+      else break;
+    }
+    const n = _melody[idx];
+    const end = n.time + (n.duration || 0.28);
+    const next = _melody[idx + 1];
+    const until = next ? next.time : end + 0.12;
+    if (t >= n.time - 0.04 && t < until) return { note: n, idx };
+    return null;
+  }
 
   /* ---------- עזרים ---------- */
   function $(s, r = document) { return r.querySelector(s); }
@@ -193,8 +227,8 @@ const SongTeacher = (() => {
 
   function learnHint() {
     if (_learnMode === 'd') return `מיתר D בלבד · קופסה סריגים ${_posBase}–${_posBase + 4} · מיתר פתוח כשאפשר.`;
-    if (_learnMode === 'da') return `מיתרים D+A · קופסה ${_posBase}–${_posBase + 4} · מעבר מיתר (ורטיקלי), לא ריצה על מיתר.`;
-    return `קופסה יוונית 4 סריגים (${_posBase}–${_posBase + 4}) · אצבע 1 על סריג הבסיס.`;
+    if (_learnMode === 'da') return `χιγκίζ — מיתרים D+A · תיבה ${_posBase}–${_posBase + 4} · מעבר מיתר קרוב, לא ריצה ארוכה.`;
+    return `תיבת פוזיציה D+A · סריגים ${_posBase}–${_posBase + 4} · אצבע 1 על סריג הבסיס.`;
   }
   function chordShape(name) {
     if (typeof CHORDS === 'undefined') return null;
@@ -268,6 +302,8 @@ const SongTeacher = (() => {
       harmonySources: analysis.vocalMeta?.harmonySources || [],
     };
     _withChords = (analysis.chords?.length || 0) > 0;
+    _learnMode = 'da';
+    _syncVocal = true;
     if (vocalBlob) {
       _vocalUrl = URL.createObjectURL(vocalBlob);
     }
@@ -332,7 +368,21 @@ const SongTeacher = (() => {
 
   function ingest(a) {
     _rawMelody = (a.tabNotes || []).slice().sort((x, y) => x.time - y.time);
-    _melody = applyMelodyLayout(_rawMelody, { auto: true });
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody) {
+      const norm = FretboardScale.normalizeMelody(_rawMelody, {
+        mode: _isVocalLesson() ? 'da' : undefined,
+      });
+      _melody = norm.notes;
+      if (!_vocalCtx) {
+        _learnMode = norm.mode || _learnMode;
+        _posBase = norm.base ?? _posBase;
+      } else {
+        _learnMode = 'da';
+        _posBase = norm.base ?? _posBase;
+      }
+    } else {
+      _melody = _rawMelody;
+    }
     _chords = dedupeChords((a.chords || []).slice().sort((x, y) => x.time - y.time));
     if (typeof AudioAnalyzer !== 'undefined' && AudioAnalyzer.detectDromos) {
       _dromos = AudioAnalyzer.detectDromos(_chords, _melody);
@@ -362,7 +412,13 @@ const SongTeacher = (() => {
     _playing = true;
     _nextNoteIdx = firstIndexAt(_loop ? _loop.a : 0);
     _lastChordShown = -1;
+    _lastHeldNoteIdx = -1;
     const startElapsed = _loop ? _loop.a : 0;
+    if (_isVocalLesson() && _vocalUrl && _syncVocal) {
+      if (!_vocalAudio) _vocalAudio = new Audio(_vocalUrl);
+      _vocalAudio.currentTime = startElapsed;
+      _vocalSyncedPlay = true;
+    }
     _startCtxTime = now() - startElapsed / _speed;
     if (typeof registerPlayback === 'function') registerPlayback('song-teacher', stop);
     setPlayBtn(true);
@@ -379,22 +435,31 @@ const SongTeacher = (() => {
 
   function loop() {
     if (!_playing) return;
-    const elapsed = (now() - _startCtxTime) * _speed; // זמן מקורי בשניות
+    const elapsed = playbackElapsed();
 
     // לולאה / סיום
     const end = _loop ? _loop.b : _duration;
     if (elapsed >= end) {
-      if (_loop || true) { // ברירת מחדל: חזרה מתחילת הלולאה/השיר
+      if (_loop || true) {
         const restart = _loop ? _loop.a : 0;
-        _startCtxTime = now() - restart / _speed;
+        if (_isVocalLesson() && _vocalAudio && _syncVocal) {
+          _vocalAudio.currentTime = restart;
+        } else {
+          _startCtxTime = now() - restart / _speed;
+        }
         _nextNoteIdx = firstIndexAt(restart);
         _lastChordShown = -1;
+        _lastHeldNoteIdx = -1;
         clearActiveDots();
         clearLyricHighlight();
       }
     }
 
     syncVocalAudio(elapsed, true);
+
+    if (_isVocalLesson()) {
+      updateVocalFretboard(elapsed);
+    }
 
     // תווי מלודיה שהגיע זמנם
     while (_nextNoteIdx < _melody.length && _melody[_nextNoteIdx].time <= elapsed) {
@@ -404,8 +469,10 @@ const SongTeacher = (() => {
         const ni = noteIndexInPhrase(_nextNoteIdx);
         ensurePhraseVisible(_nextNoteIdx);
         highlightLyricPlayback(pi, ni);
-        AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
-        flashDot(n.course, n.fret);
+        if (!_isVocalLesson()) {
+          AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
+          flashDot(n.course, n.fret);
+        }
         highlightMelCell(_nextNoteIdx);
       }
       _nextNoteIdx++;
@@ -464,6 +531,7 @@ const SongTeacher = (() => {
     if (pi !== _phraseIdx) {
       _phraseIdx = pi;
       renderFretboard();
+      buildTabScore();
       const lbl = $('#st-phrase-label');
       if (lbl) lbl.textContent = phraseLabel();
       highlightLyricPlayback(pi, 0);
@@ -492,6 +560,7 @@ const SongTeacher = (() => {
         notes: phraseNotes,
         mode: _learnMode,
         base: _posBase,
+        preservePlacement: true,
         onBaseChange: b => {
           _posBase = b;
           _learnMode = 'box';
@@ -528,6 +597,7 @@ const SongTeacher = (() => {
       const lbl = dot.querySelector('text');
       if (lbl) lbl.textContent = '▶';
       setTimeout(() => {
+        if (_isVocalLesson() && _lastHeldNoteIdx >= 0) return;
         dot.classList.remove('st-active');
         if (lbl) {
           const view = _phrases[_phraseIdx] || [];
@@ -537,9 +607,38 @@ const SongTeacher = (() => {
       }, 320);
     }
   }
+
+  function holdActiveNote(note, globalIdx) {
+    if (!note || !_fbSvg) return;
+    if (globalIdx === _lastHeldNoteIdx) return;
+    _lastHeldNoteIdx = globalIdx;
+    _fbSvg.querySelectorAll('.st-active').forEach(d => d.classList.remove('st-active'));
+    const dot = _fbSvg.querySelector(`.note-dot[data-course="${note.course}"][data-fret="${note.fret}"]`);
+    if (dot) {
+      dot.classList.add('st-active');
+      const lbl = dot.querySelector('text');
+      if (lbl) lbl.textContent = '♪';
+    }
+    highlightMelCell(globalIdx);
+    const pi = phraseIndexForTime(note.time);
+    ensurePhraseVisible(globalIdx);
+    highlightLyricPlayback(pi, noteIndexInPhrase(globalIdx));
+  }
+
+  function updateVocalFretboard(elapsed) {
+    const hit = melodyNoteAt(elapsed);
+    if (hit) {
+      holdActiveNote(hit.note, hit.idx);
+    } else if (_lastHeldNoteIdx >= 0) {
+      _lastHeldNoteIdx = -1;
+      if (_fbSvg) _fbSvg.querySelectorAll('.st-active').forEach(d => d.classList.remove('st-active'));
+    }
+  }
   function clearActiveDots() {
     if (_fbSvg) _fbSvg.querySelectorAll('.st-active').forEach(d => d.classList.remove('st-active'));
     _melCells.forEach(c => c.classList.remove('st-cell-active'));
+    _tabCols.forEach(c => c.classList.remove('active'));
+    _lastHeldNoteIdx = -1;
   }
 
   function showChord(name) {
@@ -557,6 +656,211 @@ const SongTeacher = (() => {
     _melCells.forEach(c => c.classList.remove('st-cell-active'));
     cell.classList.add('st-cell-active');
     try { cell.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    highlightTabCol(idx);
+  }
+
+  function highlightTabCol(idx) {
+    if (!_tabCols.length) return;
+    _tabCols.forEach(c => c.classList.remove('active'));
+    const col = _tabCols[idx];
+    if (col) {
+      col.classList.add('active');
+      try { col.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
+  }
+
+  /** המרת מלודיה לפורמט TAB (תרגילים) עם קוונטיזציה לפי BPM */
+  function melodyToTabNotes(notes, bpm, sub = 4) {
+    const beatDur = 60 / Math.max(40, bpm || 120);
+    const subDur = beatDur / sub;
+    const out = [];
+    let lastEnd = 0;
+    (notes || []).forEach(n => {
+      const gap = n.time - lastEnd;
+      if (gap > subDur * 0.55) {
+        const restSteps = Math.max(1, Math.round(gap / subDur));
+        out.push({ c: 0, f: 0, d: 'd', len: restSteps, rest: true });
+      }
+      const dur = n.duration || 0.25;
+      const steps = Math.max(1, Math.round(dur / subDur));
+      const ev = { c: n.course, f: n.fret, d: 'd', len: steps, rest: false };
+      if (n.finger != null) ev.fing = n.finger;
+      out.push(ev);
+      lastEnd = n.time + dur;
+    });
+    return out;
+  }
+
+  function buildTabStrip() {
+    const host = $('#st-tab-scroll');
+    if (!host) return;
+    host.innerHTML = '';
+    _tabCols = [];
+    const rowLabels = ['D', 'A', 'F', 'C'];
+    const labels = document.createElement('div');
+    labels.className = 'st-tab-labels';
+    rowLabels.forEach(l => {
+      const d = document.createElement('div');
+      d.className = 'st-tab-label';
+      d.textContent = l;
+      labels.appendChild(d);
+    });
+    host.appendChild(labels);
+
+    let lastPhrase = -1;
+    _melody.forEach((n, idx) => {
+      const pi = phraseIndexForTime(n.time);
+      if (pi !== lastPhrase && lastPhrase >= 0) {
+        const sep = document.createElement('div');
+        sep.className = 'st-tab-phrase-sep';
+        sep.title = `משפט ${pi + 1}`;
+        host.appendChild(sep);
+      }
+      lastPhrase = pi;
+
+      const col = document.createElement('div');
+      col.className = 'st-tab-col';
+      col.dataset.idx = String(idx);
+      [0, 1, 2, 3].forEach((ci, r) => {
+        const cell = document.createElement('div');
+        cell.className = 'st-tab-cell';
+        if (r === 0) cell.classList.add('top');
+        if (r === 3) cell.classList.add('bot');
+        if (n.course === ci) {
+          cell.textContent = String(n.fret);
+          cell.classList.add('has-note');
+        } else {
+          cell.textContent = '·';
+        }
+        col.appendChild(cell);
+      });
+      col.addEventListener('click', () => {
+        ensureAudio();
+        AudioEngine.pluckCourse(n.course, n.fret, 0, 0.6);
+        flashDot(n.course, n.fret);
+        highlightMelCell(idx);
+      });
+      host.appendChild(col);
+      _tabCols.push(col);
+    });
+  }
+
+  function buildTabScore() {
+    const svg = $('#st-tab-svg');
+    if (!svg || typeof drawTab !== 'function') return;
+    const phrase = _phrases[_phraseIdx] || _melody;
+    const bpm = _analysis?.bpm || 120;
+    const tabNotes = melodyToTabNotes(phrase, bpm);
+    if (!tabNotes.length) {
+      svg.innerHTML = '';
+      return;
+    }
+    drawTab(svg, { type: 'tab', notes: tabNotes, sub: 4, bpm });
+    const lbl = $('#st-tab-phrase-lbl');
+    if (lbl) lbl.textContent = `טאב משפט ${_phraseIdx + 1}/${Math.max(1, _phrases.length)} · ${phrase.length} תווים`;
+  }
+
+  function tabSvgForPhrase(phrase, bpm) {
+    if (typeof drawTab !== 'function' || !phrase?.length) return '';
+    const tabNotes = melodyToTabNotes(phrase, bpm);
+    if (!tabNotes.length) return '';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'st-tab-svg');
+    drawTab(svg, { type: 'tab', notes: tabNotes, sub: 4, bpm: bpm || 120 });
+    return svg.outerHTML;
+  }
+
+  function buildPrintHtml() {
+    const title = lessonTitle();
+    const bpm = _analysis?.bpm || '—';
+    const prog = chordProgression();
+    const dromosName = _dromos?.dromos?.nameHe || '—';
+    const date = new Date().toLocaleDateString('he-IL');
+    const bpmNum = _analysis?.bpm || 120;
+
+    let lyricsHtml = '';
+    if (_lyricAlign?.lines?.length) {
+      lyricsHtml = '<div class="st-print-lyrics"><h2>מילות השיר</h2>'
+        + _lyricAlign.lines.map(line => {
+          const chords = line.chords?.length ? `<div class="st-print-ch-line">${_esc(line.chords.join(' · '))}</div>` : '';
+          return `<p class="st-print-line">${chords}<span>${_esc(line.lyrics)}</span></p>`;
+        }).join('')
+        + '</div>';
+    }
+
+    const tabBlocks = (_phrases.length ? _phrases : [_melody]).map((phrase, pi) => {
+      const svg = tabSvgForPhrase(phrase, bpmNum);
+      if (!svg) return '';
+      return `<section class="st-print-phrase"><h3>משפט ${pi + 1} · ${phrase.length} תווים</h3>${svg}</section>`;
+    }).join('');
+
+    const stripRows = _melody.map(n => {
+      const cells = [0, 1, 2, 3].map(ci =>
+        `<td class="${n.course === ci ? 'on' : ''}">${n.course === ci ? n.fret : '·'}</td>`,
+      ).join('');
+      const noteName = (typeof NOTE_NAMES !== 'undefined') ? NOTE_NAMES[n.midi % 12] : '';
+      return `<tr><td class="lbl">${_esc(noteName)}</td>${cells}</tr>`;
+    }).join('');
+
+    return `<article class="st-print-sheet">
+      <header class="st-print-head">
+        <h1>${_esc(title)}</h1>
+        <p class="st-print-meta">BPM: <b>${bpm}</b> · דרומוס: <b>${_esc(dromosName)}</b> · תווים: <b>${_melody.length}</b> · ${_esc(date)}</p>
+        ${prog.length ? `<p class="st-print-prog"><b>הרמוניה:</b> ${prog.map(c => `<span>${_esc(c)}</span>`).join(' ')}</p>` : ''}
+        ${_vocalCtx ? '<p class="st-print-badge">🎤 Φωνή→Bridge — מלודיה מהזמר</p>' : ''}
+      </header>
+      ${lyricsHtml}
+      <section class="st-print-tab-summary">
+        <h2>טאב מלא (תו אחר תו)</h2>
+        <table class="st-print-tab-table" dir="ltr">
+          <thead><tr><th></th><th>D</th><th>A</th><th>F</th><th>C</th></tr></thead>
+          <tbody>${stripRows}</tbody>
+        </table>
+      </section>
+      <section class="st-print-score"><h2>טאב לפי משפטים</h2>${tabBlocks}</section>
+      <footer class="st-print-foot">בוזוקי אקדמי · bouzoukifret.vercel.app</footer>
+    </article>`;
+  }
+
+  function printLesson() {
+    if (!_melody.length) { alert('אין מלודיה להדפסה — נתחו שיר תחילה'); return; }
+    const sheet = buildPrintHtml();
+    const ifr = document.createElement('iframe');
+    ifr.setAttribute('aria-hidden', 'true');
+    ifr.style.cssText = 'position:fixed;right:-9999px;bottom:0;width:900px;height:700px;border:0;';
+    document.body.appendChild(ifr);
+    const doc = ifr.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
+      <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+      <style>
+        html,body{background:#fff;margin:0;padding:12px;font-family:'Heebo',sans-serif;color:#1a1a1a;}
+        .st-print-sheet{max-width:900px;margin:0 auto;}
+        .st-print-head h1{margin:0 0 8px;color:#b8860b;font-size:26px;}
+        .st-print-meta,.st-print-prog{font-size:14px;color:#444;margin:6px 0;}
+        .st-print-prog span{display:inline-block;margin:2px 4px;padding:2px 8px;background:#e8f4fa;border-radius:12px;font-weight:700;}
+        .st-print-badge{display:inline-block;padding:4px 10px;background:#fff3d6;border:1px solid #e3b341;border-radius:6px;font-size:13px;}
+        h2{font-size:18px;color:#333;margin:20px 0 10px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+        h3{font-size:15px;color:#555;margin:14px 0 6px;}
+        .st-print-lyrics .st-print-line{margin:8px 0;line-height:1.6;}
+        .st-print-ch-line{font-size:12px;color:#2a7a9b;font-family:monospace;margin-bottom:2px;}
+        .st-print-tab-table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0;}
+        .st-print-tab-table th,.st-print-tab-table td{border:1px solid #ccc;padding:4px 6px;text-align:center;font-family:monospace;}
+        .st-print-tab-table th{background:#f5f5f5;}
+        .st-print-tab-table td.on{background:#e3b341;font-weight:800;color:#1a1408;}
+        .st-print-tab-table td.lbl{background:#fafafa;font-weight:700;}
+        .st-tab-svg{width:100%;max-width:100%;height:auto;margin:8px 0;}
+        .st-print-phrase{break-inside:avoid;page-break-inside:avoid;margin-bottom:16px;}
+        .st-print-foot{margin-top:24px;font-size:11px;color:#999;text-align:center;}
+        @page{margin:12mm;}
+        *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      </style></head>
+      <body>${sheet}</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (_) {}
+      setTimeout(() => ifr.remove(), 1500);
+    }, 600);
   }
 
   function updateProgress(elapsed) {
@@ -645,7 +949,7 @@ const SongTeacher = (() => {
     const vocalBanner = _vocalCtx ? `
       <div class="card st-vocal-banner">
         <strong>🎤 Φωνή→Bridge</strong>
-        <span class="hint">${_vocalCtx.title || ''}${_vocalCtx.harmonySources?.length ? ' · ' + _vocalCtx.harmonySources.join(' · ') : ''}</span>
+        <span class="hint">${_vocalCtx.title || ''} · הגריף עוקב אחרי קו השירה${_vocalCtx.harmonySources?.length ? ' · ' + _vocalCtx.harmonySources.join(' · ') : ''}</span>
         ${_vocalUrl ? '<button type="button" class="btn small gold" id="st-vocal-play">🎤 שמע קול הזמר</button>' : ''}
         ${_vocalUrl ? `<label class="st-toggle"><input type="checkbox" id="st-sync-vocal" ${_syncVocal ? 'checked' : ''}> סנכרן קול עם נגינה</label>` : ''}
       </div>` : '';
@@ -682,7 +986,7 @@ const SongTeacher = (() => {
       </div>
 
       <div class="card st-fbwrap">
-        <div class="st-fb-title">מלודיה על הגריף — מספרים = סדר הנגינה בפוזיציה אחת</div>
+        <div class="st-fb-title">${_vocalCtx ? 'מלודיית השירה על הגריף — עוקב אחרי הקול בזמן אמת' : 'מלודיה על הגריף — מספרים = סדר הנגינה בפוזיציה אחת'}</div>
         <div class="st-row st-phrase-nav">
           <button type="button" class="btn small secondary" id="st-phrase-prev" ${_phraseIdx <= 0 ? 'disabled' : ''}>◀ משפט קודם</button>
           <span id="st-phrase-label" class="st-phrase-label">${phraseLabel()}</span>
@@ -691,9 +995,21 @@ const SongTeacher = (() => {
         <div class="st-row st-learn-modes">
           <button type="button" class="btn small st-learn-mode ${_learnMode === 'da' ? 'active' : ''}" data-m="da">מיתרים D+A (1–2)</button>
           <button type="button" class="btn small st-learn-mode ${_learnMode === 'd' ? 'active' : ''}" data-m="d">מיתר D בלבד</button>
-          <button type="button" class="btn small st-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת פוזיציה</button>
+          <button type="button" class="btn small st-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת χιγκίζ (D+A)</button>
         </div>
         <div id="st-fb-host" class="st-fb-scroll" dir="ltr"></div>
+      </div>
+
+      <div class="card st-tab-wrap">
+        <div class="st-fb-title">טאב ללמידה — D · A · F · C (מלמעלה למטה)</div>
+        <p class="hint">כל עמודה = תו במלודיה. לחצו לשמוע. בזמן נגינה העמודה המודגשת עוקבת אחרי השיר.</p>
+        <div id="st-tab-scroll" class="st-tab-scroll"></div>
+        <div class="st-row st-phrase-nav st-tab-score-nav">
+          <span id="st-tab-phrase-lbl" class="st-phrase-label">טאב לפי משפט</span>
+        </div>
+        <div class="st-tab-score-wrap" dir="ltr">
+          <svg id="st-tab-svg" class="st-tab-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
       </div>
 
       <div class="card st-melstrip-wrap">
@@ -716,7 +1032,8 @@ const SongTeacher = (() => {
 
       <div class="card st-export">
         <div class="st-export-row">
-          <b>הורד את השיר:</b>
+          <b>שמירה והדפסה:</b>
+          <button class="btn small gold" id="st-print">🖨️ הדפס / שמור PDF</button>
           <button class="btn small" id="st-export-html">💾 כ-HTML (שיעור אופליין)</button>
           <button class="btn small" id="st-export-json">📋 כ-JSON (טעינה מחדש)</button>
         </div>
@@ -725,6 +1042,8 @@ const SongTeacher = (() => {
     _fbSvg = null;
     renderFretboard();
     buildMelStrip();
+    buildTabStrip();
+    buildTabScore();
     bindLesson(host);
     if (_vocalCtx?.song && _lyricAlign?.lines?.length) {
       highlightLyricPlayback(_phraseIdx, 0);
@@ -781,10 +1100,17 @@ const SongTeacher = (() => {
 
   function exportAsHtml() {
     if (!_analysis) { alert('אין לנתח תחילה'); return; }
-    const sheet = buildStandaloneLesson();
+    const title = lessonTitle();
+    const bpmNum = _analysis.bpm || 120;
+    const prog = chordProgression();
+    const tabBlocks = (_phrases.length ? _phrases : [_melody]).map((phrase, pi) => {
+      const svg = tabSvgForPhrase(phrase, bpmNum);
+      return svg ? `<h3 style="margin:16px 0 6px;color:#666;">משפט ${pi + 1}</h3>${svg}` : '';
+    }).join('');
+    const tabStripClone = $('#st-tab-scroll') ? $('#st-tab-scroll').outerHTML : '';
     const html = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>שיר — בוזוקי</title>
+<title>${_esc(title)} — בוזוקי</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
@@ -792,17 +1118,25 @@ html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
 .st-info{display:flex;flex-wrap:wrap;gap:16px;padding:10px;color:#666;font-size:13px;margin-bottom:10px;border-bottom:1px solid #ddd;}
 .st-info b{color:#d4a574;}
 .st-fb-title{color:#666;font-size:13px;margin-bottom:8px;font-weight:600;}
+.st-tab-scroll{display:flex;flex-direction:row-reverse;gap:2px;overflow-x:auto;padding:6px 0;margin:8px 0;}
+.st-tab-labels{display:flex;flex-direction:column;justify-content:space-around;padding:0 6px;border-left:2px solid #ddd;}
+.st-tab-label{color:#d4a574;font-weight:800;font-size:13px;height:20px;}
+.st-tab-col{display:flex;flex-direction:column;min-width:28px;border-radius:4px;padding:2px 0;}
+.st-tab-cell{height:20px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:13px;font-weight:700;color:#999;border-bottom:1px solid #eee;}
+.st-tab-cell.has-note{color:#222;background:#f5f5f5;border-radius:3px;}
+.st-tab-phrase-sep{min-width:6px;border-left:2px dashed #d4a574;margin:0 2px;}
 .st-melstrip{display:flex;flex-direction:row-reverse;gap:5px;overflow-x:auto;padding:6px 0;}
-.st-mel-cell{flex:0 0 auto;min-width:42px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(143,166,188,0.2);border-radius:7px;padding:6px 4px;}
+.st-mel-cell{flex:0 0 auto;min-width:42px;text-align:center;background:#f9f9f9;border:1px solid #ddd;border-radius:7px;padding:6px 4px;}
 .st-mel-note{display:block;font-weight:800;color:#333;}
 .st-mel-pos{display:block;font-size:10px;color:#999;font-family:monospace;}
-svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
+svg.fretboard-svg,.st-tab-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
 .st-hint{color:#999;font-size:12px;margin-top:10px;}
+.st-chord-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:#e8f4fa;color:#2a7a9b;font-weight:700;margin:2px;}
 @media print{html,body{background:#fff;padding:0;}svg{break-inside:avoid;}}
 </style></head>
 <body>
 <div class="st-lesson">
-  <h1 style="margin:0 0 10px;color:#d4a574;">שיר</h1>
+  <h1 style="margin:0 0 10px;color:#d4a574;">${_esc(title)}</h1>
   <div class="st-info">
     <span><b>BPM:</b> ${_analysis.bpm || '—'}</span>
     <span><b>תווי מלודיה:</b> ${_melody.length}</span>
@@ -810,8 +1144,13 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
     <span><b>מנוע:</b> ${_analysis.engine || '—'}</span>
     <span><b>תאריך:</b> ${new Date().toLocaleDateString('he-IL')}</span>
   </div>
+  ${prog.length ? `<p><b>הרמוניה:</b> ${prog.map(c => `<span class="st-chord-chip">${_esc(c)}</span>`).join('')}</p>` : ''}
   <div class="st-fb-title">המלודיה על הגריף</div>
   ${_fbSvg ? _fbSvg.outerHTML : '<p style="color:#999;">גריף לא זמין</p>'}
+  <div class="st-fb-title" style="margin-top:20px;">טאב ללמידה</div>
+  ${tabStripClone}
+  <div class="st-fb-title" style="margin-top:16px;">טאב לפי משפטים</div>
+  ${tabBlocks}
   <div class="st-fb-title" style="margin-top:20px;">מלודיה (תו · מיתר)</div>
   <div class="st-melstrip">
     ${_melody.map(n => {
@@ -820,23 +1159,23 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
       return '<div class="st-mel-cell"><span class="st-mel-note">' + noteName + '</span><span class="st-mel-pos">' + (labels[n.course] || '') + '·' + n.fret + '</span></div>';
     }).join('')}
   </div>
-  <p class="st-hint">שיר שהוריד מאפליקציית בוזוקי — <a href="https://bouzoukifret.web.app" style="color:#d4a574;">bouzoukifret.web.app</a></p>
+  <p class="st-hint">שיר מבוזוקי אקדמי — <a href="https://bouzoukifret.vercel.app" style="color:#d4a574;">bouzoukifret.vercel.app</a></p>
 </div>
 </body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const date = new Date().toISOString().slice(0, 10);
+    const safe = title.replace(/[^\w\u0590-\u05FF.-]+/g, '_').slice(0, 40) || 'שיר';
     const a = document.createElement('a');
     a.href = url;
-    a.download = `שיר-${date}.html`;
+    a.download = `${safe}-${date}.html`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
   }
 
   function buildStandaloneLesson() {
-    // helper to get the SVG — will be used in exportAsHtml
-    return '';
+    return buildPrintHtml();
   }
 
   function bindLesson(host) {
@@ -845,6 +1184,7 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
       if (_phraseIdx > 0) {
         _phraseIdx--;
         renderFretboard();
+        buildTabScore();
         $('#st-phrase-label').textContent = phraseLabel();
         highlightLyricPlayback(_phraseIdx, 0);
       }
@@ -853,6 +1193,7 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
       if (_phraseIdx < _phrases.length - 1) {
         _phraseIdx++;
         renderFretboard();
+        buildTabScore();
         $('#st-phrase-label').textContent = phraseLabel();
         highlightLyricPlayback(_phraseIdx, 0);
       }
@@ -874,6 +1215,8 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
       rebuildPhrases();
       _phraseIdx = 0;
       buildMelStrip();
+      buildTabStrip();
+      buildTabScore();
       renderFretboard();
       host.querySelectorAll('.st-learn-mode').forEach(x => x.classList.toggle('active', x === b));
       const hint = host.querySelector('.st-teach-hint');
@@ -900,6 +1243,7 @@ svg.fretboard-svg{width:100%;max-width:700px;height:auto;margin:10px 0;}
     });
     $('#st-export-html', host).addEventListener('click', exportAsHtml);
     $('#st-export-json', host).addEventListener('click', exportAsJson);
+    $('#st-print', host)?.addEventListener('click', printLesson);
     $('#st-vocal-play', host)?.addEventListener('click', playVocalStem);
     const sv = $('#st-sync-vocal', host);
     if (sv) sv.addEventListener('change', e => { _syncVocal = e.target.checked; });

@@ -88,13 +88,17 @@ const VocalMelodyTeacher = (() => {
       || (meta.songId && typeof SongLibrary !== 'undefined'
         ? SongLibrary.getAllSongs().find(s => s.id === meta.songId)
         : null);
+    const skipStem = meta.skipStem ?? _skipStem;
+    const fileHint = meta.fileName || meta.title || '';
+    const vocalOnly = meta.vocalOnly ?? skipStem ?? /vocal|vocals|voice|זמר|φων/i.test(fileHint);
     try {
       setStatus('Φωνή→Bridge מתחיל…', 2);
       const result = await runVocalPipeline(blob, {
         ...meta,
         song: _song,
         provider: meta.provider || _provider,
-        skipStem: meta.skipStem ?? _skipStem,
+        skipStem,
+        vocalOnly,
         onProgress: setStatus,
       });
       _vocalBlob = result.vocalBlob;
@@ -137,7 +141,12 @@ const VocalMelodyTeacher = (() => {
   async function runFromFile(file) {
     if (!file) return;
     navigate('vocal-melody');
-    await runFromBlob(file, { title: file.name });
+    await runFromBlob(file, {
+      title: file.name,
+      fileName: file.name,
+      skipStem: true,
+      vocalOnly: true,
+    });
   }
 
   function renderHarmonySources(meta) {

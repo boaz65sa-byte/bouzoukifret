@@ -49,20 +49,74 @@ const BasicPitchEngine = (() => {
     return m;
   }
   function _midiToPos(midi, prev = null) {
+    return _midiToPosFull(midi, prev);
+  }
+
+  function _midiToPosFull(midi, prev = null, courses = null) {
+    const allowed = courses ?? [...Array(TUNING.length).keys()];
     const candidates = [];
-    for (let c = 0; c <= 1; c++) {
+    allowed.forEach(c => {
+      if (c < 0 || c >= TUNING.length) return;
       for (let f = 0; f <= NUM_FRETS; f++) {
         const m = TUNING[c].midi + f;
         const d = Math.abs(m - midi);
-        if (d <= 0.01) candidates.push({ ci: c, fret: f, midi: m });
+        if (d <= 0.6) candidates.push({ ci: c, fret: f, midi: m });
       }
-    }
+    });
     if (!candidates.length) return null;
     if (typeof FretboardScale !== 'undefined' && FretboardScale.pickPlacement) {
       const pick = FretboardScale.pickPlacement(candidates, prev);
       return pick ? { course: pick.ci, fret: pick.fret, midi: pick.midi } : null;
     }
     return { course: candidates[0].ci, fret: candidates[0].fret, midi: candidates[0].midi };
+  }
+
+  async function _runModel(audioBuffer, onProgress, noteOpts) {
+    const melodyCourses = noteOpts.courses ?? null;
+    const bp = await _load(onProgress);
+    onProgress?.('Basic Pitch — מכין אודיו (22050Hz)…', 18);
+    const input = await _toBasicPitchInput(audioBuffer);
+    onProgress?.('Basic Pitch — מריץ מודל…', 20);
+
+    const frames = [], onsets = [], contours = [];
+    try {
+      await bp.evaluateModel(
+        input,
+        (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
+        (p) => onProgress?.('Basic Pitch — מנתח… ' + Math.round(p * 100) + '%', 20 + p * 60)
+      );
+    } catch (e) {
+      const msg = String(e?.message || e);
+      if (/sample rate/i.test(msg)) {
+        throw new Error('קובץ האודיו בקצב דגימה לא נתמך — נסו להוריד מחדש או קובץ MP3 אחר');
+      }
+      throw e;
+    }
+
+    onProgress?.('Basic Pitch — ממיר לתווים…', 85);
+    const { outputToNotesPoly, addPitchBendsToNoteEvents, noteFramesToTime } = _lib;
+    const { onset, frame, minLen } = noteOpts;
+    const noteEvents = noteFramesToTime(
+      addPitchBendsToNoteEvents(contours, outputToNotesPoly(frames, onsets, onset, frame, minLen))
+    );
+
+    const tabNotes = [];
+    let lastPos = null;
+    noteEvents.forEach(ev => {
+      const midi = _foldToRange(Math.round(ev.pitchMidi));
+      const pos = _midiToPosFull(midi, lastPos, melodyCourses);
+      if (pos) {
+        tabNotes.push({
+          time: +ev.startTimeSeconds.toFixed(3),
+          duration: +Math.max(0.12, ev.durationSeconds || 0.2).toFixed(3),
+          course: pos.course, fret: pos.fret, midi,
+          amp: ev.amplitude || 1,
+        });
+        lastPos = { ci: pos.course, fret: pos.fret };
+      }
+    });
+    tabNotes.sort((a, b) => a.time - b.time);
+    return tabNotes;
   }
 
   // אקורד פשוט מתוך תווים בו-זמניים (התאמת טריאדה מז'ור/מינור)
@@ -95,59 +149,27 @@ const BasicPitchEngine = (() => {
    * @returns {Promise<{bpm:number,chords:Array,tabNotes:Array,engine:string}>}
    */
   async function transcribe(audioBuffer, onProgress) {
-    const bp = await _load(onProgress);
-    onProgress?.('Basic Pitch — מכין אודיו (22050Hz)…', 18);
-    const input = await _toBasicPitchInput(audioBuffer);
-    onProgress?.('Basic Pitch — מריץ מודל…', 20);
-
-    const frames = [], onsets = [], contours = [];
-    try {
-      await bp.evaluateModel(
-        input,
-        (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
-        (p) => onProgress?.('Basic Pitch — מנתח… ' + Math.round(p * 100) + '%', 20 + p * 60)
-      );
-    } catch (e) {
-      const msg = String(e?.message || e);
-      if (/sample rate/i.test(msg)) {
-        throw new Error('קובץ האודיו בקצב דגימה לא נתמך — נסו להוריד מחדש או קובץ MP3 אחר');
-      }
-      throw e;
-    }
-
-    onProgress?.('Basic Pitch — ממיר לתווים…', 85);
-    const { outputToNotesPoly, addPitchBendsToNoteEvents, noteFramesToTime } = _lib;
-    const noteEvents = noteFramesToTime(
-      addPitchBendsToNoteEvents(contours, outputToNotesPoly(frames, onsets, 0.5, 0.3, 11))
-    );
-
-    const tabNotes = [];
-    let lastPos = null;
-    noteEvents.forEach(ev => {
-      const midi = _foldToRange(Math.round(ev.pitchMidi));
-      const pos = _midiToPos(midi, lastPos);
-      if (pos) {
-        tabNotes.push({
-          time: +ev.startTimeSeconds.toFixed(3),
-          duration: +Math.max(0.12, ev.durationSeconds || 0.2).toFixed(3),
-          course: pos.course, fret: pos.fret, midi,
-          amp: ev.amplitude || 1,
-        });
-        lastPos = { ci: pos.course, fret: pos.fret };
-      }
-    });
-    tabNotes.sort((a, b) => a.time - b.time);
-
+    const tabNotes = await _runModel(audioBuffer, onProgress, { onset: 0.5, frame: 0.3, minLen: 11 });
     const finalized = (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody)
       ? FretboardScale.normalizeMelody(tabNotes).notes
       : tabNotes;
-
     const dur = finalized.length ? finalized[finalized.length - 1].time + 1 : (audioBuffer.duration || 30);
     const chords = _chordsFromNotes(finalized, dur);
-
     onProgress?.('Basic Pitch — הושלם', 100);
     return { bpm: 0, chords, tabNotes: finalized, engine: 'basic-pitch' };
   }
 
-  return { transcribe, available };
+  /** תמלול מותאם לקול מבודד / ווקאלי — סף נמוך יותר, כל 4 המיתרים */
+  async function transcribeVocal(audioBuffer, onProgress) {
+    const tabNotes = await _runModel(audioBuffer, onProgress, {
+      onset: 0.28, frame: 0.18, minLen: 6, courses: [0, 1],
+    });
+    const finalized = (typeof FretboardScale !== 'undefined' && FretboardScale.normalizeMelody)
+      ? FretboardScale.normalizeMelody(tabNotes, { mode: 'da' }).notes
+      : tabNotes;
+    onProgress?.('מלודיית שירה — הושלם', 100);
+    return { bpm: 0, chords: [], tabNotes: finalized, engine: 'basic-pitch-vocal' };
+  }
+
+  return { transcribe, transcribeVocal, available };
 })();
