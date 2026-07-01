@@ -13,7 +13,9 @@ if (existsSync(denoDir)) {
 
 let ytdlp;
 try {
-  ytdlp = require('yt-dlp-exec');
+  const ytdlpExec = require('yt-dlp-exec');
+  const { YOUTUBE_DL_PATH } = require('yt-dlp-exec/src/constants');
+  ytdlp = existsSync(YOUTUBE_DL_PATH) ? ytdlpExec.create(YOUTUBE_DL_PATH) : ytdlpExec;
 } catch {
   ytdlp = null;
 }

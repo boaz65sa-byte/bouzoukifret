@@ -260,11 +260,9 @@ const LearnHub = (() => {
       if (typeof LearnFlow !== 'undefined') LearnFlow.afterDownload(id, title);
     } catch (e) {
       _setDownloadStatus(e.message || String(e), false);
-      const msg = String(e.message || '');
-      const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
-      const showProxy = !onPublic && /stem-proxy|yt-dlp|localhost:3456/i.test(msg);
-      if (showProxy) {
-        _showProxySetupModal(msg);
+      const desktop = typeof DeviceUtils !== 'undefined' && !DeviceUtils.isMobile();
+      if (desktop) {
+        _showProxySetupModal(e.message);
       }
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '📥 הורד MP3 ללימוד'; }
@@ -800,16 +798,16 @@ const LearnHub = (() => {
     overlay.className = 'learn-proxy-modal-overlay';
     overlay.innerHTML = `
       <div class="learn-proxy-modal card" role="dialog">
-        <h3>📥 בעיית הורדה (מחשב מקומי)</h3>
+        <h3>📥 הורדה למחשב</h3>
         <p class="hint">${_esc(reason || '')}</p>
-        <p><b>באתר / טלפון / טאבלט</b> — אין צורך ב-stem-proxy. נסו שוב בעוד דקה.</p>
-        <p class="hint">אופציונלי רק במחשב: stem-proxy + yt-dlp לשיפור מהירות.</p>
+        <p><b>במחשב</b> — להורדת שירים מ-YouTube לדיסק, הריצו פעם אחת את שירות ההורדה המקומי:</p>
         <ol class="learn-proxy-steps">
-          <li><b>מקומי (הכי פשוט):</b> הריצו <code>tools\\stem-proxy\\start-windows.bat</code></li>
-          <li>השאירו למטה <code>http://localhost:3456</code> ולחצו שמור</li>
-          <li><b>או Render:</b> פרסו מ-<code>render.yaml</code> והדביקו את כתובת השרת</li>
+          <li>לחצו פעמיים על <code>tools\\stem-proxy\\start-windows.bat</code></li>
+          <li>השאירו את החלון השחור <b>פתוח</b></li>
+          <li>אם חסר yt-dlp: <code>winget install yt-dlp</code></li>
+          <li>חזרו לאתר ולחצו שוב 📥</li>
         </ol>
-        <label for="learn-proxy-url-input">כתובת stem-proxy</label>
+        <label for="learn-proxy-url-input">כתובת שירות הורדה</label>
         <input id="learn-proxy-url-input" type="url" dir="ltr" class="learn-proxy-url-input"
           value="${_esc(cur)}" placeholder="http://localhost:3456" />
         <p id="learn-proxy-test-status" class="hint"></p>
@@ -818,7 +816,7 @@ const LearnHub = (() => {
           <button type="button" class="btn secondary" id="learn-proxy-test">בדוק חיבור</button>
           <button type="button" class="btn secondary" id="learn-proxy-close">סגור</button>
         </div>
-        ${onPublic ? '<p class="hint">טיפ: גם באתר Vercel — localhost עובד אם stem-proxy רץ על <b>אותו מחשב</b>.</p>' : ''}
+        <p class="hint">השיר נשמר גם ב<strong>ספריית לימוד</strong> באתר + כקובץ בתיקיית ההורדות של הדפדפן.</p>
       </div>`;
     document.body.appendChild(overlay);
 

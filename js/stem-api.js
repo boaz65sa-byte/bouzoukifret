@@ -269,11 +269,21 @@ const StemAPI = (() => {
     }
 
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const desktop = typeof DeviceUtils !== 'undefined' && !DeviceUtils.isMobile();
     const errors = [];
     const apiPaths = downloadApiUrls().map((path) => ({
       path,
       label: (!path.startsWith('http') || path.startsWith(location.origin)) ? 'אתר' : 'שרת',
     }));
+
+    if (proxy) {
+      try {
+        const health = await checkHealth();
+        if (health.ok) {
+          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'מחשב מקומי');
+        }
+      } catch (e) { errors.push(e); }
+    }
 
     for (const { path, label } of apiPaths) {
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -287,31 +297,18 @@ const StemAPI = (() => {
       }
     }
 
-    if (proxy) {
-      try {
-        const health = await checkHealth();
-        if (health.ok && health.ytdlp !== false) {
-          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'מחשב מקומי');
-        }
-      } catch (e) { errors.push(e); }
-    }
-
     if (!onPublic) {
       try {
         return await fetchViaPipedOrInvidious(videoId, onProgress);
       } catch (e) { errors.push(e); }
     }
 
-    if (proxy) {
-      try {
-        const health = await checkHealth();
-        if (health.ok) {
-          return await _fetchFrom(`${proxy}/api/youtube-audio`, 'פרוקסי מקומי');
-        }
-      } catch (e) { errors.push(e); }
-    }
-
     const last = errors[errors.length - 1];
+    if (desktop) {
+      throw last || new Error(
+        'לא הצלחנו להוריד למחשב. הריצו tools\\stem-proxy\\start-windows.bat (השאירו פתוח) — ודאו ש-yt-dlp מותקן: winget install yt-dlp',
+      );
+    }
     throw last || new Error('לא הצלחנו להוריד — נסו שוב בעוד דקה');
   }
 
