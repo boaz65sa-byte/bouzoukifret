@@ -24,7 +24,22 @@ const BasicPitchEngine = (() => {
     return _bp;
   }
 
-  // קיפול תו לטווח הבוזוקי (C3=48 .. ~D6) כדי שיהיה ניתן לנגינה
+  const TARGET_SR = 22050;
+
+  /** Basic Pitch דורש מונו @ 22050Hz — קבצים מ-YouTube/הורדה לרוב 44100/48000 */
+  async function _toBasicPitchInput(audioBuffer) {
+    if (audioBuffer.sampleRate === TARGET_SR && audioBuffer.numberOfChannels === 1) {
+      return audioBuffer;
+    }
+    const length = Math.max(1, Math.ceil(audioBuffer.duration * TARGET_SR));
+    const offline = new OfflineAudioContext(1, length, TARGET_SR);
+    const src = offline.createBufferSource();
+    src.buffer = audioBuffer;
+    src.connect(offline.destination);
+    src.start(0);
+    return offline.startRendering();
+  }
+
   function _foldToRange(midi) {
     const lo = TUNING[TUNING.length - 1].midi;            // C3 = 48
     const hi = TUNING[0].midi + NUM_FRETS;                 // D + 15
@@ -81,14 +96,24 @@ const BasicPitchEngine = (() => {
    */
   async function transcribe(audioBuffer, onProgress) {
     const bp = await _load(onProgress);
+    onProgress?.('Basic Pitch — מכין אודיו (22050Hz)…', 18);
+    const input = await _toBasicPitchInput(audioBuffer);
     onProgress?.('Basic Pitch — מריץ מודל…', 20);
 
     const frames = [], onsets = [], contours = [];
-    await bp.evaluateModel(
-      audioBuffer,
-      (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
-      (p) => onProgress?.('Basic Pitch — מנתח… ' + Math.round(p * 100) + '%', 20 + p * 60)
-    );
+    try {
+      await bp.evaluateModel(
+        input,
+        (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
+        (p) => onProgress?.('Basic Pitch — מנתח… ' + Math.round(p * 100) + '%', 20 + p * 60)
+      );
+    } catch (e) {
+      const msg = String(e?.message || e);
+      if (/sample rate/i.test(msg)) {
+        throw new Error('קובץ האודיו בקצב דגימה לא נתמך — נסו להוריד מחדש או קובץ MP3 אחר');
+      }
+      throw e;
+    }
 
     onProgress?.('Basic Pitch — ממיר לתווים…', 85);
     const { outputToNotesPoly, addPitchBendsToNoteEvents, noteFramesToTime } = _lib;

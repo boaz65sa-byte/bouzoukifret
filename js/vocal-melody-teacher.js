@@ -232,7 +232,7 @@ const VocalMelodyTeacher = (() => {
         background:rgba(79,179,217,.12); font-size:13px; }
       .vmt-sources { margin:6px 0 0; font-size:12px; }
       .vmt-provider.active { background:var(--aegean-deep); color:#fff; }
-      .vmt-cta { font-size:16px; padding:12px 20px; }
+      .vmt-lib-tip { margin:0 0 10px; padding:8px 12px; border-radius:8px; background:rgba(227,179,65,.08); border:1px solid rgba(227,179,65,.25); }
     `;
     document.head.appendChild(s);
   }
@@ -261,13 +261,14 @@ const VocalMelodyTeacher = (() => {
 
         <div class="card">
           <h3 class="st-h" style="font-size:16px">מקור אודיו</h3>
-          <div class="vmt-row">
-            <input type="file" id="vmt-file" accept="audio/*">
-            <span class="hint">או העלו MP3/WAV</span>
-          </div>
+          <p class="hint vmt-lib-tip"><b>הורדתם מהאפליקציה?</b> בחרו את השיר מהרשימה למטה — לא צריך להעלות קובץ שוב. (העלאת קובץ מהמחשב גם עובדת אחרי העדכון האחרון.)</p>
           <div class="vmt-row">
             <select id="vmt-library" class="vmt-select"></select>
             <button type="button" class="btn gold vmt-cta" id="vmt-run-lib">🎤 חלץ מלודיה + הרמוניה</button>
+          </div>
+          <div class="vmt-row">
+            <input type="file" id="vmt-file" accept="audio/*,.m4a,.mp3,.wav">
+            <span class="hint">או העלו קובץ מהמחשב (M4A/MP3 מההורדה)</span>
           </div>
           <div class="vmt-row">
             <button type="button" class="btn secondary" id="vmt-goto-learn">➕ הורד מ-YouTube</button>
