@@ -393,11 +393,19 @@ const FretboardScale = (() => {
     }
 
     if (dynamicShift && !opts._noBaseRetry && (mode === 'da' || mode === 'd' || mode === 'box')) {
-      const bestBase = findBestGreekBase(sorted, { mode: mode === 'box' ? 'da' : mode, span, courses });
-      const trial = computeGreekPath(sorted, {
-        ...opts, base: bestBase, _noBaseRetry: true,
-      });
-      if (trial.notes.length >= sorted.length * 0.8) return trial;
+      let bestTrial = null;
+      let bestCov = 0;
+      for (const b of MELODY_BASES) {
+        const trial = computeGreekPath(sorted, {
+          ...opts, base: b, _noBaseRetry: true,
+        });
+        const cov = trial.notes.length / sorted.length;
+        if (cov > bestCov) {
+          bestCov = cov;
+          bestTrial = trial;
+        }
+      }
+      if (bestTrial && bestCov >= 0.8) return bestTrial;
     }
 
     const layers = sorted.map(n => {
@@ -493,7 +501,8 @@ const FretboardScale = (() => {
   }
 
   function findBestGreekBase(notes, opts = {}) {
-    const dynamic = computeGreekPath(notes, { ...opts, base: undefined });
+    const pathOpts = { ...opts, _noBaseRetry: true };
+    const dynamic = computeGreekPath(notes, { ...pathOpts, base: undefined });
     const dynCov = dynamic.notes.length / Math.max(1, notes.length);
     if (dynCov >= 0.85) return dynamic.base;
 
@@ -503,7 +512,7 @@ const FretboardScale = (() => {
     let best = MELODY_BASES[0];
     let bestScore = Infinity;
     MELODY_BASES.forEach(b => {
-      const r = computeGreekPath(notes, { ...opts, base: b, mode, courses, span });
+      const r = computeGreekPath(notes, { ...pathOpts, base: b, mode, courses, span });
       const coverage = r.notes.length / Math.max(1, notes.length);
       if (coverage < 0.5) return;
       let moveCost = 0;
@@ -638,7 +647,9 @@ const FretboardScale = (() => {
           base: segments[0]?.base ?? 0,
         };
       }
-      const greek = computeGreekPath(sorted, { mode: 'da', base: findBestGreekBase(sorted, { mode: 'da' }) });
+      const greek = computeGreekPath(sorted, {
+        mode: 'da', base: findBestGreekBase(sorted, { mode: 'da' }), _noBaseRetry: true,
+      });
       return { notes: greek.notes, segments: [{ mode: 'da', base: greek.base, notes: greek.notes }], mode: 'da', base: greek.base };
     }
     if (opts.mode === 'box') {
