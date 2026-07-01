@@ -59,12 +59,19 @@ function drawTab(svg, item) {
   const notes = item.notes;
   const steps = exTotalSteps(item);
   const hasFing = notes.some(n => !n.rest && n.fing !== undefined);
-  const stepW = 30, padL = 46, padR = 18, lineGap = 26, padT = 30;
+  const compact = !!item.compact;
+  const stepW = compact ? 42 : 30;
+  const padL = 46, padR = 18, lineGap = compact ? 30 : 26, padT = compact ? 34 : 30;
   const width = padL + steps * stepW + padR;
   const tabH = lineGap * 3;
   const height = padT + tabH + (hasFing ? 80 : 56);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  svg.style.minWidth = Math.min(width, 1500) + 'px';
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(height));
+  svg.style.width = width + 'px';
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+  if (!compact) svg.style.minWidth = Math.min(width, 1500) + 'px';
 
   // קווי פעמה
   for (let s = 0; s <= steps; s += item.sub) {
@@ -92,8 +99,10 @@ function drawTab(svg, item) {
     if (!n.rest) {
       const y = padT + n.c * lineGap;
       const accent = n.d === 'D' || n.d === 'U';
-      svgEl('circle', { cx: x, cy: y, r: 10.5, fill: accent ? '#e3b341' : '#1d3349', stroke: accent ? '#fff0c8' : '#4fb3d9', 'stroke-width': 1.4, class: 'tn-bg' }, g);
-      const t = svgEl('text', { x, y: y + 4, fill: accent ? '#1a1408' : '#e8eef5', 'font-size': 12, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo' }, g);
+      const nr = compact ? 12.5 : 10.5;
+      const fs = compact ? 14 : 12;
+      svgEl('circle', { cx: x, cy: y, r: nr, fill: accent ? '#e3b341' : '#1d3349', stroke: accent ? '#fff0c8' : '#4fb3d9', 'stroke-width': 1.4, class: 'tn-bg' }, g);
+      const t = svgEl('text', { x, y: y + 4, fill: accent ? '#1a1408' : '#e8eef5', 'font-size': fs, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo' }, g);
       t.textContent = n.f;
       // חץ כיוון
       const isDown = n.d.toLowerCase() === 'd';
