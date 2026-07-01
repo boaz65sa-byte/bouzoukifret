@@ -402,9 +402,17 @@ const StemAPI = (() => {
     return separate(file, { ...opts, stem: 'vocals' });
   }
 
+  /** בידוד ליווי — בוזוקי/בס/כלים (ללא קול) */
+  async function separateBacking(file, opts = {}) {
+    const provider = opts.provider || 'lalal';
+    const stem = provider === 'moises' ? 'other' : 'strings';
+    return separate(file, { ...opts, stem });
+  }
+
   return {
     separate,
     separateVocals,
+    separateBacking,
     checkHealth,
     checkDownloadReady,
     fetchYoutube,

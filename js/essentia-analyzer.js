@@ -360,9 +360,18 @@ const AudioAnalyzer = (() => {
   }
 
   async function decodeBlob(blob) {
+    if (!blob || blob.size < 4096) {
+      throw new Error('קובץ אודיו ריק או פגום — הורידו את השיר מחדש (📥)');
+    }
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const ab = await blob.arrayBuffer();
-    return ctx.decodeAudioData(ab);
+    try {
+      return await ctx.decodeAudioData(ab.slice(0));
+    } catch {
+      throw new Error('לא ניתן לפענח את השיר — מחקו מהספרייה והורידו שוב (📥)');
+    } finally {
+      try { ctx.close(); } catch { /* noop */ }
+    }
   }
 
   /** chromagram מציר אקורדים + TAB → התאמת דרומוס (כמו LiveAnalyzer) */

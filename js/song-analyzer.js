@@ -210,8 +210,18 @@ const SongAnalyzer = (() => {
 
     let file = source;
     if (typeof source === 'string') {
-      _setProgress('מוריד אודיו מ-YouTube…', 5);
-      file = await _fileFromYoutubeUrl(source);
+      const id = source.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
+      if (id && typeof LearnOffline !== 'undefined') {
+        const rec = await LearnOffline.get(id);
+        if (rec?.blob) {
+          _setProgress('טוען מהספרייה…', 5);
+          file = rec.blob;
+        }
+      }
+      if (file === source) {
+        _setProgress('מוריד אודיו מ-YouTube…', 5);
+        file = await _fileFromYoutubeUrl(source);
+      }
     }
 
     const useStem = document.getElementById('sa-use-stem')?.checked === true;

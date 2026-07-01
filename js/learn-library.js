@@ -215,7 +215,7 @@ const LearnLibrary = (() => {
           <div class="learn-lib-badges">${badges}</div>
           <div class="learn-lib-actions">
             <button type="button" class="btn primary ll-analyze" data-id="${esc(t.videoId)}">🔬 נתח</button>
-            <button type="button" class="btn gold ll-vocal" data-id="${esc(t.videoId)}" data-title="${label}">🎤 מהזמר</button>
+            <button type="button" class="btn gold ll-vocal" data-id="${esc(t.videoId)}" data-title="${label}">🎤 Φωνή→Bridge</button>
             <button type="button" class="btn secondary ll-yt" data-id="${esc(t.videoId)}" data-title="${label}">▶ YouTube</button>
             ${!t.inApp && t.onDisk ? `<button type="button" class="btn secondary ll-import" data-id="${esc(t.videoId)}">⬇ ייבא</button>` : ''}
             ${t.inApp ? `<button type="button" class="btn secondary ll-save" data-id="${esc(t.videoId)}">💾 שמור קובץ</button>` : ''}

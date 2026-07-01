@@ -163,23 +163,31 @@ const LearnHub = (() => {
   async function _goAnalyzeVideo() {
     const id = _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
     if (!id) {
-      alert('הדביקו קישור YouTube או טענו סרטון לפני הניתוח');
+      alert('בחרו סרטון או הורידו שיר לספרייה לפני הניתוח');
       return;
     }
     _pauseYoutube();
     _activeTab = 'analyze';
     _renderTabs();
-    if (typeof SongAnalyzer !== 'undefined') {
-      if (!document.getElementById('sa-youtube')) SongAnalyzer.render('learn-analyze-app');
-      const ytIn = document.getElementById('sa-youtube');
-      if (ytIn) ytIn.value = `https://youtu.be/${id}`;
-      document.getElementById('sa-progress-wrap').style.display = '';
-      try {
-        await SongAnalyzer.runPipeline(`https://youtu.be/${id}`);
-        if (typeof LearnFlow !== 'undefined') LearnFlow.afterAnalyze(id, {});
-      } catch (e) {
-        alert(e.message || String(e));
+    if (typeof SongAnalyzer === 'undefined') return;
+    if (!document.getElementById('sa-file')) SongAnalyzer.render('learn-analyze-app');
+    document.getElementById('sa-progress-wrap').style.display = '';
+    try {
+      let rec = typeof LearnOffline !== 'undefined' ? await LearnOffline.get(id) : null;
+      if (!rec?.blob) {
+        const ok = confirm('לניתוח AI הורידו את השיר קודם (📥). להוריד עכשיו ולנתח?');
+        if (!ok) {
+          alert('לחצו 📥 להורדה, ואז שוב «נתח ב-AI»');
+          return;
+        }
+        await _downloadForLearning(id);
+        rec = await LearnOffline.get(id);
       }
+      if (!rec?.blob) throw new Error('השיר לא נמצא בספרייה — נסו להוריד שוב');
+      await SongAnalyzer.runPipeline(rec.blob);
+      if (typeof LearnFlow !== 'undefined') LearnFlow.afterAnalyze(id, {});
+    } catch (e) {
+      alert(e.message || String(e));
     }
   }
 
@@ -252,7 +260,7 @@ const LearnHub = (() => {
         onProgress: (msg, pct) => _setDownloadStatus(`${msg}${pct != null ? ` (${pct}%)` : ''}`, null),
       });
       _setDownloadStatus(
-        '✓ נשמר במכשיר הזה — פתחו «ספריית לימוד» להאזנה, ניתוח ושירה על בוזוקי',
+        '✓ נשמר במכשיר הזה — פתחו «ספריית לימוד» לניתוח או Φωνή→Bridge',
         true,
       );
       _renderOfflineLibrary();
@@ -276,13 +284,13 @@ const LearnHub = (() => {
       return;
     }
     if (typeof VocalMelodyTeacher === 'undefined') {
-      alert('מודול שירה על בוזוקי לא זמין');
+      alert('מודול Φωνή→Bridge לא זמין');
       return;
     }
     _pauseYoutube();
     let rec = typeof LearnOffline !== 'undefined' ? await LearnOffline.get(id) : null;
     if (!rec?.blob) {
-      const ok = confirm('כדי לחלץ מלודיה מהזמר צריך להוריד את השיר קודם. להוריד עכשיו?');
+      const ok = confirm('לחילוץ מלודיה והרמוניה מהזמר (Φωνή→Bridge) צריך להוריד את השיר קודם. להוריד עכשיו?');
       if (!ok) return;
       await _downloadForLearning(id, _currentSong?.titleGr || _currentSong?.title);
       rec = await LearnOffline.get(id);
@@ -336,7 +344,7 @@ const LearnHub = (() => {
         </div>
         <div class="learn-offline-actions">
           <button type="button" class="btn primary learn-offline-analyze" data-video="${_esc(t.videoId)}">🔬 נתח</button>
-          <button type="button" class="btn gold learn-offline-vocal" data-video="${_esc(t.videoId)}">🎤 מהזמר</button>
+          <button type="button" class="btn gold learn-offline-vocal" data-video="${_esc(t.videoId)}">🎤 Φωνή→Bridge</button>
           <button type="button" class="btn secondary learn-offline-dl" data-video="${_esc(t.videoId)}">⬇ שמור שוב</button>
           <button type="button" class="btn secondary learn-offline-del" data-video="${_esc(t.videoId)}">🗑</button>
         </div>
@@ -459,7 +467,7 @@ const LearnHub = (() => {
           <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
           <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
           <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI (TAB + אקורדים)</button>
-          <button type="button" class="btn gold learn-vocal-teach">🎤 למד מלודיית שירה</button>
+          <button type="button" class="btn gold learn-vocal-teach">🎤 Φωνή→Bridge</button>
           <button type="button" class="btn primary learn-open-song" data-song="${song.id}">פתח בספריית שירים (אקורדים + גלילה)</button>
         </div>`;
     } else if (_currentVideoId) {
@@ -471,7 +479,7 @@ const LearnHub = (() => {
             <button type="button" class="btn secondary learn-open-youtube">↗ פתח ב-YouTube</button>
             <button type="button" class="btn secondary learn-download-mp3">📥 הורד MP3 ללימוד</button>
             <button type="button" class="btn gold learn-analyze-video">🔬 נתח ב-AI</button>
-            <button type="button" class="btn gold learn-vocal-teach">🎤 למד מלודיית שירה</button>
+            <button type="button" class="btn gold learn-vocal-teach">🎤 Φωνή→Bridge</button>
           </div>
           <label class="learn-label">דרומוס משוער
             <select id="learn-manual-dromos" class="learn-select">

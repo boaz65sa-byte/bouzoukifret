@@ -257,18 +257,24 @@ const SongTeacher = (() => {
     }
   }
 
-  /** שיעור ממלודיית שירה (VocalMelodyTeacher) */
-  function loadVocalLesson({ analysis, title, song, vocalBlob, videoId }) {
+  /** שיעור ממלודיית שירה + הרמוניה (Φωνή→Bridge) */
+  function loadVocalLesson({ analysis, title, song, vocalBlob, backingBlob, videoId }) {
     if (!analysis) return;
     revokeVocalUrl();
-    _vocalCtx = { title: title || 'שירה על בוזוקי', song: song || null, videoId: videoId || '' };
-    _withChords = false;
+    _vocalCtx = {
+      title: title || 'Φωνή→Bridge',
+      song: song || null,
+      videoId: videoId || '',
+      harmonySources: analysis.vocalMeta?.harmonySources || [],
+    };
+    _withChords = (analysis.chords?.length || 0) > 0;
     if (vocalBlob) {
       _vocalUrl = URL.createObjectURL(vocalBlob);
     }
-    _analysis = { ...analysis, engine: analysis.engine || 'basic-pitch-vocal' };
+    _analysis = { ...analysis, engine: analysis.engine || 'vocal-bridge' };
     ingest(_analysis);
-    setStatus('מוכן — שמעו את הזמר ונגנו על הגריף', 100);
+    const chordHint = _chords.length ? ` · ${_chords.length} אקורדים` : '';
+    setStatus(`מוכן — מלודיה מהזמר${chordHint}`, 100);
     renderLesson();
   }
 
@@ -638,8 +644,8 @@ const SongTeacher = (() => {
 
     const vocalBanner = _vocalCtx ? `
       <div class="card st-vocal-banner">
-        <strong>🎤 מלודיית שירה → בוזוקי</strong>
-        <span class="hint">${_vocalCtx.title || ''}</span>
+        <strong>🎤 Φωνή→Bridge</strong>
+        <span class="hint">${_vocalCtx.title || ''}${_vocalCtx.harmonySources?.length ? ' · ' + _vocalCtx.harmonySources.join(' · ') : ''}</span>
         ${_vocalUrl ? '<button type="button" class="btn small gold" id="st-vocal-play">🎤 שמע קול הזמר</button>' : ''}
         ${_vocalUrl ? `<label class="st-toggle"><input type="checkbox" id="st-sync-vocal" ${_syncVocal ? 'checked' : ''}> סנכרן קול עם נגינה</label>` : ''}
       </div>` : '';

@@ -169,12 +169,14 @@ const ChordLibrary = (() => {
   /* --- עורך UI --- */
   let editingId = null;
   let previewHandler = null;
+  let editorRoot = null;
+  const q = (s) => (editorRoot || document).querySelector(s);
+  const qa = (s) => [...(editorRoot || document).querySelectorAll(s)];
 
   function bindEditor(containerSel) {
-    const root = document.querySelector(containerSel);
-    if (!root) return;
-
-    root.innerHTML = `
+    editorRoot = document.querySelector(containerSel);
+    if (!editorRoot) return;
+    editorRoot.innerHTML = `
       <div class="cl-toolbar">
         <button type="button" class="btn gold" id="cl-add">➕ הוסף אקורד</button>
         <button type="button" class="btn" id="cl-export">ייצוא JSON</button>
@@ -213,32 +215,32 @@ const ChordLibrary = (() => {
         </form>
       </div>`;
 
-    $('#cl-add').addEventListener('click', () => openForm(null));
-    $('#cl-cancel').addEventListener('click', () => { editingId = null; $('#cl-form').classList.remove('open'); setStatus(''); });
-    $('#cl-delete').addEventListener('click', () => {
+    q('#cl-add').addEventListener('click', () => openForm(null));
+    q('#cl-cancel').addEventListener('click', () => { editingId = null; q('#cl-form').classList.remove('open'); setStatus(''); });
+    q('#cl-delete').addEventListener('click', () => {
       if (!editingId) return;
       if (!confirm('למחוק את האקורד?')) return;
       remove(editingId);
       editingId = null;
       renderList();
-      $('#cl-form').classList.remove('open');
+      q('#cl-form').classList.remove('open');
       setStatus('נמחק.', 'ok');
     });
-    $('#cl-reset-all').addEventListener('click', () => {
+    q('#cl-reset-all').addEventListener('click', () => {
       if (!confirm('לאפס את כל האקורדים המערכו והמותאמים?')) return;
       resetAll();
       editingId = null;
       renderList();
       setStatus('הספרייה אופסה לברירת מחדל.', 'ok');
     });
-    $('#cl-export').addEventListener('click', () => {
+    q('#cl-export').addEventListener('click', () => {
       const blob = new Blob([exportJson()], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'bouzouki-chords.json';
       a.click();
     });
-    $('#cl-import').addEventListener('change', e => {
+    q('#cl-import').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -254,8 +256,8 @@ const ChordLibrary = (() => {
       reader.readAsText(file);
       e.target.value = '';
     });
-    $('#cl-preview').addEventListener('click', previewFormChord);
-    $('#cl-form').addEventListener('submit', e => {
+    q('#cl-preview').addEventListener('click', previewFormChord);
+    q('#cl-form').addEventListener('submit', e => {
       e.preventDefault();
       const data = readForm();
       if (!data.name) { setStatus('נא שם באנגלית.', 'err'); return; }
@@ -270,36 +272,36 @@ const ChordLibrary = (() => {
   }
 
   function setStatus(msg, kind) {
-    const el = $('#cl-status');
+    const el = q('#cl-status');
     if (!el) return;
     el.textContent = msg;
     el.className = 'cl-status' + (kind ? ' ' + kind : '');
   }
 
   function readForm() {
-    const frets = $$('.cl-fret').map(inp => inp.value);
+    const frets = qa('.cl-fret').map(inp => inp.value);
     return {
-      name: $('#cl-name').value.trim(),
-      he: $('#cl-he').value.trim(),
+      name: q('#cl-name').value.trim(),
+      he: q('#cl-he').value.trim(),
       frets,
-      cat: $('#cl-cat').value,
-      desc: $('#cl-desc').value.trim(),
+      cat: q('#cl-cat').value,
+      desc: q('#cl-desc').value.trim(),
     };
   }
 
   function openForm(chord) {
     editingId = chord ? chord.id : null;
-    $('#cl-form-title').textContent = chord ? 'עריכת אקורד' : 'אקורד חדש';
-    $('#cl-name').value = chord ? chord.name : '';
-    $('#cl-he').value = chord ? chord.he : '';
-    $$('.cl-fret').forEach((inp, i) => {
+    q('#cl-form-title').textContent = chord ? 'עריכת אקורד' : 'אקורד חדש';
+    q('#cl-name').value = chord ? chord.name : '';
+    q('#cl-he').value = chord ? chord.he : '';
+    qa('.cl-fret').forEach((inp, i) => {
       const f = chord ? chord.frets[i] : null;
       inp.value = f === null ? 'x' : String(f);
     });
-    $('#cl-cat').value = chord ? chord.cat : 'custom';
-    $('#cl-desc').value = chord ? (chord.desc || '') : '';
-    $('#cl-delete').style.display = chord ? '' : 'none';
-    $('#cl-form').classList.add('open');
+    q('#cl-cat').value = chord ? chord.cat : 'custom';
+    q('#cl-desc').value = chord ? (chord.desc || '') : '';
+    q('#cl-delete').style.display = chord ? '' : 'none';
+    q('#cl-form').classList.add('open');
     setStatus('');
   }
 
@@ -311,7 +313,7 @@ const ChordLibrary = (() => {
   }
 
   function renderList() {
-    const list = $('#cl-list');
+    const list = q('#cl-list');
     if (!list) return;
     list.innerHTML = '';
     const items = getAll().sort((a, b) => {
