@@ -13,7 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/style.css">
 <script>
 (function () {
@@ -198,6 +199,8 @@
         <p class="lead">8 מיתרים · 4 זוגות · הכלי שהמציא מאנוליס חיוטיס ושינה את המוזיקה היוונית</p>
       </header>
 
+      <div id="home-hub" class="home-hub"></div>
+
       <div class="grid-2">
         <div class="card">
           <h2>הכיוונון שלך: C–F–A–D</h2>
@@ -340,9 +343,9 @@
         <div class="penia-controls">
           <select id="penia-select"></select>
           <div class="tempo-ctl">
-            <button class="btn small" id="penia-bpm-down">−</button>
+            <button class="btn small" id="penia-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
             <div class="bpm-display"><span id="penia-bpm">80</span><small>BPM</small></div>
-            <button class="btn small" id="penia-bpm-up">+</button>
+            <button class="btn small" id="penia-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
           </div>
           <button class="btn gold" id="penia-play">▶ נגן</button>
         </div>
@@ -382,9 +385,9 @@
           <div class="ex-controls">
             <button class="btn daily-challenge-btn" id="ex-challenge-btn">🎲 ג'נרטור אתגר יומי</button>
             <div class="tempo-ctl">
-              <button class="btn small" id="ex-bpm-down">−</button>
+              <button class="btn small" id="ex-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
               <div class="bpm-display"><span id="ex-bpm">70</span><small>BPM</small></div>
-              <button class="btn small" id="ex-bpm-up">+</button>
+              <button class="btn small" id="ex-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
             </div>
             <button class="btn gold" id="ex-play">▶ נגן</button>
             <label class="chk"><input type="checkbox" id="ex-loop" checked> לולאה</label>
@@ -427,9 +430,9 @@
 
         <div class="rhythm-controls">
           <div class="tempo-ctl">
-            <button class="btn small" id="rh-bpm-down">−</button>
+            <button class="btn small" id="rh-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
             <div class="bpm-display"><span id="rh-bpm">80</span><small>BPM</small></div>
-            <button class="btn small" id="rh-bpm-up">+</button>
+            <button class="btn small" id="rh-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
           </div>
           <input type="range" id="rh-bpm-slider" min="50" max="220" value="80">
           <button class="btn gold" id="rh-play">▶ נגן מקצב</button>
@@ -459,9 +462,9 @@
         <div class="game-controls">
           <select id="game-level"></select>
           <div class="tempo-ctl">
-            <button class="btn small" id="game-bpm-down">−</button>
+            <button class="btn small" id="game-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
             <div class="bpm-display"><span id="game-bpm">60</span><small>BPM</small></div>
-            <button class="btn small" id="game-bpm-up">+</button>
+            <button class="btn small" id="game-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
           </div>
           <button class="btn gold" id="game-start">▶ שחק</button>
           <button class="btn" id="game-calib">⚙ כיול תזמון</button>
@@ -740,9 +743,9 @@
               <option value="9">9/8 (2+2+2+3)</option>
             </select>
             <div class="tempo-ctl">
-              <button class="btn small" id="met-bpm-down">−</button>
+              <button class="btn small" id="met-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
               <div class="bpm-display"><span id="met-bpm">90</span><small>BPM</small></div>
-              <button class="btn small" id="met-bpm-up">+</button>
+              <button class="btn small" id="met-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
             </div>
             <button class="btn gold" id="met-play">▶ הפעל</button>
           </div>
@@ -810,9 +813,9 @@
           <p id="course-ex-desc"></p>
           <div class="ex-controls">
             <div class="tempo-ctl">
-              <button class="btn small" id="course-bpm-down">−</button>
+              <button class="btn small" id="course-bpm-down" aria-label="הפחת קצב (BPM)">−</button>
               <div class="bpm-display"><span id="course-bpm">70</span><small>BPM</small></div>
-              <button class="btn small" id="course-bpm-up">+</button>
+              <button class="btn small" id="course-bpm-up" aria-label="הוסף קצב (BPM)">+</button>
             </div>
             <button class="btn gold" id="course-play">▶ נגן</button>
             <label class="chk"><input type="checkbox" id="course-loop" checked> לולאה</label>
@@ -1145,67 +1148,70 @@
   </main>
 </div>
 
-<script src="config.example.js"></script>
-<script src="config.js" onerror="void 0"></script>
-<script src="js/device-utils.js"></script>
-<script src="js/proxy-settings.js"></script>
-<script src="js/data.js"></script>
-<script src="js/maqamat-data.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/dromos-road.js"></script>
-<script src="js/chord-library.js"></script>
-<script src="js/chord-diagram.js"></script>
-<script src="js/chord-tooltip.js"></script>
-<script src="js/course.js"></script>
-<script src="js/app.js"></script>
-<script src="js/fretboard-scale.js"></script>
-<script src="js/exercises.js"></script>
-<script src="js/listen.js"></script>
-<script src="js/game.js"></script>
-<script src="js/songs/song-references.js"></script>
-<script src="js/songs/song-catalog.js"></script>
-<script src="js/songs.js"></script>
-<script src="js/learning-resources.js"></script>
-<script src="js/dromos-paths.js"></script>
-<script src="js/learn-offline.js"></script>
-<script src="js/learn-flow.js"></script>
-<script src="js/learn-onboarding.js"></script>
-<script src="js/learn-library.js"></script>
-<script src="js/youtube-search.js"></script>
-<script src="js/stem-api.js"></script>
-<script src="js/learn-youtube.js"></script>
-<script src="js/pitch-player.js"></script>
-<script src="js/live-chord.js"></script>
-<script src="js/essentia-analyzer.js"></script>
-<script src="js/song-analyzer.js"></script>
-<script src="js/master.js"></script>
-<script src="js/tuner.js"></script>
-<script src="js/education-content.js"></script>
-<script src="js/penia-visuals.js"></script>
-<script src="js/dromos-visuals.js"></script>
-<script src="js/learn.js"></script>
-<script src="js/theory-lab.js"></script>
-<script src="js/arp-studio.js"></script>
-<script src="js/reference-cards.js"></script>
-<script src="js/worksheets.js"></script>
-<script src="js/basic-pitch-engine.js"></script>
-<script src="js/vocal-harmony-engine.js"></script>
-<script src="js/song-teacher.js"></script>
-<script src="js/vocal-melody-teacher.js"></script>
-<script src="js/song-learn.js"></script>
-<script src="js/song-academy.js"></script>
-<script src="js/adaptive.js"></script>
-<script src="js/daily-workout.js"></script>
-<script src="js/practice-library.js"></script>
-<script src="js/modus-path.js"></script>
-<script src="js/skills.js"></script>
-<script src="js/daily-streak.js"></script>
-<script src="js/progress-db.js"></script>
-<script src="js/features.js"></script>
-<script src="js/bouzouki-studio.js"></script>
-<script src="js/progress-dashboard.js"></script>
-<script src="js/features2.js"></script>
+<script src="config.example.js" defer></script>
+<script src="config.js" onerror="void 0" defer></script>
+<script src="js/device-utils.js" defer></script>
+<script src="js/proxy-settings.js" defer></script>
+<script src="js/data.js" defer></script>
+<script src="js/maqamat-data.js" defer></script>
+<script src="js/audio.js" defer></script>
+<script src="js/dromos-road.js" defer></script>
+<script src="js/chord-library.js" defer></script>
+<script src="js/chord-diagram.js" defer></script>
+<script src="js/chord-tooltip.js" defer></script>
+<script src="js/course.js" defer></script>
+<script src="js/app.js" defer></script>
+<script src="js/fretboard-scale.js" defer></script>
+<script src="js/exercises.js" defer></script>
+<script src="js/listen.js" defer></script>
+<script src="js/game.js" defer></script>
+<script src="js/songs/song-references.js" defer></script>
+<script src="js/songs/song-catalog.js" defer></script>
+<script src="js/songs.js" defer></script>
+<script src="js/learning-resources.js" defer></script>
+<script src="js/dromos-paths.js" defer></script>
+<script src="js/learn-offline.js" defer></script>
+<script src="js/learn-flow.js" defer></script>
+<script src="js/learn-onboarding.js" defer></script>
+<script src="js/learn-library.js" defer></script>
+<script src="js/youtube-search.js" defer></script>
+<script src="js/stem-api.js" defer></script>
+<script src="js/learn-youtube.js" defer></script>
+<script src="js/pitch-player.js" defer></script>
+<script src="js/live-chord.js" defer></script>
+<script src="js/essentia-analyzer.js" defer></script>
+<script src="js/song-analyzer.js" defer></script>
+<script src="js/master.js" defer></script>
+<script src="js/tuner.js" defer></script>
+<script src="js/education-content.js" defer></script>
+<script src="js/penia-visuals.js" defer></script>
+<script src="js/dromos-visuals.js" defer></script>
+<script src="js/learn.js" defer></script>
+<script src="js/theory-lab.js" defer></script>
+<script src="js/arp-studio.js" defer></script>
+<script src="js/reference-cards.js" defer></script>
+<script src="js/worksheets.js" defer></script>
+<script src="js/basic-pitch-engine.js" defer></script>
+<script src="js/vocal-harmony-engine.js" defer></script>
+<script src="js/song-teacher.js" defer></script>
+<script src="js/vocal-melody-teacher.js" defer></script>
+<script src="js/song-learn.js" defer></script>
+<script src="js/song-academy.js" defer></script>
+<script src="js/adaptive.js" defer></script>
+<script src="js/daily-workout.js" defer></script>
+<script src="js/practice-library.js" defer></script>
+<script src="js/modus-path.js" defer></script>
+<script src="js/skills.js" defer></script>
+<script src="js/daily-streak.js" defer></script>
+<script src="js/progress-db.js" defer></script>
+<script src="js/features.js" defer></script>
+<script src="js/bouzouki-studio.js" defer></script>
+<script src="js/progress-dashboard.js" defer></script>
+<script src="js/features2.js" defer></script>
+<script src="js/home-hub.js" defer></script>
+<script src="js/install-prompt.js" defer></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
 BouzoukiTuner.init();
 SongLibrary.init();
 if (typeof IntervalTrainer !== 'undefined') IntervalTrainer.init();
@@ -1242,6 +1248,7 @@ if (typeof PracticeLibrary !== 'undefined') PracticeLibrary.init();
 if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 if (typeof LearnLibrary !== 'undefined') LearnLibrary.init();
+if (typeof HomeHub !== 'undefined') HomeHub.init();
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').then(() => {
@@ -1257,6 +1264,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     window.addEventListener('offline', upd);
   }).catch(() => {});
 }
+});
 </script>
 </body>
 </html>

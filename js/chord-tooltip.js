@@ -51,6 +51,8 @@ const ChordTooltip = (() => {
     let left = r.left + r.width / 2 - tw / 2;
     let top = r.top - th - 10;
     if (top < 8) top = r.bottom + 10;
+    const bottomReserve = window.innerWidth <= 860 ? 86 : 0;
+    top = Math.max(8, Math.min(window.innerHeight - th - bottomReserve - 8, top));
     left = Math.max(8, Math.min(window.innerWidth - tw - 8, left));
     tip.style.left = `${left}px`;
     tip.style.top = `${top}px`;

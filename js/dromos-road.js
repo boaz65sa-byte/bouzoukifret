@@ -14,6 +14,9 @@ const DromosRoad = (() => {
     4: '🎸 4 מיתרים',
   };
 
+  /** מסלולים עם טיימר השמעה פעיל — כדי לעצור את כולם במעבר מסך (גם אם ה-DOM שלהם כבר הוסר) */
+  const activeStrips = new Set();
+
   function ensureAudio() { try { if (typeof AudioEngine !== 'undefined') AudioEngine.ensureCtx(); } catch (_) {} }
 
   function span() {
@@ -99,6 +102,8 @@ const DromosRoad = (() => {
     };
     tick();
     stripEl._roadTimer = setInterval(tick, stepMs);
+    stripEl._roadFbSvg = fbSvg || null;
+    activeStrips.add(stripEl);
     if (typeof registerLoop === 'function') registerLoop();
   }
 
@@ -107,6 +112,13 @@ const DromosRoad = (() => {
     if (stripEl && stripEl._roadTimer) { clearInterval(stripEl._roadTimer); stripEl._roadTimer = null; }
     if (stripEl) stripEl.querySelectorAll('.tl-road-playing').forEach(s => s.classList.remove('tl-road-playing'));
     if (btn && btn.dataset.was) { btn.textContent = btn.dataset.was; btn.classList.remove('playing'); }
+    activeStrips.delete(stripEl);
+  }
+
+  /** עוצר כל "כביש" שמתנגן כרגע, בכל מסך שהוא — נקרא מ-stopAllPlayback() במעבר מסך */
+  function stop() {
+    activeStrips.forEach(el => stopRoad(el, null, el._roadFbSvg));
+    activeStrips.clear();
   }
 
   function buildStripFromRoad(road, nameHe) {
@@ -303,7 +315,7 @@ const DromosRoad = (() => {
     }
   }
 
-  return { renderInto, buildRoad, buildStrip: (intervals, rootPc, mode, nameHe) => {
+  return { renderInto, buildRoad, stop, buildStrip: (intervals, rootPc, mode, nameHe) => {
     const sm = Number(mode) || 4;
     return buildStripFromRoad(buildRoad(intervals, rootPc, sm, 0), nameHe);
   } };

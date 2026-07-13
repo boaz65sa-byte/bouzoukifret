@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v44';
+const CACHE_STATIC = 'bouzouki-static-v45';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -13,10 +13,14 @@ const PRECACHE = [
   './js/device-utils.js',
   './js/proxy-settings.js',
   './icons/icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './js/data.js',
   './js/maqamat-data.js',
   './js/audio.js',
+  './js/dromos-road.js',
   './js/chord-library.js',
+  './js/chord-diagram.js',
   './js/chord-tooltip.js',
   './js/course.js',
   './js/app.js',
@@ -47,6 +51,8 @@ const PRECACHE = [
   './js/features.js',
   './js/progress-dashboard.js',
   './js/features2.js',
+  './js/install-prompt.js',
+  './js/home-hub.js',
   './js/basic-pitch-engine.js',
   './js/bouzouki-studio.js',
   './js/song-teacher.js',

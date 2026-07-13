@@ -84,6 +84,7 @@ function stopAllPlayback() {
   if (typeof MaqamGuide !== 'undefined') MaqamGuide.stop();
   if (typeof PeniaLearn !== 'undefined') PeniaLearn.stop();
   if (typeof DromosLearn !== 'undefined') DromosLearn.stop();
+  if (typeof DromosRoad !== 'undefined') DromosRoad.stop();
   if (typeof TheoryLab !== 'undefined') TheoryLab.stop();
   if (typeof ArpStudio !== 'undefined') ArpStudio.stop();
   if (typeof ReferenceCards !== 'undefined') ReferenceCards.stop();

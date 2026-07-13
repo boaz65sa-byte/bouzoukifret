@@ -165,7 +165,7 @@ const BouzoukiStudio = (() => {
       return;
     }
     if (typeof StemAPI === 'undefined') {
-      setStatus('StemAPI לא זמין', 0);
+      setStatus('הפרדת מיתרים היא שירות חיצוני בתשלום (LALAL.ai או Moises). יש להזין מפתח API בקובץ config.js (העתיקו מ-config.example.js) בשדה lalalLicenseKey או moisesApiKey.', 0);
       return;
     }
     try {
