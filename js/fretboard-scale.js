@@ -939,7 +939,7 @@ const FretboardScale = (() => {
       }
       if (!inUsedBox(f)) return null;
       return { type: 'note', label: NOTE_NAMES[pc] };
-    });
+    }, typeof opts.onDotClick === 'function' ? { onDotClick: opts.onDotClick } : undefined);
     if (scalePath.length) drawPathOverlay(svg, scalePath, opts.color);
     return scalePath;
   }
@@ -998,8 +998,9 @@ const FretboardScale = (() => {
       }
       return { type: 'note', label: NOTE_NAMES[pc] };
     }, {
-      onDotClick(ci, f, midi) {
+      onDotClick(ci, f, midi, g) {
         if (editDotTap(draftPath, intervals, rootPc, posBase, ci, f, midi)) opts.onDraftChange?.(draftPath);
+        if (typeof opts.onDotClick === 'function') opts.onDotClick(ci, f, midi, g);
       },
     });
 
@@ -1166,13 +1167,20 @@ const FretboardScale = (() => {
         board.innerHTML = '';
         board.appendChild(svg);
       }
+      const onDotClick = typeof opts.onDotClick === 'function'
+        ? (ci, f, midi, g) => opts.onDotClick({ ci, fret: f, midi, g, path, posBase, stringMode, rootPc })
+        : null;
       if (editMode) {
-        renderEditableDromosScale(svg, ivs, rootPc, draft, { posBase, stringMode, span, onDraftChange: () => render() });
+        renderEditableDromosScale(svg, ivs, rootPc, draft, {
+          posBase, stringMode, span,
+          onDraftChange: () => render(),
+          onDotClick,
+        });
         path = draft;
       } else {
-        path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode, dromosId });
+        path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode, dromosId, onDotClick });
       }
-      if (badge) badge.hidden = !DromosOverrides.has(dromosId, rootPc, posBase, stringMode);
+      if (badge) badge.hidden = !(typeof DromosOverrides !== 'undefined' && DromosOverrides.has(dromosId, rootPc, posBase, stringMode));
       if (onChange) onChange({ posBase, stringMode, rootPc, path, svg });
     }
 

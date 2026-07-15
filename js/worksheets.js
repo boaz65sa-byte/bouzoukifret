@@ -1,6 +1,7 @@
 /* ============================================================
    Worksheets — דפי עבודה להדפסה (שיעורי בית)
    יוצר דפים צבעוניים להדפסה/PDF: אקורדים, דרומוסים, יומן תרגול.
+   כולל פרטבורד עם מסלול הדרומוס (לחיצה = תו עברית/לועזית + אצבע).
    תצוגה מקדימה בעמוד + הדפסה נקייה דרך iframe (בלי ניווט האפליקציה).
    ============================================================ */
 'use strict';
@@ -14,7 +15,12 @@ const Worksheets = (() => {
   let _type = 'mixed';
   let _selChords = new Set();
   let _selDromoi = new Set();
-  let _opts = { name: '', note: '', blankTab: true, log: true };
+  let _opts = { name: '', note: '', blankTab: true, log: true, showFretboard: true };
+  let _editMode = true;
+  /** @type {Record<string, {posBase:number, stringMode:number}>} */
+  const _fbPrefs = {};
+  /** @type {WeakMap<Element, object>} */
+  const _fbPanels = new WeakMap();
 
   /* ---------- מקורות נתונים ---------- */
   function allChords() {
@@ -41,6 +47,13 @@ const Worksheets = (() => {
   }
   function allDromoi() {
     return (typeof DROMOI !== 'undefined') ? DROMOI : [];
+  }
+
+  function noteNames(midi) {
+    const pc = ((midi % 12) + 12) % 12;
+    const latin = (typeof NOTE_NAMES !== 'undefined' ? NOTE_NAMES[pc] : NOTE_NAMES_W[pc]);
+    const he = (typeof SOLFEGE !== 'undefined' && SOLFEGE[latin]) || SOLFEGE_W[latin] || latin;
+    return { latin, he, pc };
   }
 
   /* ---------- ציור דיאגרמת אקורד (SVG) — אנכי, צבעוני להדפסה ---------- */
@@ -88,16 +101,15 @@ const Worksheets = (() => {
   function rootOfChord(chord) {
     const m = String(chord.name).match(/^([A-G][#b]?)/);
     if (!m) return -1;
-    let r = m[1].replace('b', '#') === m[1] ? m[1] : m[1];
     const flat = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
-    r = flat[m[1]] || m[1];
+    const r = flat[m[1]] || m[1];
     return NOTE_NAMES_W.indexOf(r);
   }
 
-  /* ---------- מפת דרומוס על הגריף (טבלת HTML צבעונית) ---------- */
+  /* ---------- מפת דרומוס על הגריף (טבלת HTML — גיבוי להדפסה) ---------- */
   function dromosMapHtml(dromos) {
     const pcs = new Set((dromos.intervals || []).map(iv => (ROOT_PC + iv) % 12));
-    const cols = [3, 2, 1, 0]; // C F A D (תצוגה שמאל→ימין)
+    const cols = [3, 2, 1, 0];
     const labels = ['C', 'F', 'A', 'D'];
     const maxFret = 12;
     let html = `<table class="ws-map"><thead><tr><th></th>`;
@@ -123,11 +135,23 @@ const Worksheets = (() => {
     const notes = (dromos.intervals || []).map(iv => NOTE_NAMES_W[(ROOT_PC + iv) % 12]);
     notes.push('D');
     return `<div class="ws-scale-spell">${notes.map(n =>
-      `<span class="ws-note ${NOTE_NAMES_W.indexOf(n.replace('b', '#')) === ROOT_PC || n === 'D' ? 'root' : ''}">${n}<small>${SOLFEGE_W[n] || ''}</small></span>`
+      `<span class="ws-note ${n === 'D' ? 'root' : ''}">${n}<small>${SOLFEGE_W[n] || ''}</small></span>`
     ).join('<span class="ws-arr">→</span>')}</div>`;
   }
 
-  function blankTabHtml(bars = 2) {
+  function pathLegendHtml(path) {
+    if (!path || !path.length) return '';
+    const items = path.map((p, idx) => {
+      const { latin, he } = noteNames(p.midi);
+      const str = (typeof TUNING !== 'undefined' && TUNING[p.ci]) ? TUNING[p.ci].note : '?';
+      const finger = p.finger > 0 ? `אצבע ${p.finger}` : 'פתוח';
+      const fret = p.fret === 0 ? 'פתוח' : `סריג ${p.fret}`;
+      return `<li><b>${p.degree || idx + 1}.</b> ${he} <span class="ws-lat">(${latin})</span> · מיתר ${str} · ${fret} · ${finger}</li>`;
+    }).join('');
+    return `<ol class="ws-path-legend">${items}</ol>`;
+  }
+
+  function blankTabHtml() {
     let rows = '';
     ['D', 'A', 'F', 'C'].forEach(l => {
       rows += `<div class="ws-tab-line"><span class="ws-tab-lbl">${l}</span><span class="ws-tab-rule"></span></div>`;
@@ -148,16 +172,35 @@ const Worksheets = (() => {
       <table class="ws-log"><thead><tr><th>יום</th><th>בוצע</th><th>זמן</th><th>מה תרגלתי</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
+  function formatNoteInfo(ci, fret, midi, path) {
+    const { latin, he } = noteNames(midi);
+    const str = (typeof TUNING !== 'undefined' && TUNING[ci]) ? TUNING[ci].note : '?';
+    const onPath = (path || []).find(p => p.ci === ci && p.fret === fret);
+    const fingerTxt = onPath
+      ? (onPath.finger > 0 ? `אצבע ${onPath.finger}` : 'מיתר פתוח (בלי אצבע)')
+      : 'לא במסלול';
+    const deg = onPath ? (onPath.degree || '—') : '—';
+    const fretTxt = fret === 0 ? 'פתוח' : `סריג ${fret}`;
+    return `<div class="ws-note-info-card">
+      <div class="ws-ni-main"><span class="ws-ni-he">${he}</span><span class="ws-ni-lat">${latin}</span></div>
+      <div class="ws-ni-meta">מיתר ${str} · ${fretTxt} · דרגה ${deg} · <b>${fingerTxt}</b></div>
+    </div>`;
+  }
+
   /* ============================================================
      בניית הדף
      ============================================================ */
-  function buildSheetHtml() {
+  /**
+   * @param {{fbCapture?: Record<string, {svg:string, legend:string, meta:string}>}} [opts]
+   */
+  function buildSheetHtml(opts = {}) {
+    const fbCapture = opts.fbCapture || null;
+    const forPrint = !!fbCapture;
     const chords = allChords();
     const dromoi = allDromoi();
     const date = new Date().toLocaleDateString('he-IL');
     let body = '';
 
-    // כותרת
     body += `<div class="ws-sheet-header">
       <div class="ws-h-title">🎵 דף עבודה — בוזוקי</div>
       <div class="ws-h-fields">
@@ -169,7 +212,6 @@ const Worksheets = (() => {
 
     if (_opts.log && (_type === 'mixed')) body += practiceLogHtml();
 
-    // אקורדים
     if (_type === 'chords' || _type === 'mixed') {
       const list = chords.filter(c => _selChords.has(c.name));
       if (list.length) {
@@ -186,28 +228,45 @@ const Worksheets = (() => {
       }
     }
 
-    // דרומוסים
     if (_type === 'dromoi' || _type === 'mixed') {
       const list = dromoi.filter(d => _selDromoi.has(d.id));
       list.forEach(d => {
-        body += `<div class="ws-dromos-block">
+        const cap = fbCapture && fbCapture[d.id];
+        body += `<div class="ws-dromos-block" data-dromos-id="${escapeHtml(d.id)}">
           <div class="ws-dromos-banner">${d.nameHe || d.id} ${d.nameGr ? `· ${d.nameGr}` : ''}</div>
           ${d.degrees ? `<div class="ws-dromos-deg">דרגות: ${d.degrees}</div>` : ''}
           ${scaleSpellHtml(d)}
           <div class="ws-dromos-cols">
-            <div class="ws-map-wrap">${dromosMapHtml(d)}</div>
+            ${_opts.showFretboard ? '' : `<div class="ws-map-wrap">${dromosMapHtml(d)}</div>`}
             <div class="ws-dromos-side">
               ${d.mood ? `<div class="ws-mood">🎭 ${escapeHtml(d.mood)}</div>` : ''}
               ${d.tips ? `<div class="ws-tips">💡 ${escapeHtml(d.tips)}</div>` : ''}
               <div class="ws-ex-list">
                 <b>תרגילי בית:</b>
-                <div>1) נגנו את הסולם עולה ויורד על מיתר D, 4 פעמים.</div>
-                <div>2) נגנו לאט (♩=60) ואז מהר (♩=100).</div>
-                <div>3) מצאו את הצליל האדום (הטוניקה) בכל המיתרים.</div>
+                <div>1) נגנו את המסלול על הפרטבורד עולה ויורד, 4 פעמים.</div>
+                <div>2) לחצו על כל תו — זכרו את השם בעברית/לועזית ואת מספר האצבע.</div>
+                <div>3) נגנו לאט (♩=60) ואז מהר (♩=100).</div>
               </div>
             </div>
-          </div>
-          ${_opts.blankTab ? blankTabHtml() : ''}
+          </div>`;
+
+        if (_opts.showFretboard) {
+          body += `<div class="ws-fb-section">
+            <div class="ws-block-title ws-fb-title">🛤️ מסלול הדרומוס על הפרטבורד</div>
+            <p class="ws-fb-hint">לחצו על תו במסלול — יוצגו השם בעברית, בלועזית ומספר האצבע. התווית על הנקודה = דרגה·אצבע.</p>`;
+          if (forPrint && cap) {
+            body += `${cap.meta || ''}
+              <div class="ws-fb-print">${cap.svg}</div>
+              ${cap.legend || ''}`;
+          } else {
+            body += `<div class="ws-note-info" data-info-for="${escapeHtml(d.id)}">לחצו על תו בפרטבורד כדי לראות עברית · לועזית · אצבע</div>
+              <div class="ws-fb-host" data-dromos-id="${escapeHtml(d.id)}"></div>
+              <div class="ws-path-legend-host" data-legend-for="${escapeHtml(d.id)}"></div>`;
+          }
+          body += `</div>`;
+        }
+
+        body += `${_opts.blankTab ? blankTabHtml() : ''}
         </div>`;
       });
     }
@@ -220,14 +279,68 @@ const Worksheets = (() => {
     return String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
   }
 
+  /* ---------- פרטבורד אינטראקטיבי ---------- */
+  function mountFretboards(rootEl) {
+    if (!_opts.showFretboard) return;
+    if (typeof FretboardScale === 'undefined' || !FretboardScale.mountDromosScalePanel) return;
+    const hosts = rootEl.querySelectorAll('.ws-fb-host[data-dromos-id]');
+    hosts.forEach(host => {
+      const id = host.dataset.dromosId;
+      const d = allDromoi().find(x => x.id === id);
+      if (!d || !d.intervals?.length) {
+        host.innerHTML = '<p class="hint">אין נתוני סולם לדרומוס זה.</p>';
+        return;
+      }
+      const pref = _fbPrefs[id] || { posBase: 0, stringMode: 4 };
+      const infoEl = rootEl.querySelector(`.ws-note-info[data-info-for="${id}"]`);
+      const legendEl = rootEl.querySelector(`.ws-path-legend-host[data-legend-for="${id}"]`);
+
+      const panel = FretboardScale.mountDromosScalePanel(host, {
+        intervals: d.intervals,
+        rootPc: ROOT_PC,
+        dromosId: d.id,
+        posBase: pref.posBase,
+        stringMode: pref.stringMode,
+        onChange({ posBase, stringMode, path }) {
+          _fbPrefs[id] = { posBase, stringMode };
+          if (legendEl) legendEl.innerHTML = pathLegendHtml(path);
+        },
+        onDotClick({ ci, fret, midi, path }) {
+          if (infoEl) infoEl.innerHTML = formatNoteInfo(ci, fret, midi, path);
+        },
+      });
+      if (panel) _fbPanels.set(host, panel);
+    });
+  }
+
+  function captureFretboards(rootEl) {
+    /** @type {Record<string, {svg:string, legend:string, meta:string}>} */
+    const out = {};
+    rootEl.querySelectorAll('.ws-fb-host[data-dromos-id]').forEach(host => {
+      const id = host.dataset.dromosId;
+      const svg = host.querySelector('svg.fretboard');
+      const legendHost = rootEl.querySelector(`.ws-path-legend-host[data-legend-for="${id}"]`);
+      const pref = _fbPrefs[id] || { posBase: 0, stringMode: 4 };
+      const posLbl = pref.posBase === 0 ? 'פתוח' : String(pref.posBase);
+      out[id] = {
+        svg: svg ? svg.outerHTML : '',
+        legend: legendHost ? legendHost.innerHTML : '',
+        meta: `<div class="ws-fb-meta">פוזיציה: <b>${posLbl}</b> · מיתרים: <b>${pref.stringMode}</b> · תווית = דרגה·אצבע</div>`,
+      };
+    });
+    return out;
+  }
+
   /* ============================================================
      הדפסה דרך iframe (נקי, ללא ניווט)
      ============================================================ */
   function printSheet() {
-    const sheet = buildSheetHtml();
+    const app = document.querySelector('#worksheets-app');
+    const fbCapture = app ? captureFretboards(app) : {};
+    const sheet = buildSheetHtml({ fbCapture });
     const ifr = document.createElement('iframe');
     ifr.setAttribute('aria-hidden', 'true');
-    ifr.style.cssText = 'position:fixed;right:-9999px;bottom:0;width:800px;height:600px;border:0;';
+    ifr.style.cssText = 'position:fixed;right:-9999px;bottom:0;width:900px;height:700px;border:0;';
     document.body.appendChild(ifr);
     const doc = ifr.contentWindow.document;
     doc.open();
@@ -238,6 +351,8 @@ const Worksheets = (() => {
         html,body{background:#fff;margin:0;padding:0;}
         body{font-family:'Heebo',sans-serif;}
         .ws-sheet{box-shadow:none !important;margin:0 !important;}
+        .ws-fb-print svg.fretboard{width:100%;max-width:100%;height:auto;display:block;}
+        .fs-pos-bar,.fs-edit-bar{display:none !important;}
         @page{margin:10mm;}
         *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       </style></head>
@@ -247,8 +362,7 @@ const Worksheets = (() => {
       try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (_) {}
       setTimeout(() => ifr.remove(), 1500);
     };
-    // המתן לטעינת גופן/CSS
-    setTimeout(go, 600);
+    setTimeout(go, 700);
   }
 
   /* ============================================================
@@ -257,7 +371,6 @@ const Worksheets = (() => {
   function init() {
     const el = document.querySelector('#worksheets-app');
     if (!el) return;
-    // ברירת מחדל: כמה אקורדים ודרומוסים נפוצים
     const cs = allChords();
     ['D', 'Dm', 'A7', 'Gm', 'Am', 'C'].forEach(n => { if (cs.find(c => c.name === n)) _selChords.add(n); });
     const ds = allDromoi();
@@ -268,64 +381,86 @@ const Worksheets = (() => {
   function render(el) {
     el.innerHTML = `
       <div class="ws-controls card">
-        <div class="ws-row">
-          <b>סוג הדף:</b>
-          <button class="btn small ws-type" data-t="mixed">📋 שיעורי בית (מעורב)</button>
-          <button class="btn small ws-type" data-t="chords">🎸 אקורדים</button>
-          <button class="btn small ws-type" data-t="dromoi">🛤️ דרומוסים</button>
+        <div class="ws-row ws-edit-toggle-row">
+          <button class="btn small" id="ws-toggle-edit">✏️ עריכת דף העבודה</button>
+          <span class="ws-hint" id="ws-edit-hint">בחירת אקורדים/דרומוסים, הערות ועריכת מסלול על הפרטבורד</span>
         </div>
-        <div class="ws-row">
-          <label>שם התלמיד: <input type="text" id="ws-name" placeholder="(אופציונלי)"></label>
-          <label>הערת מורה: <input type="text" id="ws-note" placeholder="(אופציונלי)"></label>
+        <div class="ws-edit-panel" id="ws-edit-panel">
+          <div class="ws-row">
+            <b>סוג הדף:</b>
+            <button class="btn small ws-type" data-t="mixed">📋 שיעורי בית (מעורב)</button>
+            <button class="btn small ws-type" data-t="chords">🎸 אקורדים</button>
+            <button class="btn small ws-type" data-t="dromoi">🛤️ דרומוסים</button>
+          </div>
+          <div class="ws-row">
+            <label>שם התלמיד: <input type="text" id="ws-name" placeholder="(אופציונלי)"></label>
+            <label>הערת מורה: <input type="text" id="ws-note" placeholder="(אופציונלי)"></label>
+          </div>
+          <div class="ws-row ws-opts">
+            <label><input type="checkbox" id="ws-blanktab" checked> שורות TAB ריקות</label>
+            <label><input type="checkbox" id="ws-log" checked> יומן תרגול שבועי</label>
+            <label><input type="checkbox" id="ws-showfb" checked> פרטבורד + מסלול דרומוס</label>
+          </div>
+          <div class="ws-pick" id="ws-pick-chords"></div>
+          <div class="ws-pick" id="ws-pick-dromoi"></div>
         </div>
-        <div class="ws-row ws-opts">
-          <label><input type="checkbox" id="ws-blanktab" checked> שורות TAB ריקות</label>
-          <label><input type="checkbox" id="ws-log" checked> יומן תרגול שבועי</label>
-        </div>
-        <div class="ws-pick" id="ws-pick-chords"></div>
-        <div class="ws-pick" id="ws-pick-dromoi"></div>
         <div class="ws-row ws-actions">
-          <button class="btn ws-print-btn" id="ws-download">📥 הורד קובץ (מובייל · טאבלט · מחשב)</button>
+          <button class="btn ws-print-btn" id="ws-download">📥 הורד / שמור קובץ</button>
           <button class="btn small" id="ws-print">🖨️ הדפס / שמור PDF</button>
-          <span class="ws-hint">"הורד קובץ" שומר דף HTML צבעוני ישירות על המכשיר — נפתח בכל דפדפן, גם אופליין</span>
+          <span class="ws-hint">ההדפסה והשמירה כוללות את הפרטבורד עם המסלול כפי שמוצג בתצוגה המקדימה</span>
         </div>
       </div>
       <div class="ws-preview-label">תצוגה מקדימה ↓</div>
       <div class="ws-sheet" id="ws-sheet"></div>`;
 
     bindControls(el);
+    syncEditPanel(el);
     refresh(el);
   }
 
+  function syncEditPanel(el) {
+    const panel = el.querySelector('#ws-edit-panel');
+    const btn = el.querySelector('#ws-toggle-edit');
+    if (panel) panel.hidden = !_editMode;
+    if (btn) {
+      btn.classList.toggle('active', _editMode);
+      btn.textContent = _editMode ? '✏️ סגור עריכה' : '✏️ עריכת דף העבודה';
+    }
+  }
+
   function bindControls(el) {
+    el.querySelector('#ws-toggle-edit')?.addEventListener('click', () => {
+      _editMode = !_editMode;
+      syncEditPanel(el);
+    });
     el.querySelectorAll('.ws-type').forEach(b => b.addEventListener('click', () => {
       _type = b.dataset.t; refresh(el);
     }));
-    el.querySelector('#ws-name').addEventListener('input', e => { _opts.name = e.target.value; updateSheet(el); });
-    el.querySelector('#ws-note').addEventListener('input', e => { _opts.note = e.target.value; updateSheet(el); });
-    el.querySelector('#ws-blanktab').addEventListener('change', e => { _opts.blankTab = e.target.checked; updateSheet(el); });
-    el.querySelector('#ws-log').addEventListener('change', e => { _opts.log = e.target.checked; updateSheet(el); });
-    el.querySelector('#ws-print').addEventListener('click', printSheet);
-    el.querySelector('#ws-download').addEventListener('click', downloadSheet);
+    el.querySelector('#ws-name')?.addEventListener('input', e => { _opts.name = e.target.value; patchHeaderFields(el); });
+    el.querySelector('#ws-note')?.addEventListener('input', e => { _opts.note = e.target.value; patchHeaderFields(el); });
+    el.querySelector('#ws-blanktab')?.addEventListener('change', e => { _opts.blankTab = e.target.checked; updateSheet(el); });
+    el.querySelector('#ws-log')?.addEventListener('change', e => { _opts.log = e.target.checked; updateSheet(el); });
+    el.querySelector('#ws-showfb')?.addEventListener('change', e => { _opts.showFretboard = e.target.checked; updateSheet(el); });
+    el.querySelector('#ws-print')?.addEventListener('click', printSheet);
+    el.querySelector('#ws-download')?.addEventListener('click', () => downloadSheet(el));
   }
 
-  /* אוסף את כללי ה-CSS של הדף (.ws-*) מהעמוד כדי להטמיע אותם בקובץ עצמאי */
   function collectSheetCss() {
     let css = '';
     for (const sheet of Array.from(document.styleSheets)) {
       let rules;
-      try { rules = sheet.cssRules; } catch (_) { continue; } // דלג על cross-origin
+      try { rules = sheet.cssRules; } catch (_) { continue; }
       if (!rules) continue;
       for (const rule of Array.from(rules)) {
         const txt = rule.cssText || '';
-        if (/\.ws-|:root/.test(rule.selectorText || txt)) css += txt + '\n';
+        if (/\.ws-|:root|\.fretboard|\.fs-|note-dot|\.fb-/.test(rule.selectorText || txt)) css += txt + '\n';
       }
     }
     return css;
   }
 
-  function standaloneHtml() {
-    const sheet = buildSheetHtml();
+  function standaloneHtml(fbCapture) {
+    const sheet = buildSheetHtml({ fbCapture });
     const css = collectSheetCss();
     return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -335,6 +470,8 @@ const Worksheets = (() => {
 html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
 ${css}
 .ws-sheet{margin:0 auto;}
+.ws-fb-print svg.fretboard{width:100%;max-width:100%;height:auto;display:block;}
+.fs-pos-bar,.fs-edit-bar{display:none !important;}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 @page{margin:10mm;}
 @media print{html,body{background:#fff;padding:0;}.ws-sheet{box-shadow:none;}}
@@ -342,9 +479,10 @@ ${css}
 <body><div class="ws-sheet">${sheet}</div></body></html>`;
   }
 
-  function downloadSheet() {
+  function downloadSheet(el) {
     try {
-      const html = standaloneHtml();
+      const fbCapture = captureFretboards(el);
+      const html = standaloneHtml(fbCapture);
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const date = new Date().toISOString().slice(0, 10);
@@ -365,46 +503,75 @@ ${css}
     const showDromoi = (_type === 'dromoi' || _type === 'mixed');
 
     const cWrap = el.querySelector('#ws-pick-chords');
-    cWrap.style.display = showChords ? '' : 'none';
-    if (showChords && !cWrap.dataset.built) {
-      cWrap.dataset.built = '1';
-      cWrap.innerHTML = `<div class="ws-pick-title">בחרו אקורדים:</div><div class="ws-chips" id="ws-chips-c"></div>`;
-      const box = cWrap.querySelector('#ws-chips-c');
-      allChords().forEach(c => {
-        const chip = document.createElement('button');
-        chip.className = 'ws-chip' + (_selChords.has(c.name) ? ' active' : '');
-        chip.textContent = c.name;
-        chip.addEventListener('click', () => {
-          if (_selChords.has(c.name)) _selChords.delete(c.name); else _selChords.add(c.name);
-          chip.classList.toggle('active'); updateSheet(el);
+    if (cWrap) {
+      cWrap.style.display = showChords ? '' : 'none';
+      if (showChords && !cWrap.dataset.built) {
+        cWrap.dataset.built = '1';
+        cWrap.innerHTML = `<div class="ws-pick-title">בחרו אקורדים:</div><div class="ws-chips" id="ws-chips-c"></div>`;
+        const box = cWrap.querySelector('#ws-chips-c');
+        allChords().forEach(c => {
+          const chip = document.createElement('button');
+          chip.className = 'ws-chip' + (_selChords.has(c.name) ? ' active' : '');
+          chip.textContent = c.name;
+          chip.addEventListener('click', () => {
+            if (_selChords.has(c.name)) _selChords.delete(c.name); else _selChords.add(c.name);
+            chip.classList.toggle('active'); updateSheet(el);
+          });
+          box.appendChild(chip);
         });
-        box.appendChild(chip);
-      });
+      }
     }
 
     const dWrap = el.querySelector('#ws-pick-dromoi');
-    dWrap.style.display = showDromoi ? '' : 'none';
-    if (showDromoi && !dWrap.dataset.built) {
-      dWrap.dataset.built = '1';
-      dWrap.innerHTML = `<div class="ws-pick-title">בחרו דרומוסים:</div><div class="ws-chips" id="ws-chips-d"></div>`;
-      const box = dWrap.querySelector('#ws-chips-d');
-      allDromoi().forEach(d => {
-        const chip = document.createElement('button');
-        chip.className = 'ws-chip' + (_selDromoi.has(d.id) ? ' active' : '');
-        chip.textContent = d.nameHe || d.id;
-        chip.addEventListener('click', () => {
-          if (_selDromoi.has(d.id)) _selDromoi.delete(d.id); else _selDromoi.add(d.id);
-          chip.classList.toggle('active'); updateSheet(el);
+    if (dWrap) {
+      dWrap.style.display = showDromoi ? '' : 'none';
+      if (showDromoi && !dWrap.dataset.built) {
+        dWrap.dataset.built = '1';
+        dWrap.innerHTML = `<div class="ws-pick-title">בחרו דרומוסים:</div><div class="ws-chips" id="ws-chips-d"></div>`;
+        const box = dWrap.querySelector('#ws-chips-d');
+        allDromoi().forEach(d => {
+          const chip = document.createElement('button');
+          chip.className = 'ws-chip' + (_selDromoi.has(d.id) ? ' active' : '');
+          chip.textContent = d.nameHe || d.id;
+          chip.addEventListener('click', () => {
+            if (_selDromoi.has(d.id)) _selDromoi.delete(d.id); else _selDromoi.add(d.id);
+            chip.classList.toggle('active'); updateSheet(el);
+          });
+          box.appendChild(chip);
         });
-        box.appendChild(chip);
-      });
+      }
     }
     updateSheet(el);
   }
 
+  function patchHeaderFields(el) {
+    const sheet = el.querySelector('#ws-sheet');
+    if (!sheet) return;
+    const fields = sheet.querySelector('.ws-h-fields');
+    if (fields) {
+      const date = new Date().toLocaleDateString('he-IL');
+      fields.innerHTML = `
+        <span>שם: <b>${escapeHtml(_opts.name) || '_______________'}</b></span>
+        <span>תאריך: <b>${date}</b></span>`;
+    }
+    let noteEl = sheet.querySelector('.ws-h-note');
+    if (_opts.note) {
+      if (!noteEl) {
+        noteEl = document.createElement('div');
+        noteEl.className = 'ws-h-note';
+        sheet.querySelector('.ws-sheet-header')?.appendChild(noteEl);
+      }
+      noteEl.textContent = '📌 ' + _opts.note;
+    } else if (noteEl) {
+      noteEl.remove();
+    }
+  }
+
   function updateSheet(el) {
     const sheet = el.querySelector('#ws-sheet');
-    if (sheet) sheet.innerHTML = buildSheetHtml();
+    if (!sheet) return;
+    sheet.innerHTML = buildSheetHtml();
+    mountFretboards(sheet);
   }
 
   function stop() {}

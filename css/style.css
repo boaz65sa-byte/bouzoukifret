@@ -2198,6 +2198,32 @@ select {
 .ws-ex-list { background: #f5faff; border-radius: 7px; padding: 8px 10px; }
 .ws-ex-list > div { margin-top: 4px; color: #222; font-size: 13px; }
 
+/* פרטבורד + מסלול בדף עבודה */
+.ws-edit-panel { margin-top: 4px; }
+.ws-edit-toggle-row .btn.active { background: var(--aegean-deep); color: #fff; }
+.ws-fb-section { margin-top: 14px; border-top: 1px dashed #c9c2b4; padding-top: 10px; }
+.ws-fb-title { margin-top: 0; }
+.ws-fb-hint { color: #555; font-size: 13px; margin: 0 0 8px; }
+.ws-note-info { min-height: 52px; margin-bottom: 8px; }
+.ws-note-info-card {
+  background: linear-gradient(90deg, #fff8ee, #f5faff);
+  border: 2px solid #e6951c; border-radius: 10px; padding: 8px 12px;
+}
+.ws-ni-main { display: flex; align-items: baseline; gap: 12px; }
+.ws-ni-he { font-size: 28px; font-weight: 900; color: #b5651d; }
+.ws-ni-lat { font-size: 22px; font-weight: 800; color: #1f4e74; font-family: monospace; }
+.ws-ni-meta { margin-top: 4px; font-size: 13px; color: #333; }
+.ws-fb-host { background: #1a1408; border-radius: 10px; padding: 8px; overflow-x: auto; }
+.ws-fb-host .fs-pos-wrap { background: transparent; }
+.ws-fb-host .fs-pos-bar { flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ws-fb-host .fs-pos-label { color: #d8c9a0; }
+.ws-fb-print { background: #1a1408; border-radius: 10px; padding: 8px; overflow: hidden; }
+.ws-fb-print svg.fretboard { width: 100%; height: auto; display: block; }
+.ws-fb-meta { font-size: 13px; color: #444; margin: 0 0 8px; }
+.ws-path-legend { margin: 10px 0 0; padding-inline-start: 22px; color: #222; font-size: 13px; }
+.ws-path-legend li { margin: 3px 0; }
+.ws-path-legend .ws-lat { color: #1f4e74; font-family: monospace; font-weight: 700; }
+
 /* שורות TAB ריקות */
 .ws-blank-tab { margin-top: 12px; }
 .ws-blank-title { font-size: 13px; color: #555; margin-bottom: 6px; }
