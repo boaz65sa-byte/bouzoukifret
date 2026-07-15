@@ -151,6 +151,127 @@ const Worksheets = (() => {
     return `<ol class="ws-path-legend">${items}</ol>`;
   }
 
+  /** חיתוך viewBox לתיבת הפוזיציה בלבד — בלי גלילה, מתאים להדפסה */
+  function cropSvgToPosition(svg, posBase, span) {
+    if (typeof fretX !== 'function' || typeof FB === 'undefined' || typeof NUM_FRETS === 'undefined') return;
+    const maxF = Math.min(NUM_FRETS, posBase + span + 1);
+    const padL = 48, padR = 48, padT = 30, padB = 30;
+    const x1 = (posBase === 0 ? FB.left - 42 : fretX(Math.max(0, posBase - 1))) - padL;
+    const x2 = fretX(maxF) + padR;
+    const y1 = FB.top - padT;
+    const y2 = FB.height - FB.bottom + padB;
+    svg.setAttribute('viewBox', `${x1} ${y1} ${x2 - x1} ${y2 - y1}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    svg.classList.add('ws-fb-print-svg');
+  }
+
+  /** הגדלת תוויות ורקע בהיר — קריא יותר על נייר */
+  function enhanceSvgForPrint(svg) {
+    const vb = (svg.getAttribute('viewBox') || `0 0 ${FB.width} ${FB.height}`).split(/\s+/).map(Number);
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', vb[0]); bg.setAttribute('y', vb[1]);
+    bg.setAttribute('width', vb[2]); bg.setAttribute('height', vb[3]);
+    bg.setAttribute('fill', '#faf6ef');
+    svg.insertBefore(bg, svg.firstChild);
+
+    svg.querySelectorAll('rect').forEach(r => {
+      const fill = r.getAttribute('fill') || '';
+      if (fill.startsWith('url(#wood')) {
+        r.setAttribute('fill', '#ebe4d6');
+        r.setAttribute('stroke', '#8a7a68');
+      }
+    });
+
+    svg.querySelectorAll('.fb-note-label, .fs-path-label').forEach(t => {
+      const fs = parseFloat(t.getAttribute('font-size') || 10);
+      t.setAttribute('font-size', String(Math.max(12, fs * 1.35)));
+      t.setAttribute('font-weight', '800');
+      const fill = t.getAttribute('fill');
+      if (fill === '#eaf6fc' || fill === '#1a1408') t.setAttribute('fill', '#111');
+    });
+
+    svg.querySelectorAll('.note-dot circle').forEach(c => {
+      const r = parseFloat(c.getAttribute('r') || 11);
+      c.setAttribute('r', String(r * 1.25));
+      const fill = c.getAttribute('fill');
+      if (fill === '#2a7fa8') { c.setAttribute('fill', '#1a6080'); c.setAttribute('stroke', '#0d3d56'); }
+      if (fill === '#e3b341') { c.setAttribute('fill', '#c0392b'); c.setAttribute('stroke', '#7a1f1f'); }
+    });
+
+    svg.querySelectorAll('.fs-scale-path').forEach(p => {
+      p.setAttribute('stroke', '#b5651d');
+      p.setAttribute('stroke-width', '3.5');
+      p.setAttribute('opacity', '1');
+    });
+  }
+
+  /** בונה SVG חדש לפי נתוני הדרומוס — לא תלוי בגלילה על המסך */
+  function buildPrintFretboardCapture(dromos, pref) {
+    if (typeof FretboardScale === 'undefined' || !FretboardScale.renderDromosScale) {
+      return { svg: '', path: [] };
+    }
+    const span = FretboardScale.MELODY_POS_SPAN || 4;
+    const tmp = document.createElement('div');
+    tmp.setAttribute('aria-hidden', 'true');
+    tmp.style.cssText = 'position:fixed;left:-10000px;top:0;overflow:visible;pointer-events:none;';
+    document.body.appendChild(tmp);
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.classList.add('fretboard', 'ws-fb-print-svg');
+    svg.setAttribute('dir', 'ltr');
+    tmp.appendChild(svg);
+
+    const path = FretboardScale.renderDromosScale(svg, dromos.intervals, ROOT_PC, {
+      posBase: pref.posBase,
+      stringMode: pref.stringMode,
+      dromosId: dromos.id,
+      color: '#b5651d',
+    }) || [];
+
+    cropSvgToPosition(svg, pref.posBase, span);
+    enhanceSvgForPrint(svg);
+
+    const html = svg.outerHTML;
+    tmp.remove();
+    return { svg: html, path };
+  }
+
+  function dromosPrefFromPanel(rootEl, dromosId) {
+    const pref = { ...(_fbPrefs[dromosId] || { posBase: 0, stringMode: 4 }) };
+    const host = rootEl?.querySelector(`.ws-fb-host[data-dromos-id="${dromosId}"]`);
+    if (host && _fbPanels.has(host)) {
+      const st = _fbPanels.get(host).getState();
+      if (st) {
+        pref.posBase = st.posBase;
+        pref.stringMode = st.stringMode;
+        _fbPrefs[dromosId] = { posBase: st.posBase, stringMode: st.stringMode };
+      }
+    }
+    return pref;
+  }
+
+  function fbMetaHtml(pref) {
+    const posLbl = pref.posBase === 0 ? 'פתוח' : String(pref.posBase);
+    return `<div class="ws-fb-meta">פוזיציה: <b>${posLbl}</b> · מיתרים: <b>${pref.stringMode}</b> · תווית על הנקודה = דרגה·אצבע</div>`;
+  }
+
+  function printCssBlock() {
+    return `
+.ws-sheet{box-shadow:none!important;margin:0!important;max-width:none;padding:8mm;}
+.ws-dromos-block,.ws-fb-section,.ws-chord-item{break-inside:avoid;page-break-inside:avoid;}
+.ws-fb-print{background:#faf6ef;border:2px solid #bbb;border-radius:8px;padding:10px 6px;overflow:visible;}
+.ws-fb-print svg.fretboard,.ws-fb-print svg.ws-fb-print-svg{width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;display:block;}
+.ws-path-legend{font-size:14px;line-height:1.5;}
+.ws-path-legend li{margin:5px 0;}
+.ws-fb-meta{font-size:14px;margin-bottom:10px;}
+.ws-fb-hint,.ws-note-info,.ws-fb-host,.ws-path-legend-host{display:none!important;}
+.ws-print-only-fb{display:block!important;}
+`;
+  }
+
   function blankTabHtml() {
     let rows = '';
     ['D', 'A', 'F', 'C'].forEach(l => {
@@ -261,7 +382,8 @@ const Worksheets = (() => {
           } else {
             body += `<div class="ws-note-info" data-info-for="${escapeHtml(d.id)}">לחצו על תו בפרטבורד כדי לראות עברית · לועזית · אצבע</div>
               <div class="ws-fb-host" data-dromos-id="${escapeHtml(d.id)}"></div>
-              <div class="ws-path-legend-host" data-legend-for="${escapeHtml(d.id)}"></div>`;
+              <div class="ws-path-legend-host" data-legend-for="${escapeHtml(d.id)}"></div>
+              <div class="ws-print-only-fb" data-print-for="${escapeHtml(d.id)}"></div>`;
           }
           body += `</div>`;
         }
@@ -304,6 +426,7 @@ const Worksheets = (() => {
         onChange({ posBase, stringMode, path }) {
           _fbPrefs[id] = { posBase, stringMode };
           if (legendEl) legendEl.innerHTML = pathLegendHtml(path);
+          refreshPrintCache(rootEl);
         },
         onDotClick({ ci, fret, midi, path }) {
           if (infoEl) infoEl.innerHTML = formatNoteInfo(ci, fret, midi, path);
@@ -316,19 +439,29 @@ const Worksheets = (() => {
   function captureFretboards(rootEl) {
     /** @type {Record<string, {svg:string, legend:string, meta:string}>} */
     const out = {};
-    rootEl.querySelectorAll('.ws-fb-host[data-dromos-id]').forEach(host => {
-      const id = host.dataset.dromosId;
-      const svg = host.querySelector('svg.fretboard');
-      const legendHost = rootEl.querySelector(`.ws-path-legend-host[data-legend-for="${id}"]`);
-      const pref = _fbPrefs[id] || { posBase: 0, stringMode: 4 };
-      const posLbl = pref.posBase === 0 ? 'פתוח' : String(pref.posBase);
-      out[id] = {
-        svg: svg ? svg.outerHTML : '',
-        legend: legendHost ? legendHost.innerHTML : '',
-        meta: `<div class="ws-fb-meta">פוזיציה: <b>${posLbl}</b> · מיתרים: <b>${pref.stringMode}</b> · תווית = דרגה·אצבע</div>`,
+    if (!_opts.showFretboard) return out;
+
+    allDromoi().filter(d => _selDromoi.has(d.id)).forEach(d => {
+      const pref = dromosPrefFromPanel(rootEl, d.id);
+      const built = buildPrintFretboardCapture(d, pref);
+      out[d.id] = {
+        svg: built.svg,
+        legend: pathLegendHtml(built.path),
+        meta: fbMetaHtml(pref),
       };
     });
     return out;
+  }
+
+  function refreshPrintCache(sheetEl) {
+    if (!_opts.showFretboard) return;
+    allDromoi().filter(d => _selDromoi.has(d.id)).forEach(d => {
+      const slot = sheetEl.querySelector(`.ws-print-only-fb[data-print-for="${d.id}"]`);
+      if (!slot) return;
+      const pref = dromosPrefFromPanel(sheetEl, d.id);
+      const built = buildPrintFretboardCapture(d, pref);
+      slot.innerHTML = `${fbMetaHtml(pref)}<div class="ws-fb-print">${built.svg}</div>${pathLegendHtml(built.path)}`;
+    });
   }
 
   /* ============================================================
@@ -350,8 +483,7 @@ const Worksheets = (() => {
       <style>
         html,body{background:#fff;margin:0;padding:0;}
         body{font-family:'Heebo',sans-serif;}
-        .ws-sheet{box-shadow:none !important;margin:0 !important;}
-        .ws-fb-print svg.fretboard{width:100%;max-width:100%;height:auto;display:block;}
+        ${printCssBlock()}
         .fs-pos-bar,.fs-edit-bar{display:none !important;}
         @page{margin:10mm;}
         *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -470,7 +602,7 @@ const Worksheets = (() => {
 html,body{background:#eee;margin:0;padding:14px;font-family:'Heebo',sans-serif;}
 ${css}
 .ws-sheet{margin:0 auto;}
-.ws-fb-print svg.fretboard{width:100%;max-width:100%;height:auto;display:block;}
+${printCssBlock()}
 .fs-pos-bar,.fs-edit-bar{display:none !important;}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 @page{margin:10mm;}
@@ -572,6 +704,7 @@ ${css}
     if (!sheet) return;
     sheet.innerHTML = buildSheetHtml();
     mountFretboards(sheet);
+    refreshPrintCache(sheet);
   }
 
   function stop() {}

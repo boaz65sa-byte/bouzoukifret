@@ -2217,8 +2217,9 @@ select {
 .ws-fb-host .fs-pos-wrap { background: transparent; }
 .ws-fb-host .fs-pos-bar { flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .ws-fb-host .fs-pos-label { color: #d8c9a0; }
-.ws-fb-print { background: #1a1408; border-radius: 10px; padding: 8px; overflow: hidden; }
-.ws-fb-print svg.fretboard { width: 100%; height: auto; display: block; }
+.ws-fb-print { background: #faf6ef; border: 2px solid #bbb; border-radius: 10px; padding: 10px 6px; overflow: visible; }
+.ws-fb-print svg.fretboard, .ws-fb-print svg.ws-fb-print-svg { width: 100%; min-width: 0 !important; max-width: 100%; height: auto; display: block; }
+.ws-print-only-fb { display: none; }
 .ws-fb-meta { font-size: 13px; color: #444; margin: 0 0 8px; }
 .ws-path-legend { margin: 10px 0 0; padding-inline-start: 22px; color: #222; font-size: 13px; }
 .ws-path-legend li { margin: 3px 0; }
@@ -2244,8 +2245,14 @@ select {
 @media print {
   body * { visibility: hidden !important; }
   #screen-worksheets .ws-sheet, #screen-worksheets .ws-sheet * { visibility: visible !important; }
-  #screen-worksheets .ws-sheet { position: absolute; right: 0; top: 0; width: 100%; box-shadow: none; margin: 0; }
+  #screen-worksheets .ws-sheet { position: absolute; right: 0; top: 0; width: 100%; box-shadow: none; margin: 0; max-width: none; }
   .ws-controls, .ws-preview-label, .screen-head { display: none !important; }
+  .ws-fb-host, .ws-note-info, .ws-fb-hint, .ws-path-legend-host { display: none !important; }
+  .ws-print-only-fb { display: block !important; }
+  .ws-fb-print { background: #faf6ef !important; overflow: visible !important; }
+  .ws-fb-print svg.fretboard, .ws-fb-print svg.ws-fb-print-svg { min-width: 0 !important; width: 100% !important; }
+  .ws-dromos-block, .ws-fb-section, .ws-chord-item { break-inside: avoid; page-break-inside: avoid; }
+  .ws-path-legend { font-size: 14px; }
 }
 
 @media (max-width: 600px) {
