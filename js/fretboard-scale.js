@@ -213,6 +213,22 @@ const FretboardScale = (() => {
     return next != null ? next : Math.min(NUM_FRETS - MELODY_POS_SPAN, cur + 1);
   }
 
+  /** מוצא את בסיס-הפוזיציה הטוב ביותר עבור מספר-מיתרים נתון — זה
+   *  שממקסם את מספר המיתרים השונים שהמסלול בפועל עובר בהם (לא רק
+   *  "עד N מיתרים" בפוזיציה קבועה, אלא N מיתרים אמיתיים בפועל). */
+  function findBestPositionForStringMode(intervals, rootPc, stringMode, bases, span = MELODY_POS_SPAN) {
+    const list = bases?.length ? bases : MELODY_BASES.filter(b => b <= 9);
+    let best = list[0];
+    let bestScore = -1;
+    list.forEach(b => {
+      const path = buildScaleDegreePath(intervals, rootPc, b, span, stringMode);
+      const usedCourses = new Set(path.map(p => p.ci)).size;
+      const score = usedCourses * 1000 + path.length;
+      if (score > bestScore) { bestScore = score; best = b; }
+    });
+    return best;
+  }
+
   function findRootInBox(rootPc, base, span, courses) {
     for (const ci of courses) {
       for (let f = base; f <= base + span; f++) {
@@ -1019,6 +1035,7 @@ const FretboardScale = (() => {
     bar.className = 'fs-pos-bar';
     bar.innerHTML = '<span class="fs-pos-label">פוזיציה:</span>';
     const bases = opts.bases || MELODY_BASES.filter(b => b <= 9);
+    const span = opts.span ?? MELODY_POS_SPAN;
     bases.forEach(b => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -1048,6 +1065,12 @@ const FretboardScale = (() => {
       btn.dataset.str = String(n);
       btn.addEventListener('click', () => {
         stringMode = n;
+        if (ivs.length) {
+          posBase = findBestPositionForStringMode(ivs, rootPc, n, bases, span);
+          bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+            x.classList.toggle('active', Number(x.dataset.base) === posBase);
+          });
+        }
         bar.querySelectorAll('.fs-str-chip').forEach(x => {
           x.classList.toggle('active', Number(x.dataset.str) === n);
         });
@@ -1062,7 +1085,6 @@ const FretboardScale = (() => {
 
     let editMode = false;
     let draft = null;
-    const span = opts.span ?? MELODY_POS_SPAN;
     const canEdit = !!(dromosId && ivs.length && typeof DromosOverrides !== 'undefined');
     let editBtn, saveBtn, cancelBtn, resetBtn, badge, posChips, strChips;
 
@@ -1170,12 +1192,15 @@ const FretboardScale = (() => {
     if (!container) return null;
     let posBase = opts.posBase ?? 0;
     let stringMode = opts.stringMode ?? 4;
+    const rootPc = opts.rootPc ?? 2;
+    const ivs = opts.intervals || null;
     const onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
     container.innerHTML = '';
     const bar = document.createElement('div');
     bar.className = 'fs-pos-bar';
     bar.innerHTML = '<span class="fs-pos-label">פוזיציה:</span>';
     const bases = opts.bases || MELODY_BASES.filter(b => b <= 9);
+    const span = opts.span ?? MELODY_POS_SPAN;
     const fire = () => { if (onChange) onChange({ posBase, stringMode }); };
     bases.forEach(b => {
       const btn = document.createElement('button');
@@ -1205,6 +1230,12 @@ const FretboardScale = (() => {
       btn.dataset.str = String(n);
       btn.addEventListener('click', () => {
         stringMode = n;
+        if (ivs?.length) {
+          posBase = findBestPositionForStringMode(ivs, rootPc, n, bases, span);
+          bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+            x.classList.toggle('active', Number(x.dataset.base) === posBase);
+          });
+        }
         bar.querySelectorAll('.fs-str-chip').forEach(x => {
           x.classList.toggle('active', Number(x.dataset.str) === n);
         });
@@ -1291,6 +1322,7 @@ const FretboardScale = (() => {
     coursesForStringMode,
     SCALE_STRING_MODES,
     nextPositionBase,
+    findBestPositionForStringMode,
     buildDPath,
     makeState,
     mount,

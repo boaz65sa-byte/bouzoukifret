@@ -543,6 +543,12 @@ function initDromoi() {
       btn.title = n === 1 ? 'מיתר D בלבד' : `${n} מיתרים`;
       btn.addEventListener('click', () => {
         _dromoiStringMode = n;
+        if (typeof FretboardScale !== 'undefined' && FretboardScale.findBestPositionForStringMode) {
+          _dromoiPosBase = FretboardScale.findBestPositionForStringMode(currentDromos.intervals, currentRoot, n, [0, 2, 3, 5, 7, 9]);
+          bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+            x.classList.toggle('active', Number(x.dataset.base) === _dromoiPosBase);
+          });
+        }
         bar.querySelectorAll('.fs-str-chip').forEach(x => {
           x.classList.toggle('active', Number(x.dataset.str) === n);
         });

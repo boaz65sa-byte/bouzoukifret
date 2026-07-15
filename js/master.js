@@ -600,15 +600,34 @@ const MasterModes = (() => {
       if (n) { AudioEngine.ensureCtx(); AudioEngine.pluckCourse(n.ci, n.fret, 0, 0.55); }
     });
 
+    function mountModePosBar() {
+      const barHost = $('#mm-pos-bar');
+      if (!barHost || typeof FretboardScale === 'undefined' || !FretboardScale.mountPosControls) return;
+      FretboardScale.mountPosControls(barHost, {
+        posBase: _posBase,
+        stringMode: _stringMode,
+        intervals: dromos?.intervals,
+        rootPc,
+        onChange(st) {
+          _posBase = st.posBase;
+          _stringMode = st.stringMode;
+          scaleNotes = buildScale();
+          drawModeFretboard();
+        },
+      });
+    }
+
     sel.addEventListener('change', () => {
       dromos = DROMOI[parseInt(sel.value)];
       scaleNotes = buildScale();
       drawModeFretboard();
+      mountModePosBar();
     });
     rootSel.addEventListener('change', () => {
       rootPc = parseInt(rootSel.value);
       scaleNotes = buildScale();
       drawModeFretboard();
+      mountModePosBar();
     });
 
     const fbCard = $('#fb-master-modes')?.closest('.card');
@@ -617,16 +636,7 @@ const MasterModes = (() => {
       barHost.id = 'mm-pos-bar';
       const scrollHint = fbCard.querySelector('.fretboard-scroll-hint');
       fbCard.insertBefore(barHost, scrollHint || fbCard.querySelector('.fretboard-wrap'));
-      FretboardScale.mountPosControls(barHost, {
-        posBase: _posBase,
-        stringMode: _stringMode,
-        onChange(st) {
-          _posBase = st.posBase;
-          _stringMode = st.stringMode;
-          scaleNotes = buildScale();
-          drawModeFretboard();
-        },
-      });
+      mountModePosBar();
     }
 
     $('#mm-mode-select').addEventListener('change', () => {
