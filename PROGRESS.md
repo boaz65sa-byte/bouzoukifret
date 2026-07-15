@@ -1,0 +1,55 @@
+# יומן התקדמות — Bouzouki Academy
+
+> קובץ זה מתעדכן בסוף כל סבב עבודה, כדי שאפשר יהיה להבין מה נעשה ומה נשאר בלי לסרוק מחדש את כל הקוד. עדכון אחרון: 2026-07-15.
+
+---
+
+## מה נעשה (מהחדש לישן)
+
+### 1. עורך פוזיציות/אצבוע מותאם אישית לדרומוי — `fd871df`
+- מודול חדש `js/dromos-overrides.js` — dictionary ב-localStorage (`bouzouki-position-overrides-v1`), מפתח לפי `דרומוס+שורש+פוזיציה+מיתרים`.
+- הזרקה יחידה בתוך `buildScaleDegreePath` (fretboard-scale.js) — אם יש override הוא מוחזר ישירות, כך שכל מסך/נגינה שמזין דרך הפונקציה הזו (ישירות או דרך `renderDromosScale`/`mountDromosScalePanel`) מקבל אותו אוטומטית.
+- עריכה בקליק ישיר על הפרטבורד: מחזור מצבים — לא-כלולה→אצבע1→2→3→4→מוסרת.
+- ממשק שמור/ביטול/איפוס + באדג' "✓ מותאם", מובנה ב-`mountDromosScalePanel` (מכסה ~7 מסכים: modus-path, song-academy, features, features2, dromos-visuals) **וגם** במסך `dromoi` (הבורר העצמאי שלו).
+- אומת קרוס-מסך בפועל: override שנשמר במסך אחד מופיע זהה במסך אחר + בהשמעת אודיו.
+- תוקן תוך כדי: `ChordDiagram.draw()` לא ניקה SVG לפני ציור מחדש (הכפלת אלמנטים בכל טוגל מירור).
+- **תיקון נוסף אחרי בדיקת המשתמש**: אחרי מירור אופקי, פרטבורד ברוחב-גלילה (theory-lab) לא עדכן את מיקום הגלילה — התוכן הרלוונטי (מיתר פתוח) עבר לצד השני אבל התצוגה נשארה במקום. שורש הבעיה כפול: (א) מיכל הגלילה של theory-lab לא הצהיר `dir="ltr"` בניגוד למנוע הראשי, כך שירש RTL מהדף וקיבל מוסכמת scrollLeft שונה; (ב) תיקון הגלילה עגן על אלמנט שמתאפס ברינדור מחדש. תוקן ב-`js/fretboard-mirror.js` + `js/theory-lab.js`.
+
+### 2. מירור פרטבורד + בקרת מהירות + וידוא פוזיציות — `babd9b4`
+- `js/fretboard-mirror.js` — כפתור ⇋/⇅ (הפוך אופקי/אנכי) בכל תצוגת פרטבורד, כדי שהתצוגה תשקף מבט על מישהו שמנגן מולך. מיושם ע"י שינוי פונקציות הקואורדינטות (`fretX`/`courseY`) ולא CSS transform — כך שהטקסט נשאר קריא.
+- `js/playback-speed.js` — מכפיל מהירות ×0.5–×1.5 לכל אנימציית מסלול/נגינה (DromosRoad, theory-lab, song-academy, dromos-visuals, audio.js).
+- שלושה "יוצאים מהכלל" שלא עוברים דרך המנוע הראשי (`theory-lab.js`, `reference-cards.js`, `chord-diagram.js`) קיבלו טיפול נפרד למירור.
+- פוזיציות מלאות (בורר פוזיציה+מיתרים) — התברר שכבר עבד בכל מסכי הדרומוי הרלוונטיים; לא נדרש קוד חדש.
+
+### 3. תיקוני CI, PWA ותשתית — `5fe4831`, `34f1719`, `fd94582`
+- CI workflow (smoke-test) חזר לפעולה אחרי הוספת scope `workflow` לטוקן GitHub.
+- באנר התקנת PWA ל-iOS/Safari (שלא תומך ב-`beforeinstallprompt`).
+- Dockerfile של stem-proxy עבר ל-`npm ci` עם lockfile (build רפרודוסבילי).
+- הוסר `tools/stem-proxy/server.mjs` (קוד מת).
+- נוסף `npm test` שמריץ את `tools/smoke-test.js`.
+- תוקנו: אצבועי אקורדים שגויים ב-`data.js`, כפילות סולמות בין `song-academy.js` ל-`data.js` (אוחד למקור אמת יחיד), באג אוקטבה/קוינטה ב-`_pos1FromDromos`, cache headers ב-`vercel.json` (immutable→must-revalidate, כי אין hash בשמות קבצים).
+
+---
+
+## מה נשאר / הערות פתוחות (לא נעשו — לא נתבקש, או עדיפות נמוכה)
+
+1. **דיאלוג "הורדה למחשב" (YouTube)** מוצג באותו נוסח למובייל ולמחשב, אף שלמובייל הוא לא רלוונזי (Web Share API כבר עושה את זה אוטומטית שם). לא תוקן — רק זוהה ותואר למשתמש.
+2. **theory-lab.js ו-dromos-road.js** קוראים overrides מותאמים נכון (מוצג שם אוטומטית) אבל **אין להם כפתור עריכה עצמאי** — מנוע ציור שונה לגמרי מהמנוע הראשי (`drawDromosNeck` מותאם, לא `drawFretboard`), ובניית עורך שם דורשת מימוש שלישי מקביל. הוחלט להשאיר כך (סיכון מול תועלת).
+3. **כפילות קוד לא-דחופה**: 4 מימושים שונים של "בורר פוזיציה+מיתרים" (`mountDromosScalePanel`, `#dromoi-pos-bar` הידני ב-app.js, `posWrap` ב-theory-lab.js, `posRow` ב-dromos-road.js) ו-2 מימושים של "road strip". כולם עובדים נכון, זו רק הזדמנות ניקוי-קוד עתידית.
+4. **מירור אנכי ב-chord-diagram.js** לא מומש בכוונה (רק אופקי) — דיאגרמות אקורד תמיד עם הנוט למעלה, כמו בכל תרשים מקובל.
+5. **DromosOverrides אינו root-invariant** — override נשמר per-root מדויק. שינוי טוניקה (rootPc) במסכים הבודדים שמאפשרים זאת (dromos-road עם בורר שורש) לא יחיל override שנשמר על root אחר. תיעוד מכוון, לא באג.
+
+---
+
+## מפת קבצים מהירה לפיצ'רים האחרונים
+
+| קובץ | תפקיד |
+|---|---|
+| `js/fretboard-mirror.js` | מודול מירור (state + UI + תיקון גלילה) |
+| `js/playback-speed.js` | מודול בקרת מהירות |
+| `js/dromos-overrides.js` | מילון overrides לפוזיציה/אצבוע |
+| `js/fretboard-scale.js` | המנוע המרכזי — `buildScaleDegreePath`, `mountDromosScalePanel`, `editDotTap`, `renderEditableDromosScale` |
+| `js/app.js` | `drawFretboard` (מנוע ראשי), מסך `dromoi` עם עורך פוזיציות עצמאי |
+| `tools/smoke-test.js` | בדיקת עשן (script tags, syntax, ניווט מסכים) — רץ ב-CI |
+
+לפרטי ארכיטקטורה כלליים ראו `APP-OVERVIEW.md`.
