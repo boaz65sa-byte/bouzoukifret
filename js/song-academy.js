@@ -12,23 +12,31 @@ const SongAcademy = (() => {
   const TUNE = [48, 53, 57, 62]; // C3 F3 A3 D4 — מיתרי הבוזוקי לפי CHORDS.shape
   const NN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
-  /* ---------- דרומוסים: סולם על מיתר D + טביעת אצבע ---------- */
-  const DROMOI = {
-    rast:    { he:'ראסט', color:'#e3b341', frets:[0,2,4,5,7,9,10,12],
-               fp:'כמו מז׳ור אך עם 3 ו-7 רכות — בהיר, אצילי, "שמשי".', tell:'רזולוציה עליזה, כמעט מערבית.' },
-    hitzaz:  { he:'חיג׳אז', color:'#e0884a', frets:[0,1,4,5,7,8,10,12],
-               fp:'שנייה מוגברת בין מי♭ לפה# (סריג 1→4) — הצליל ה"מזרחי".', tell:'הקפיצה מי♭→פה#.' },
-    ousak:   { he:'אוסאק', color:'#7b9ee0', frets:[0,1,3,5,7,8,10,12],
-               fp:'שנייה רכה (מי♭) נשענת מטה אל הטוניקה — קינה עמוקה.', tell:'אנחה כלפי מטה אל הבסיס.' },
-    minore:  { he:'מינורה', color:'#9d8ec0', frets:[0,2,3,5,7,9,10,12],
-               fp:'מינור פשוט; הסי הטבעי נותן תקווה (דוריאן).', tell:'מינור יומיומי, לא ייאוש.' },
-    kiourdi: { he:'קיורדי', color:'#6b8caf', frets:[0,2,3,5,7,8,10,12],
-               fp:'מינור טבעי עדין, בלי שנייה מוגברת — בן-דוד רך של אוסאק.', tell:'מינור "חלק" ומוכר.' },
-    niavent: { he:'ניאוונט', color:'#c265a0', frets:[0,2,3,6,7,8,10,12],
-               fp:'מינור עם סול# (סריג 6) — שנייה מוגברת דרמטית.', tell:'סול# בתוך מינור — מתח תיאטרלי.' },
-    pireotikos:{ he:'פיריאוטיקוס', color:'#5fc88f', frets:[0,2,4,5,7,9,11,12],
-               fp:'מז׳ור פתוח ובהיר — המנוני זאימבקיקו.', tell:'גאה, עירוני, חגיגי.' },
+  /* ---------- דרומוסים ----------
+     צבע וטקסט פדגוגי בלבד. הסולם עצמו נלקח מ-DROMOI שב-data.js — מקור אמת יחיד,
+     כדי שהאקדמיה ומסך הדרומוסים לא יוכלו ללמד שני סולמות שונים לאותו שם. */
+  const DROMOS_STYLE = {
+    rast:      { color:'#e3b341', fp:'כמו מז׳ור אך עם 3 ו-7 רכות — בהיר, אצילי, "שמשי".', tell:'רזולוציה עליזה, כמעט מערבית.' },
+    hitzaz:    { color:'#e0884a', fp:'שנייה מוגברת בין מי♭ לפה# (סריג 1→4) — הצליל ה"מזרחי".', tell:'הקפיצה מי♭→פה#.' },
+    ousak:     { color:'#7b9ee0', fp:'שנייה רכה (מי♭) נשענת מטה אל הטוניקה — קינה עמוקה.', tell:'אנחה כלפי מטה אל הבסיס.' },
+    minore:    { color:'#9d8ec0', fp:'מינור עם רגישה מוגבהת (דו#) — הדומיננטה A7 היא הצליל שלו.', tell:'המתח של דו#→רה.' },
+    kiourdi:   { color:'#6b8caf', fp:'מינור עם סקסטה טבעית (סי בקר) — דוריאן, רך ומואר יותר ממינורה.', tell:'הסי הבקר — מינור "לא עצוב".' },
+    niavent:   { color:'#c265a0', fp:'מינור עם סול# (סריג 6) — שנייה מוגברת דרמטית.', tell:'סול# בתוך מינור — מתח תיאטרלי.' },
+    pireotikos:{ color:'#e05f5f', fp:'חיג׳אז עם קוורטה מוגברת (סול#) — הצליל של פיראוס.', tell:'הסול# החד בתוך חיג׳אז.' },
+    matzore:   { color:'#5fc88f', fp:'מז׳ור פשוט ובהיר — בלי שניות מוגברות, בלי צלילים רכים.', tell:'נשמע "מערבי" לגמרי — חגיגי וישיר.' },
   };
+
+  /** ממזג את הצבע/הטקסט המקומי עם הסולם הקנוני מ-data.js */
+  const DR = (() => {
+    const out = {};
+    for (const [id, style] of Object.entries(DROMOS_STYLE)) {
+      const canon = (typeof DROMOI !== 'undefined') ? DROMOI.find(d => d.id === id) : null;
+      out[id] = canon
+        ? { ...style, he: canon.nameHe, frets: canon.intervals.concat(12) }
+        : { ...style, he: id, frets: [0, 2, 3, 5, 7, 8, 10, 12] };
+    }
+    return out;
+  })();
 
   /* ---------- ספריית השירים (לפי סדר לימוד) ---------- */
   const SONGS = [
@@ -44,26 +52,26 @@ const SongAcademy = (() => {
     {
       id:'pedia-pirea', name:'Ta Pedia tou Pirea', he:'ילדי פיראוס', greek:'Τα Παιδιά του Πειραιά',
       artist:'M. Hadjidakis', era:'1960', diff:1,
-      dromos:'pireotikos', root:'רה',
+      dromos:'matzore', root:'רה',
       chords:['D','A7'], prog:'D – A7 – D (סיבוב Bm)',
       phrase:{ frets:[0,2,4,7,4,2,0], desc:'פזמון מקפץ ובהיר' },
       why:'מז׳ור עליז עם שני אקורדים בלבד — מושלם לתרגול מעבר D↔A7.',
-      sections:[{label:'כל השיר', dromos:'pireotikos'}]
+      sections:[{label:'כל השיר', dromos:'matzore'}]
     },
     {
       id:'antilaloune', name:'Antilaloune ta Vouna', he:'ההרים מהדהדים', greek:'Αντιλαλούνε τα Βουνά',
       artist:'מסורתי', era:'—', diff:2,
-      dromos:'pireotikos', root:'רה',
+      dromos:'matzore', root:'רה',
       chords:['D','G','A7'], prog:'D – G – A7 – D',
       phrase:{ frets:[0,2,4,5,7,9,11,12], desc:'מז׳ור פתוח וגאה — המנון זאימבקיקו' },
-      why:'הדרומוס הפיריאוטיקוס הבהיר — מז׳ור פתוח עם שלושה אקורדים בסיסיים.',
-      sections:[{label:'כל השיר', dromos:'pireotikos'}]
+      why:'מז׳ורה פתוח ובהיר — שלושה אקורדים בסיסיים. שימו לב: השיר הוא על פיראוס, אך אינו בדרומוס פיריאוטיקוס (שהוא חיג׳אז עם קוורטה מוגברת).',
+      sections:[{label:'כל השיר', dromos:'matzore'}]
     },
     {
       id:'zorba', name:'Zorba (Syrtaki)', he:'זורבה (סירטאקי)', greek:'Συρτάκι',
       artist:'M. Theodorakis', era:'1964', diff:2,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','A7'], prog:'Dm – A7 – Dm (מאיץ)',
+      chords:['D','A7'], prog:'D – A7 – D (מאיץ)',
       phrase:{ frets:[0,1,4,5,7,8,7,5], desc:'האוסטינטו המטפס המפורסם' },
       why:'חיג׳אז שמאיץ בהדרגה — מראה איך דרומוס אחד מחזיק מתח לאורך כל השיר.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -81,7 +89,7 @@ const SongAcademy = (() => {
       id:'misirlou', name:'Misirlou', he:'מיסירלו', greek:'Μισιρλού',
       artist:'מסורתי / N. Roubanis', era:'1927', diff:2,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','A7'], prog:'Dm – A7 – Dm – Gm – A7 – Dm',
+      chords:['D','A7'], prog:'D – A7 – D – Gm – A7 – D',
       phrase:{ frets:[0,1,4,1,4,5,4,1], desc:'הניגון המחליק במורד החיג׳אז — בטרמולו' },
       why:'השנייה המוגברת (מי♭→פה#) הכי מזוהה במוזיקה — "שיעור ה-וואו" של החיג׳אז.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -90,7 +98,7 @@ const SongAcademy = (() => {
       id:'polis-hamam', name:'Mes stis Polis to Hamam', he:'בחמאם של העיר', greek:'Μες στης Πόλης το Χαμάμ',
       artist:'מסורתי סמירנאי', era:'1930s', diff:2,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','A7'], prog:'Dm – Eb – A7 – Dm',
+      chords:['D','A7'], prog:'D – Eb – A7 – D',
       phrase:{ frets:[0,1,4,5,4,1,0], desc:'פראזת חיג׳אז סמירנאית' },
       why:'חיג׳אז שני — אותו דרומוס, שיר אחר. ככה הדפוס מתקבע באוזן.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -117,7 +125,7 @@ const SongAcademy = (() => {
       id:'apo-kseno-topo', name:'Apo Kseno Topo', he:'מארץ זרה', greek:'Από Ξένο Τόπο',
       artist:'סמירנאיקו מסורתי', era:'1920s', diff:3,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','A7'], prog:'Dm – A7 – Dm',
+      chords:['D','A7'], prog:'D – A7 – D',
       phrase:{ frets:[0,1,4,5,4,1,0], desc:'"הנערה מארץ זרה" — פראזת חיג׳אז קלאסית' },
       why:'מהשירים הסמירנאיים האהובים — חיג׳אז טהור ומזוהה.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -126,7 +134,7 @@ const SongAcademy = (() => {
       id:'kaimos', name:'Kaimos', he:'קאימוס (כאב)', greek:'Καημός',
       artist:'V. Tsitsanis', era:'1950s', diff:3,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','A7','Gm'], prog:'Dm – A7 – Dm – Gm – A7 – Dm',
+      chords:['D','A7','Gm'], prog:'D – A7 – D – Gm – A7 – D',
       phrase:{ frets:[0,1,4,5,7,8,7,4,1,0], desc:'זאימבקיקו חיג׳אז עמוק' },
       why:'אחד הזאימבקיקו היפים — חיג׳אז בהקשר איטי ורגשי.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -135,7 +143,7 @@ const SongAcademy = (() => {
       id:'chaidari', name:'Chaidari', he:'חאידארי', greek:'Χαϊδάρι',
       artist:'V. Tsitsanis', era:'1940s', diff:3,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
+      chords:['D','Gm','A7'], prog:'D – Gm – A7 – D',
       phrase:{ frets:[4,5,4,1,0,1,4], desc:'פראזה סובבת סביב המי♭→פה#' },
       why:'חיג׳אז של טסיטסאניס — מחזק את הזיהוי בהקשר זאימבקיקו.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -153,7 +161,7 @@ const SongAcademy = (() => {
       id:'pente-ellines', name:'Pente Ellines ston Adi', he:'חמישה יוונים בשאול', greek:'Πέντε Έλληνες στον Άδη',
       artist:'M. Theodorakis', era:'1960s', diff:3,
       dromos:'hitzaz', root:'רה',
-      chords:['Dm','Gm','A7'], prog:'Dm – Gm – A7 – Dm',
+      chords:['D','Gm','A7'], prog:'D – Gm – A7 – D',
       phrase:{ frets:[7,8,7,4,1,0], desc:'ירידה דרמטית במורד החיג׳אז' },
       why:'חיג׳אז דרמטי — מחזק את זיהוי השנייה המוגברת בהקשר אחר.',
       sections:[{label:'כל השיר', dromos:'hitzaz'}]
@@ -466,7 +474,7 @@ const SongAcademy = (() => {
       <br><small style="color:var(--text-dim)">אקורדים נפוצים — ייתכנו וריאציות לפי ביצוע/סולם.</small></p>
       <div class="sa-song-grid">
         ${SONGS.map((s,i) => {
-          const dr = DROMOI[s.dromos];
+          const dr = DR[s.dromos];
           return `<button class="sa-song-card" data-id="${s.id}" style="border-color:${dr.color}">
             <div class="sa-song-num">${i+1}</div>
             <div class="sa-song-main">
@@ -503,7 +511,7 @@ const SongAcademy = (() => {
     if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
     const app = document.getElementById('song-academy-app');
     if (!app || !activeSong) return;
-    const s = activeSong, dr = DROMOI[s.dromos];
+    const s = activeSong, dr = DR[s.dromos];
     app.innerHTML = `
       <div class="sa-song-head">
         <button class="sa-back" id="sa-back">← כל השירים</button>
@@ -522,7 +530,7 @@ const SongAcademy = (() => {
 
   /* ----- תחנה: סקירה ----- */
   function renderOverview() {
-    const s = activeSong, dr = DROMOI[s.dromos], body = document.getElementById('sa-tab-body');
+    const s = activeSong, dr = DR[s.dromos], body = document.getElementById('sa-tab-body');
     body.innerHTML = `
       <div class="sa-overview-card" style="border-color:${dr.color}">
         <div class="sa-ov-line">🎸 <b>השיר הזה דורש ${s.chords.length} אקורדים:</b> ${s.chords.join(' · ')}</div>
@@ -674,7 +682,7 @@ const SongAcademy = (() => {
     body.innerHTML = `
       <div class="sa-timeline" dir="ltr">
         ${s.sections.map((sec,i) => {
-          const dr = DROMOI[sec.dromos];
+          const dr = DR[sec.dromos];
           return `<button class="sa-tl-seg" data-i="${i}" style="background:${dr.color}22;border-color:${dr.color};flex:${sec.label==='גשר'?1:2}">
             <span class="sa-tl-label">${sec.label}</span>
             <span class="sa-tl-dr" style="color:${dr.color}">${dr.he}</span>
@@ -687,7 +695,7 @@ const SongAcademy = (() => {
     showDromosDetail(0);
   }
   function showDromosDetail(i) {
-    const s = activeSong, sec = s.sections[i], dr = DROMOI[sec.dromos];
+    const s = activeSong, sec = s.sections[i], dr = DR[sec.dromos];
     document.querySelectorAll('.sa-tl-seg').forEach((el,j)=>el.classList.toggle('sel', j===i));
     const d = document.getElementById('sa-dromos-detail');
     if (!d) return;
