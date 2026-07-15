@@ -21,6 +21,17 @@ const InstallPrompt = (() => {
     }
   }
 
+  function isIOS() {
+    try {
+      const ua = navigator.userAgent || '';
+      const isAppleTouch = /iPad|iPhone|iPod/.test(ua)
+        || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+      return isAppleTouch;
+    } catch {
+      return false;
+    }
+  }
+
   function isDismissed() {
     try {
       const raw = localStorage.getItem(KEY);
@@ -76,7 +87,7 @@ const InstallPrompt = (() => {
     }
   }
 
-  function showBanner() {
+  function showBanner(iosMode) {
     if (bannerEl || isStandalone() || isDismissed()) return;
     injectStyles();
 
@@ -85,7 +96,13 @@ const InstallPrompt = (() => {
     bannerEl.className = 'install-prompt-banner';
     bannerEl.setAttribute('role', 'dialog');
     bannerEl.setAttribute('aria-live', 'polite');
-    bannerEl.innerHTML = `
+    bannerEl.innerHTML = iosMode
+      ? `
+      <span class="install-prompt-text">📲 להתקנה: הקישו על שיתוף <strong>⎋</strong> ואז "הוסף למסך הבית"</span>
+      <span class="install-prompt-actions">
+        <button type="button" class="install-prompt-dismiss" aria-label="סגור">×</button>
+      </span>`
+      : `
       <span class="install-prompt-text">📲 התקינו את האפליקציה למסך הבית לגישה מהירה ושימוש גם ללא אינטרנט</span>
       <span class="install-prompt-actions">
         <button type="button" class="install-prompt-install">התקנה</button>
@@ -113,13 +130,17 @@ const InstallPrompt = (() => {
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredEvent = event;
-    if (!isStandalone() && !isDismissed()) showBanner();
+    if (!isStandalone() && !isDismissed()) showBanner(false);
   });
 
   window.addEventListener('appinstalled', () => {
     deferredEvent = null;
     hideBanner();
   });
+
+  if (isIOS() && !isStandalone() && !isDismissed()) {
+    showBanner(true);
+  }
 
   return {};
 })();

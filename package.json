@@ -2,7 +2,8 @@
   "name": "bouzoukifret",
   "private": true,
   "scripts": {
-    "vercel-build": "node scripts/ensure-deno.js"
+    "vercel-build": "node scripts/ensure-deno.js",
+    "test": "node tools/smoke-test.js"
   },
   "dependencies": {
     "yt-dlp-exec": "^1.0.2"
