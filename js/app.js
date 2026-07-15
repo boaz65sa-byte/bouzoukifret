@@ -231,6 +231,7 @@ function drawFretboard(svg, getNoteState, opts = {}) {
       g.addEventListener('click', () => {
         AudioEngine.pluckCourse(ci, f, 0, 0.55);
         flashDot(svg, ci, f);
+        if (typeof opts.onDotClick === 'function') opts.onDotClick(ci, f, midi, g);
       });
     }
   });
@@ -393,6 +394,8 @@ let currentRoot = 2; // D = pitch class 2
 let dromoiFilter = 'all';
 let _dromoiPosBase = 0;
 let _dromoiStringMode = 4;
+let _dromoiEditMode = false;
+let _dromoiDraft = null;
 
 function setDromoiFilter(filter) {
   dromoiFilter = filter || 'all';
@@ -422,7 +425,9 @@ function rebuildDromoiList() {
     const sub = d.family === 'maqam'
       ? `${d.nameAr || d.nameGr} · ${d.degrees}`
       : `${d.nameGr} · ${d.degrees}`;
-    item.innerHTML = `<div class="di-name">${d.nameHe}${d.family === 'maqam' ? ' <span class="di-tag">מאקאם</span>' : ''}</div><div class="di-gr">${sub}</div>`;
+    const customTag = (typeof DromosOverrides !== 'undefined' && DromosOverrides.hasAny(d.id))
+      ? ' <span class="di-tag di-tag-custom">מותאם</span>' : '';
+    item.innerHTML = `<div class="di-name">${d.nameHe}${d.family === 'maqam' ? ' <span class="di-tag">מאקאם</span>' : ''}${customTag}</div><div class="di-gr">${sub}</div>`;
     item.addEventListener('click', () => {
       $$('.dromos-item').forEach(x => x.classList.remove('active'));
       item.classList.add('active');
@@ -552,6 +557,70 @@ function initDromoi() {
       PlaybackSpeed.mountChips(speedBar);
       bar.after(speedBar);
     }
+
+    if (typeof DromosOverrides !== 'undefined') {
+      const editBar = document.createElement('div');
+      editBar.className = 'fs-edit-bar';
+      const mkEditBtn = (label, id) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.id = id;
+        b.className = 'btn secondary fs-pos-chip';
+        b.textContent = label;
+        editBar.appendChild(b);
+        return b;
+      };
+      const editBtn = mkEditBtn('✏️ ערוך פוזיציה', 'dromoi-edit-toggle');
+      const saveBtn = mkEditBtn('💾 שמור', 'dromoi-edit-save');
+      const cancelBtn = mkEditBtn('ביטול', 'dromoi-edit-cancel');
+      const resetBtn = mkEditBtn('↺ אפס להתחלה', 'dromoi-edit-reset');
+      const badge = document.createElement('span');
+      badge.id = 'dromoi-edit-badge';
+      badge.className = 'fs-edit-badge';
+      badge.hidden = true;
+      badge.textContent = '✓ מותאם';
+      editBar.appendChild(badge);
+      bar.after(editBar);
+
+      function setEditUI(active) {
+        editBtn.hidden = active;
+        saveBtn.hidden = !active;
+        cancelBtn.hidden = !active;
+        resetBtn.hidden = !active;
+        bar.querySelectorAll('.fs-pos-chip').forEach(c => { c.disabled = active; });
+      }
+      editBtn.addEventListener('click', () => {
+        _dromoiEditMode = true;
+        _dromoiDraft = null;
+        setEditUI(true);
+        renderDromos();
+      });
+      saveBtn.addEventListener('click', () => {
+        const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
+        DromosOverrides.set(currentDromos.id, currentRoot, _dromoiPosBase, _dromoiStringMode, span, _dromoiDraft || []);
+        _dromoiEditMode = false;
+        _dromoiDraft = null;
+        setEditUI(false);
+        renderDromos();
+        rebuildDromoiList();
+      });
+      cancelBtn.addEventListener('click', () => {
+        _dromoiEditMode = false;
+        _dromoiDraft = null;
+        setEditUI(false);
+        renderDromos();
+      });
+      resetBtn.addEventListener('click', () => {
+        if (!confirm('לאפס את הפוזיציה הזו לברירת המחדל?')) return;
+        DromosOverrides.reset(currentDromos.id, currentRoot, _dromoiPosBase, _dromoiStringMode);
+        _dromoiEditMode = false;
+        _dromoiDraft = null;
+        setEditUI(false);
+        renderDromos();
+        rebuildDromoiList();
+      });
+      setEditUI(false);
+    }
   }
 
   renderDromos();
@@ -635,7 +704,7 @@ function renderDromos() {
   if (!_dromoiPosBase && _dromoiPosBase !== 0) _dromoiPosBase = 0;
   const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
   const scalePath = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode)
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode, d.id)
     : [];
   const pathKey = (ci, f) => `${ci}-${f}`;
   const pathMap = new Map(scalePath.map(p => [pathKey(p.ci, p.fret), p]));
@@ -645,26 +714,39 @@ function renderDromos() {
     ? new Set(FretboardScale.coursesForStringMode(_dromoiStringMode))
     : null;
 
-  drawFretboard($('#fb-dromos'), (ci, f, midi) => {
-    if (activeCourses && !activeCourses.has(ci)) return null;
-    const pc = midi % 12;
-    if (!pcsSet.has(pc)) return null;
-    const onPath = pathMap.get(pathKey(ci, f));
-    if (onPath) {
-      const finger = onPath.finger;
-      const label = finger > 0 ? `${onPath.degree}·${finger}` : String(onPath.degree);
-      return {
-        type: onPath.degree === 1 ? 'root' : 'note',
-        label,
-      };
+  if (_dromoiEditMode && typeof FretboardScale !== 'undefined' && FretboardScale.renderEditableDromosScale) {
+    if (!_dromoiDraft) _dromoiDraft = scalePath.map(p => ({ ...p }));
+    FretboardScale.renderEditableDromosScale($('#fb-dromos'), d.intervals, currentRoot, _dromoiDraft, {
+      posBase: _dromoiPosBase, stringMode: _dromoiStringMode, span,
+      onDraftChange: () => renderDromos(),
+    });
+  } else {
+    drawFretboard($('#fb-dromos'), (ci, f, midi) => {
+      if (activeCourses && !activeCourses.has(ci)) return null;
+      const pc = midi % 12;
+      if (!pcsSet.has(pc)) return null;
+      const onPath = pathMap.get(pathKey(ci, f));
+      if (onPath) {
+        const finger = onPath.finger;
+        const label = finger > 0 ? `${onPath.degree}·${finger}` : String(onPath.degree);
+        return {
+          type: onPath.degree === 1 ? 'root' : 'note',
+          label,
+        };
+      }
+      if (!inUsedBox(f)) return null;
+      return { type: 'note', label: NOTE_NAMES[pc] };
+    });
+    if (typeof FretboardScale !== 'undefined' && scalePath.length) {
+      FretboardScale.drawPathOverlay($('#fb-dromos'), scalePath);
     }
-    if (!inUsedBox(f)) return null;
-    return { type: 'note', label: NOTE_NAMES[pc] };
-  });
-  if (typeof FretboardScale !== 'undefined' && scalePath.length) {
-    FretboardScale.drawPathOverlay($('#fb-dromos'), scalePath);
+    if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
   }
-  if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
+
+  const editBadge = $('#dromoi-edit-badge');
+  if (editBadge && typeof DromosOverrides !== 'undefined') {
+    editBadge.hidden = !DromosOverrides.has(d.id, currentRoot, _dromoiPosBase, _dromoiStringMode);
+  }
 
   if (typeof FretboardMirror !== 'undefined') {
     const fbDromosWrap = $('#fb-dromos').closest('.fretboard-wrap');
@@ -690,6 +772,7 @@ function renderDromos() {
       intervals: d.intervals,
       rootPc: currentRoot,
       nameHe: d.nameHe,
+      dromosId: d.id,
       fretboard: $('#fb-dromos'),
       embedded: true,
       posBase: _dromoiPosBase,
@@ -704,7 +787,7 @@ function renderSingleString() {
   const d = currentDromos;
   const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
   const scalePath = typeof FretboardScale !== 'undefined'
-    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode)
+    ? FretboardScale.buildScaleDegreePath(d.intervals, currentRoot, _dromoiPosBase, span, _dromoiStringMode, d.id)
     : [];
   const dNotes = scalePath.filter(p => p.ci === 0);
   const seq = dNotes.length
@@ -737,6 +820,7 @@ function playScale(msPerNote) {
   AudioEngine.playModeScale(currentDromos.intervals, currentRoot, {
     gapMs: msPerNote,
     gain: 0.52,
+    dromosId: currentDromos.id,
     posBase: _dromoiPosBase,
     stringMode: _dromoiStringMode,
     onStep(fret, i, p) {

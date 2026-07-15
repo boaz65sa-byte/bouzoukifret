@@ -653,7 +653,7 @@ const SongLibrary = (() => {
     if (typeof stopAllPlayback === 'function') stopAllPlayback();
     AudioEngine.ensureCtx();
     AudioEngine.playModeScale(dr.intervals, _keyToRootPc(song.key), {
-      gapMs: 300, gain: 0.48, includeOctave: true, descending: false,
+      gapMs: 300, gain: 0.48, includeOctave: true, descending: false, dromosId: dr.id,
     });
     document.getElementById('song-dromos-card')?.classList.add('playing');
     const n = dr.intervals.length + 1;
@@ -752,7 +752,7 @@ const SongLibrary = (() => {
     if (dr && typeof AudioEngine.playModeScale === 'function') {
       AudioEngine.ensureCtx();
       AudioEngine.playModeScale(dr.intervals, _keyToRootPc(song.key), {
-        gapMs: 300, gain: 0.48, includeOctave: true, descending: false,
+        gapMs: 300, gain: 0.48, includeOctave: true, descending: false, dromosId: dr.id,
       });
       const n = dr.intervals.length + 1;
       _dromosIntroTimer = setTimeout(() => {

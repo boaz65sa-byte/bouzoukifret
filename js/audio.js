@@ -126,7 +126,7 @@ const AudioEngine = (() => {
     let multi = false;
     if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
       const span = opts.span ?? FretboardScale.MELODY_POS_SPAN;
-      const path = FretboardScale.buildScaleDegreePath(intervals, rootPc, posBase, span, stringMode);
+      const path = FretboardScale.buildScaleDegreePath(intervals, rootPc, posBase, span, stringMode, opts.dromosId);
       if (path.length) {
         seq = FretboardScale.scalePlaySequence(path, descending);
         multi = true;

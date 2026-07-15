@@ -1532,11 +1532,12 @@ const MaqamGuide = (() => {
       _mqPanel = FretboardScale.mountDromosScalePanel(fbHost, {
         intervals: d.intervals,
         rootPc,
+        dromosId: d.id,
         onChange(st) {
           const rh = document.getElementById('mq-road-host');
           if (rh && typeof DromosRoad !== 'undefined') {
             DromosRoad.renderInto(rh, {
-              intervals: d.intervals, rootPc, nameHe: d.nameHe,
+              intervals: d.intervals, rootPc, nameHe: d.nameHe, dromosId: d.id,
               embedded: true, posBase: st.posBase, stringMode: st.stringMode,
               fretboard: _mqPanel?.getSvg(),
             });
@@ -1550,7 +1551,7 @@ const MaqamGuide = (() => {
     if (typeof DromosRoad !== 'undefined') {
       const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
       DromosRoad.renderInto(roadHost, {
-        intervals: d.intervals, rootPc, nameHe: d.nameHe,
+        intervals: d.intervals, rootPc, nameHe: d.nameHe, dromosId: d.id,
         embedded: true, posBase: st.posBase, stringMode: st.stringMode,
         fretboard: _mqPanel?.getSvg?.(),
       });
@@ -1563,7 +1564,7 @@ const MaqamGuide = (() => {
     if (!d) return;
     const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
     AudioEngine.playModeScale(d.intervals, 2, {
-      gapMs: 350, gain: 0.48, posBase: st.posBase, stringMode: st.stringMode,
+      gapMs: 350, gain: 0.48, posBase: st.posBase, stringMode: st.stringMode, dromosId: d.id,
     });
   }
 
@@ -1654,7 +1655,7 @@ const MaqamGuide = (() => {
     const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
     AudioEngine.playModeScale(d.intervals, 2, {
       gapMs: 350, gain: 0.48, descending: false,
-      posBase: st.posBase, stringMode: st.stringMode,
+      posBase: st.posBase, stringMode: st.stringMode, dromosId: d.id,
     });
   }
 

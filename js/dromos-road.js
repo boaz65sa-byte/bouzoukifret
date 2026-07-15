@@ -41,12 +41,12 @@ const DromosRoad = (() => {
     return [];
   }
 
-  function buildRoad(intervals, rootPc, stringMode, startBase) {
+  function buildRoad(intervals, rootPc, stringMode, startBase, dromosId) {
     const ivs = intervals || [];
     const sm = Number(stringMode) || 4;
     const base = startBase ?? 0;
     if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
-      const road = FretboardScale.buildScaleDegreePath(ivs, rootPc, base, span(), sm);
+      const road = FretboardScale.buildScaleDegreePath(ivs, rootPc, base, span(), sm, dromosId);
       const rpc = ((rootPc % 12) + 12) % 12;
       return road.map(p => ({
         ...p,
@@ -56,10 +56,13 @@ const DromosRoad = (() => {
     return [];
   }
 
-  function availablePositionBases(intervals, rootPc, stringMode) {
+  function availablePositionBases(intervals, rootPc, stringMode, dromosId) {
     const need = (intervals || []).length + 1;
     const sm = Number(stringMode) || 4;
-    const good = positionBases().filter(b => buildRoad(intervals, rootPc, sm, b).length >= need);
+    const good = positionBases().filter(b => {
+      if (dromosId && typeof DromosOverrides !== 'undefined' && DromosOverrides.has(dromosId, rootPc, b, sm)) return true;
+      return buildRoad(intervals, rootPc, sm, b).length >= need;
+    });
     return good.length ? good : [0];
   }
 
@@ -188,6 +191,7 @@ const DromosRoad = (() => {
     let stringMode = Number(opts.stringMode ?? opts.defaultMode ?? 4) || 4;
     let posBase = opts.posBase ?? 0;
     const embedded = !!opts.embedded;
+    const dromosId = opts.dromosId || null;
 
     container.innerHTML = '';
     container.classList.add('dr-road-host');
@@ -267,7 +271,7 @@ const DromosRoad = (() => {
           c.classList.toggle('active', Number(c.dataset.mode) === stringMode);
         });
       }
-      const avail = availablePositionBases(intervals, rootPc, stringMode);
+      const avail = availablePositionBases(intervals, rootPc, stringMode, dromosId);
       if (!avail.includes(posBase)) posBase = avail[0];
 
       if (!embedded && posRow) {
@@ -296,7 +300,7 @@ const DromosRoad = (() => {
         });
       }
       if (strip) stopRoad(strip, null, opts.fretboard);
-      const road = buildRoad(intervals, rootPc, stringMode, posBase);
+      const road = buildRoad(intervals, rootPc, stringMode, posBase, dromosId);
       strip = buildStripFromRoad(road, opts.nameHe);
       stripHost.innerHTML = '';
       stripHost.appendChild(strip);
@@ -319,8 +323,8 @@ const DromosRoad = (() => {
     }
   }
 
-  return { renderInto, buildRoad, stop, buildStrip: (intervals, rootPc, mode, nameHe) => {
+  return { renderInto, buildRoad, stop, buildStrip: (intervals, rootPc, mode, nameHe, dromosId) => {
     const sm = Number(mode) || 4;
-    return buildStripFromRoad(buildRoad(intervals, rootPc, sm, 0), nameHe);
+    return buildStripFromRoad(buildRoad(intervals, rootPc, sm, 0, dromosId), nameHe);
   } };
 })();

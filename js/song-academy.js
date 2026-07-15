@@ -297,14 +297,14 @@ const SongAcademy = (() => {
   let _saScalePanel = null;
 
   /** סולם דרומוס — פוזיציה גיטרתית */
-  function drawScaleBoard(svgId, scaleFrets, rootPc = 2, intervals = null) {
+  function drawScaleBoard(svgId, scaleFrets, rootPc = 2, intervals = null, dromosId = null) {
     const el = document.getElementById(svgId);
     if (!el) return null;
     const wrap = el.parentElement;
     if (typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel && wrap) {
       wrap.innerHTML = '';
       const panelOpts = intervals?.length
-        ? { intervals, rootPc }
+        ? { intervals, rootPc, dromosId }
         : { frets: scaleFrets, rootPc };
       _saScalePanel = FretboardScale.mountDromosScalePanel(wrap, panelOpts);
       return _saScalePanel;
@@ -727,7 +727,7 @@ const SongAcademy = (() => {
         </div>
       </div>`;
     const mainDr = (typeof DROMOI !== 'undefined') ? DROMOI.find(x => x.id === sec.dromos) : null;
-    drawScaleBoard('sa-fb-scale', dr.frets, 2, mainDr?.intervals);
+    drawScaleBoard('sa-fb-scale', dr.frets, 2, mainDr?.intervals, mainDr?.id);
     drawPhraseBoard('sa-fb-phrase', s.phrase.frets, dr.frets);
     document.getElementById('sa-dr-scale').addEventListener('click', () => {
       const st = _saScalePanel?.getState?.() || { posBase: 0, stringMode: 4 };
@@ -735,7 +735,7 @@ const SongAcademy = (() => {
         || (typeof FretboardScale !== 'undefined' ? FretboardScale.fretsOnDToIntervals(dr.frets) : []);
       if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
         AudioEngine.playModeScale(ivs, 2, {
-          gapMs: 300, gain: 0.5, descending: true,
+          gapMs: 300, gain: 0.5, descending: true, dromosId: mainDr?.id,
           posBase: st.posBase, stringMode: st.stringMode,
         });
       }

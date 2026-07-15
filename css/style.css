@@ -394,6 +394,10 @@ select {
 .mp-neck-host, .rc-neck-host { margin: 12px 0; overflow-x: auto; }
 .fb-mirror-bar, .pbs-speed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
 .fb-mirror-btn { font-size: 1rem !important; line-height: 1 !important; padding: 6px 12px !important; }
+.di-tag-custom { background: var(--gold); color: #1a1408; }
+.fs-edit-bar { display: flex; gap: 6px; align-items: center; margin-inline-start: 12px; flex-wrap: wrap; }
+.fs-edit-badge { color: var(--gold); font-size: 0.75rem; font-weight: 700; }
+.fs-edit-excluded { opacity: .45; }
 .rc-neck-title { font-size: 0.95rem; margin: 0 0 8px; color: var(--gold); }
 .dromoi-sidebar { display: flex; flex-direction: column; gap: 10px; }
 .dromoi-filter { display: flex; flex-wrap: wrap; gap: 6px; }

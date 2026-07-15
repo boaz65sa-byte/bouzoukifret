@@ -48,7 +48,11 @@ const FretboardScale = (() => {
    * @param {number} stringMode — 1|2|3|4 מיתרים פעילים
    * @returns {{ci,fret,midi,degree,positionBase,finger}[]}
    */
-  function buildScaleDegreePath(intervals, rootPc, startBase = 0, span = MELODY_POS_SPAN, stringMode = 4) {
+  function buildScaleDegreePath(intervals, rootPc, startBase = 0, span = MELODY_POS_SPAN, stringMode = 4, dromosId = null) {
+    if (dromosId && typeof DromosOverrides !== 'undefined') {
+      const ov = DromosOverrides.get(dromosId, rootPc, startBase, stringMode, span);
+      if (ov) return ov.path.map(p => ({ ...p }));
+    }
     const courses = coursesForStringMode(stringMode);
     const degrees = [...(intervals || []), 12];
 
@@ -899,7 +903,7 @@ const FretboardScale = (() => {
     const stringMode = opts.stringMode ?? 4;
     const sp = opts.span ?? MELODY_POS_SPAN;
     const pcsSet = new Set(intervals.map(iv => normPc(rootPc + iv)));
-    const scalePath = buildScaleDegreePath(intervals, rootPc, posBase, sp, stringMode);
+    const scalePath = buildScaleDegreePath(intervals, rootPc, posBase, sp, stringMode, opts.dromosId);
     const pathKey = (ci, f) => `${ci}-${f}`;
     const pathMap = new Map(scalePath.map(p => [pathKey(p.ci, p.fret), p]));
     const usedBases = [...new Set(scalePath.map(p => p.positionBase ?? posBase))];
@@ -924,6 +928,73 @@ const FretboardScale = (() => {
     return scalePath;
   }
 
+  /** קליק על נקודה במצב עריכה — מחזור מצבים קבוע וצפוי:
+   *  לא-כלולה -> אצבע 1 -> 2 -> 3 -> 4 -> מוסרת -> (חוזר חלילה).
+   *  מיתר פתוח: אין אצבוע לסובב — רק כלולה<->מוסרת.
+   *  כל תו-סולם יכול להופיע פעם אחת בדראפט; קליק על הופעה שנייה "מזיז" אותו. */
+  function editDotTap(draftPath, intervals, rootPc, posBase, ci, f, midi) {
+    const pc = normPc(midi);
+    const degIdx = intervals.findIndex(iv => normPc(rootPc + iv) === pc);
+    if (degIdx < 0) return false;
+
+    const existingIdx = draftPath.findIndex(p => p.ci === ci && p.fret === f);
+    if (f === 0) {
+      if (existingIdx >= 0) {
+        draftPath.splice(existingIdx, 1);
+      } else {
+        const sameIdx = draftPath.findIndex(p => normPc(p.midi) === pc);
+        if (sameIdx >= 0) draftPath.splice(sameIdx, 1);
+        draftPath.push({ ci, fret: f, midi, finger: 0 });
+      }
+    } else if (existingIdx >= 0) {
+      const entry = draftPath[existingIdx];
+      if (entry.finger >= 4) draftPath.splice(existingIdx, 1);
+      else entry.finger += 1;
+    } else {
+      const sameIdx = draftPath.findIndex(p => normPc(p.midi) === pc);
+      if (sameIdx >= 0) draftPath.splice(sameIdx, 1);
+      draftPath.push({ ci, fret: f, midi, finger: 1 });
+    }
+    draftPath.sort((a, b) => a.midi - b.midi);
+    draftPath.forEach((p, i) => { p.degree = i + 1; p.positionBase = posBase; });
+    return true;
+  }
+
+  /** ציור פוזיציה במצב עריכה — מצייר מתוך draftPath (לא מחשב), ומאפשר קליק לעריכה. */
+  function renderEditableDromosScale(svg, intervals, rootPc, draftPath, opts = {}) {
+    if (!svg || typeof drawFretboard !== 'function') return;
+    const posBase = opts.posBase ?? 0;
+    const stringMode = opts.stringMode ?? 4;
+    const sp = opts.span ?? MELODY_POS_SPAN;
+    const pcsSet = new Set(intervals.map(iv => normPc(rootPc + iv)));
+    const activeCourses = new Set(coursesForStringMode(stringMode));
+
+    svg.querySelectorAll('.fs-scale-path, .fs-path-label').forEach(el => el.remove());
+    drawFretboard(svg, (ci, f, midi) => {
+      if (!activeCourses.has(ci)) return null;
+      if (f < posBase || f > posBase + sp) return null;
+      const pc = normPc(midi);
+      if (!pcsSet.has(pc)) return null;
+      const onPath = draftPath.find(p => p.ci === ci && p.fret === f);
+      if (onPath) {
+        const label = onPath.finger > 0 ? `${onPath.degree}·${onPath.finger}` : String(onPath.degree);
+        return { type: onPath.degree === 1 ? 'root' : 'note', label };
+      }
+      return { type: 'note', label: NOTE_NAMES[pc] };
+    }, {
+      onDotClick(ci, f, midi) {
+        if (editDotTap(draftPath, intervals, rootPc, posBase, ci, f, midi)) opts.onDraftChange?.(draftPath);
+      },
+    });
+
+    svg.querySelectorAll('.note-dot').forEach(dot => {
+      const inDraft = draftPath.some(p => p.ci === Number(dot.dataset.course) && p.fret === Number(dot.dataset.fret));
+      dot.classList.toggle('fs-edit-included', inDraft);
+      dot.classList.toggle('fs-edit-excluded', !inDraft);
+    });
+    if (draftPath.length) drawPathOverlay(svg, draftPath, opts.color);
+  }
+
   /**
    * פאנל סולם עם בורר פוזיציה + מיתרים.
    * opts: intervals | frets, rootPc, posBase, stringMode, bases, onChange
@@ -933,6 +1004,7 @@ const FretboardScale = (() => {
     let posBase = opts.posBase ?? 0;
     let stringMode = opts.stringMode ?? 4;
     const rootPc = opts.rootPc ?? 2;
+    const dromosId = opts.dromosId || null;
     const onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
     const ivs = opts.intervals?.length
       ? opts.intervals
@@ -988,6 +1060,78 @@ const FretboardScale = (() => {
       FretboardMirror.mountToggle(bar, { onChange: () => render() });
     }
 
+    let editMode = false;
+    let draft = null;
+    const span = opts.span ?? MELODY_POS_SPAN;
+    const canEdit = !!(dromosId && ivs.length && typeof DromosOverrides !== 'undefined');
+    let editBtn, saveBtn, cancelBtn, resetBtn, badge, posChips, strChips;
+
+    if (canEdit) {
+      const editBar = document.createElement('div');
+      editBar.className = 'fs-edit-bar';
+
+      const mkEditBtn = (label, cls) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn secondary fs-pos-chip ' + cls;
+        b.textContent = label;
+        b.addEventListener('click', (e) => e.stopPropagation());
+        editBar.appendChild(b);
+        return b;
+      };
+
+      editBtn = mkEditBtn('✏️ ערוך פוזיציה', 'fs-edit-toggle');
+      saveBtn = mkEditBtn('💾 שמור', 'fs-edit-save');
+      cancelBtn = mkEditBtn('ביטול', 'fs-edit-cancel');
+      resetBtn = mkEditBtn('↺ אפס להתחלה', 'fs-edit-reset');
+      badge = document.createElement('span');
+      badge.className = 'fs-edit-badge';
+      badge.hidden = true;
+      badge.textContent = '✓ מותאם';
+      editBar.appendChild(badge);
+      bar.appendChild(editBar);
+
+      function setEditUI(active) {
+        editBtn.hidden = active;
+        saveBtn.hidden = !active;
+        cancelBtn.hidden = !active;
+        resetBtn.hidden = !active;
+        posChips = bar.querySelectorAll('.fs-pos-chip[data-base]');
+        strChips = bar.querySelectorAll('.fs-str-chip');
+        posChips.forEach(c => { c.disabled = active; });
+        strChips.forEach(c => { c.disabled = active; });
+      }
+
+      editBtn.addEventListener('click', () => {
+        editMode = true;
+        draft = path.map(p => ({ ...p }));
+        setEditUI(true);
+        render();
+      });
+      saveBtn.addEventListener('click', () => {
+        DromosOverrides.set(dromosId, rootPc, posBase, stringMode, span, draft);
+        editMode = false;
+        draft = null;
+        setEditUI(false);
+        render();
+      });
+      cancelBtn.addEventListener('click', () => {
+        editMode = false;
+        draft = null;
+        setEditUI(false);
+        render();
+      });
+      resetBtn.addEventListener('click', () => {
+        if (!confirm('לאפס את הפוזיציה הזו לברירת המחדל?')) return;
+        DromosOverrides.reset(dromosId, rootPc, posBase, stringMode);
+        editMode = false;
+        draft = null;
+        setEditUI(false);
+        render();
+      });
+      setEditUI(false);
+    }
+
     const board = document.createElement('div');
     board.className = 'fs-pos-board';
 
@@ -1000,7 +1144,13 @@ const FretboardScale = (() => {
         board.innerHTML = '';
         board.appendChild(svg);
       }
-      path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode });
+      if (editMode) {
+        renderEditableDromosScale(svg, ivs, rootPc, draft, { posBase, stringMode, span, onDraftChange: () => render() });
+        path = draft;
+      } else {
+        path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode, dromosId });
+      }
+      if (badge) badge.hidden = !DromosOverrides.has(dromosId, rootPc, posBase, stringMode);
       if (onChange) onChange({ posBase, stringMode, rootPc, path, svg });
     }
 
@@ -1134,6 +1284,8 @@ const FretboardScale = (() => {
     scalePlaySequence,
     fretsOnDToIntervals,
     renderDromosScale,
+    renderEditableDromosScale,
+    editDotTap,
     mountDromosScalePanel,
     mountPosControls,
     coursesForStringMode,

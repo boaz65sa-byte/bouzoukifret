@@ -267,7 +267,7 @@ const ModeQuiz = (() => {
   function playScale() {
     if (!current) return;
     AudioEngine.playModeScale(current.dromos.intervals, rootMidi % 12, {
-      gapMs: 350, gain: 0.48, posBase: 0, stringMode: 4,
+      gapMs: 350, gain: 0.48, posBase: 0, stringMode: 4, dromosId: current.dromos.id,
     });
   }
 
@@ -400,6 +400,7 @@ const ScaleExplorer = (() => {
       _panel = FretboardScale.mountDromosScalePanel(host, {
         intervals: dr.intervals,
         rootPc,
+        dromosId: dr.id,
         posBase: _posBase,
         stringMode: _stringMode,
         onChange(st) {
@@ -445,6 +446,7 @@ const ScaleExplorer = (() => {
       intervals: dr.intervals,
       rootPc,
       nameHe: dr.nameHe,
+      dromosId: dr.id,
       fretboard: _panel?.getSvg?.() || document.querySelector('#fb-explorer'),
       embedded: true,
       posBase: st.posBase,
@@ -462,6 +464,7 @@ const ScaleExplorer = (() => {
     AudioEngine.playModeScale(dr.intervals, rootPc, {
       gapMs: 350,
       gain: 0.48,
+      dromosId: dr.id,
       descending: dir === 'down',
       posBase: st.posBase,
       stringMode: st.stringMode,
@@ -575,7 +578,7 @@ const ScaleChords = (() => {
     // "הכביש" — מסלול מעשי על 1–4 מיתרים + פוזיציות
     const roadHost = document.querySelector('#sc-road-host');
     if (roadHost && typeof DromosRoad !== 'undefined') {
-      DromosRoad.renderInto(roadHost, { intervals: dr.intervals, rootPc, nameHe: dr.nameHe });
+      DromosRoad.renderInto(roadHost, { intervals: dr.intervals, rootPc, nameHe: dr.nameHe, dromosId: dr.id });
     }
 
     degs.querySelectorAll('.sc-hear').forEach(btn => {

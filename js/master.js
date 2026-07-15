@@ -81,7 +81,7 @@ const MasterModes = (() => {
   function buildScale() {
     if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
       const path = FretboardScale.buildScaleDegreePath(
-        dromos.intervals, rootPc, _posBase, FretboardScale.MELODY_POS_SPAN, _stringMode,
+        dromos.intervals, rootPc, _posBase, FretboardScale.MELODY_POS_SPAN, _stringMode, dromos.id,
       );
       return path.map(p => ({
         ci: p.ci,
@@ -114,7 +114,7 @@ const MasterModes = (() => {
 
     if (typeof FretboardScale !== 'undefined' && FretboardScale.renderDromosScale) {
       FretboardScale.renderDromosScale(svg, dromos.intervals, rootPc, {
-        posBase: _posBase, stringMode: _stringMode,
+        posBase: _posBase, stringMode: _stringMode, dromosId: dromos.id,
       });
     } else {
       const pcs = dromos.intervals.map(iv => (rootPc + iv) % 12);

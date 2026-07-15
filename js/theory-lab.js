@@ -656,7 +656,7 @@ const TheoryLab = (() => {
     const stringMode = Number(mode) || 4;
     if (typeof FretboardScale !== 'undefined' && FretboardScale.buildScaleDegreePath) {
       const span = FretboardScale.MELODY_POS_SPAN;
-      const path = FretboardScale.buildScaleDegreePath(dromos.intervals, ROOT_PC, base, span, stringMode);
+      const path = FretboardScale.buildScaleDegreePath(dromos.intervals, ROOT_PC, base, span, stringMode, dromos.id);
       return path.map(p => ({
         ...p,
         isRoot: (p.midi % 12) === ROOT_PC,
@@ -1001,6 +1001,7 @@ const TheoryLab = (() => {
     // הגריף עצמו (גלילה אופקית במובייל)
     const scroll = document.createElement('div');
     scroll.className = 'tl-neck-scroll';
+    scroll.dir = 'ltr';
     const { svg, path, dotByKey } = drawDromosNeck(dromos, _posBase, _neckMode);
     scroll.appendChild(svg);
     card.appendChild(scroll);
@@ -1038,7 +1039,7 @@ const TheoryLab = (() => {
       ensureAudio();
       if (AudioEngine.playModeScale) {
         AudioEngine.playModeScale(dromos.intervals, ROOT_PC, {
-          gain: 0.5, posBase: _posBase, stringMode: _neckMode,
+          gain: 0.5, posBase: _posBase, stringMode: _neckMode, dromosId: dromos.id,
         });
       }
     });

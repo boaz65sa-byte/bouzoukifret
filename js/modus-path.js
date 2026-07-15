@@ -343,6 +343,7 @@ const ModusPath = (() => {
       intervals: ivs,
       rootPc: D_OPEN % 12,
       nameHe: path.name,
+      dromosId: path.id,
       embedded: true,
       posBase: _mpPosBase,
       stringMode: _mpStringMode,
@@ -369,6 +370,7 @@ const ModusPath = (() => {
       intervals: intervals.length ? intervals : undefined,
       frets: intervals.length ? undefined : frets,
       rootPc: D_OPEN % 12,
+      dromosId: path.id,
       posBase: _mpPosBase,
       stringMode: _mpStringMode,
       onChange(st) {
@@ -394,6 +396,7 @@ const ModusPath = (() => {
     AudioEngine.playModeScale(ivs, D_OPEN % 12, {
       gapMs: 320,
       gain: 0.5,
+      dromosId: path.id,
       posBase: st.posBase,
       stringMode: st.stringMode,
       onStep(fret, i, pt) {

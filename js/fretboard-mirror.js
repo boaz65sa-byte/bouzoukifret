@@ -35,6 +35,27 @@ const FretboardMirror = (() => {
     document.addEventListener('fretboard-mirror-change', (e) => fn(e.detail));
   }
 
+  /** אחרי מירור אופקי, התוכן הרלוונטי (למשל מיתר פתוח) עובר לצד הנגדי
+   *  של קנבס רחב-גלילה — בלי זה המשתמש נשאר מסתכל על החלק הריק/הלא-רלוונטי.
+   *  משקף את מיקום הגלילה של כל אלמנט גולל שנמצא בתוך root.
+   *  הדף RTL, ודפדפנים שונים משתמשים במוסכמות scrollLeft שונות ב-RTL
+   *  (טווח [0,max] או [-max,0]) — לכן קובעים את הגבולות בפועל בזמן ריצה
+   *  במקום להניח מוסכמה קבועה. */
+  function mirrorNearbyScroll(root) {
+    if (!root) return;
+    const candidates = [root, ...root.querySelectorAll('*')];
+    candidates.forEach((el) => {
+      if (el.scrollWidth > el.clientWidth + 2) {
+        const cur = el.scrollLeft;
+        el.scrollLeft = 1e6;
+        const posBound = el.scrollLeft;
+        el.scrollLeft = -1e6;
+        const negBound = el.scrollLeft;
+        el.scrollLeft = negBound + posBound - cur;
+      }
+    });
+  }
+
   /** מוסיף שני כפתורי צ'יפ (⇋ אופקי, ⇅ אנכי) ל-host.
    *  opts.onChange() נקרא אחרי כל שינוי — הקורא אחראי לרנדר מחדש. */
   function mountToggle(host, opts = {}) {
@@ -42,7 +63,7 @@ const FretboardMirror = (() => {
     const bar = document.createElement('div');
     bar.className = 'fb-mirror-bar';
 
-    const mk = (label, title, isActive, onClick) => {
+    const mk = (label, title, isActive, onClick, isHorizontal) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn secondary fs-pos-chip fb-mirror-btn' + (isActive() ? ' active' : '');
@@ -54,12 +75,18 @@ const FretboardMirror = (() => {
         onClick();
         b.classList.toggle('active', isActive());
         opts.onChange?.();
+        if (isHorizontal) {
+          // host/bar may have been detached and replaced by onChange's re-render —
+          // anchor on the live active screen, not the (possibly stale) host reference.
+          const scope = document.querySelector('.screen.active') || host.closest('.screen') || host.parentElement || host;
+          mirrorNearbyScroll(scope);
+        }
       });
       return b;
     };
 
-    bar.appendChild(mk('⇋', 'הפוך אופקית (ימין-שמאל, כמו מול מישהו שמנגן)', isH, toggleH));
-    bar.appendChild(mk('⇅', 'הפוך אנכית (מיתר גבוה/נמוך)', isV, toggleV));
+    bar.appendChild(mk('⇋', 'הפוך אופקית (ימין-שמאל, כמו מול מישהו שמנגן)', isH, toggleH, true));
+    bar.appendChild(mk('⇅', 'הפוך אנכית (מיתר גבוה/נמוך)', isV, toggleV, false));
     host.appendChild(bar);
     return bar;
   }

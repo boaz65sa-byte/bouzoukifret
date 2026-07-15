@@ -318,7 +318,7 @@ const DromosVisuals = (() => {
       const dr = opts.dromosId && typeof DROMOI !== 'undefined'
         ? DROMOI.find(d => d.id === opts.dromosId) : null;
       const panelOpts = dr?.intervals
-        ? { intervals: dr.intervals, rootPc: opts.rootPc ?? 2 }
+        ? { intervals: dr.intervals, rootPc: opts.rootPc ?? 2, dromosId: dr.id }
         : { frets: scaleFrets, rootPc: opts.rootPc ?? 2 };
       return FretboardScale.mountDromosScalePanel(container, panelOpts)?.getSvg() ?? null;
     }
@@ -417,13 +417,14 @@ const DromosVisuals = (() => {
       }
       const panel = typeof FretboardScale !== 'undefined' && FretboardScale.mountDromosScalePanel
         ? FretboardScale.mountDromosScalePanel(container, dr?.intervals
-          ? { intervals: dr.intervals, rootPc }
+          ? { intervals: dr.intervals, rootPc, dromosId: dr.id }
           : { frets, rootPc })
         : null;
       if (panel) container._fsPanel = panel;
       AudioEngine.playModeScale(ivs, rootPc, {
         gapMs: gap,
         gain: 0.52,
+        dromosId: dr?.id,
         posBase,
         stringMode,
         onStep(fret, i, p) {

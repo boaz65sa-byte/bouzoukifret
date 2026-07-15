@@ -266,7 +266,7 @@ const DromosLearn = (() => {
       // "הכביש" — מסלול מעשי על 1–4 מיתרים + פוזיציות (רכיב משותף)
       if (dromos && typeof DromosRoad !== 'undefined') {
         DromosRoad.renderInto(section.querySelector(`#dpc-road-${dc.id}`), {
-          intervals: dromos.intervals, rootPc: 2, nameHe: dromos.nameHe || dc.title,
+          intervals: dromos.intervals, rootPc: 2, nameHe: dromos.nameHe || dc.title, dromosId: dromos.id,
         });
       }
 
