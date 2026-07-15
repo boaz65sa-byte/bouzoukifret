@@ -364,6 +364,12 @@ const SongAcademy = (() => {
       if (!hit) return null;
       return { type: f === 0 ? 'root' : 'note', label: String(f) };
     });
+    if (typeof FretboardMirror !== 'undefined' && svg.parentElement) {
+      const wrap = svg.parentElement;
+      if (!wrap.querySelector('.fb-mirror-btn')) {
+        FretboardMirror.mountToggle(wrap, { onChange: () => drawChordBoard(svgId, chordName) });
+      }
+    }
   }
 
   function playPhraseAnimated(frets, scaleFrets, gap = 320) {
@@ -391,7 +397,8 @@ const SongAcademy = (() => {
       i++;
     };
     step();
-    _phraseAnim = { timer: setInterval(step, gap) };
+    const scaledGap = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(gap) : gap;
+    _phraseAnim = { timer: setInterval(step, scaledGap) };
   }
 
   /* ---------- מיקרופון + זיהוי כרומה ---------- */
@@ -734,6 +741,10 @@ const SongAcademy = (() => {
       }
     });
     document.getElementById('sa-dr-phrase').addEventListener('click', () => playPhraseAnimated(s.phrase.frets, dr.frets, 320));
+    if (typeof PlaybackSpeed !== 'undefined') {
+      const btnRow = d.querySelector('.sa-btn-row');
+      if (btnRow) PlaybackSpeed.mountChips(btnRow);
+    }
   }
 
   function tabSvg(frets, color) {

@@ -116,7 +116,7 @@ const AudioEngine = (() => {
   function playModeScale(intervals, rootPc, opts = {}) {
     stopModeScale();
     ensureCtx();
-    const gapMs = opts.gapMs ?? 320;
+    const gapMs = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(opts.gapMs ?? 320) : (opts.gapMs ?? 320);
     const gain = opts.gain ?? 0.5;
     const descending = opts.descending !== false;
     const posBase = opts.posBase ?? 0;

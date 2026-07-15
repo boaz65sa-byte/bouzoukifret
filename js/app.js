@@ -120,15 +120,24 @@ function fretX(fret) {
   // מרווחים מתכווצים כמו בכלי אמיתי
   const usable = FB.width - FB.left - FB.right;
   const ratio = (1 - Math.pow(2, -fret / 12)) / (1 - Math.pow(2, -NUM_FRETS / 12));
-  return FB.left + usable * ratio;
+  const x = FB.left + usable * ratio;
+  if (typeof FretboardMirror !== 'undefined' && FretboardMirror.isH()) {
+    return FB.left + (FB.width - FB.right - x);
+  }
+  return x;
 }
 function fretCenterX(fret) {
-  if (fret === 0) return FB.left - 26;
+  const mirrored = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+  if (fret === 0) return mirrored ? (FB.width - FB.right) + 26 : FB.left - 26;
   return (fretX(fret - 1) + fretX(fret)) / 2;
 }
 function courseY(ci) {
   const usable = FB.height - FB.top - FB.bottom;
-  return FB.top + (ci / (TUNING.length - 1)) * usable;
+  const y = FB.top + (ci / (TUNING.length - 1)) * usable;
+  if (typeof FretboardMirror !== 'undefined' && FretboardMirror.isV()) {
+    return FB.top + (FB.height - FB.bottom - y);
+  }
+  return y;
 }
 
 /* מצייר לוח סריגים. getNoteState(courseIdx, fret, midi) מחזיר:
@@ -269,10 +278,17 @@ function initHome() {
   drawAnatomy();
 
   // לוח סריגים מלא — כל הצלילים
-  drawFretboard($('#fb-home'), (ci, f, midi) => {
+  const fbHome = $('#fb-home');
+  drawFretboard(fbHome, (ci, f, midi) => {
     const name = midiToName(midi);
     return { type: f === 0 ? 'root' : 'note', label: name };
   });
+  if (typeof FretboardMirror !== 'undefined') {
+    const wrap = fbHome.closest('.fretboard-wrap');
+    if (wrap && !wrap.querySelector('.fb-mirror-btn')) {
+      FretboardMirror.mountToggle(wrap, { onChange: () => initHome() });
+    }
+  }
 }
 
 function drawAnatomy() {
@@ -530,6 +546,12 @@ function initDromoi() {
       bar.appendChild(btn);
     });
     $('#dromos-detail')?.insertBefore(bar, $('#dr-degrees'));
+
+    if (typeof PlaybackSpeed !== 'undefined') {
+      const speedBar = document.createElement('div');
+      PlaybackSpeed.mountChips(speedBar);
+      bar.after(speedBar);
+    }
   }
 
   renderDromos();
@@ -643,6 +665,13 @@ function renderDromos() {
     FretboardScale.drawPathOverlay($('#fb-dromos'), scalePath);
   }
   if (AudioEngine.isEnsembleActive()) highlightSafeNotes();
+
+  if (typeof FretboardMirror !== 'undefined') {
+    const fbDromosWrap = $('#fb-dromos').closest('.fretboard-wrap');
+    if (fbDromosWrap && !fbDromosWrap.querySelector('.fb-mirror-btn')) {
+      FretboardMirror.mountToggle(fbDromosWrap, { onChange: () => renderDromos() });
+    }
+  }
 
   // תרגיל מיתר בודד
   renderSingleString();

@@ -100,10 +100,15 @@ const ReferenceCards = (() => {
     const w = padL + colW * 4 + padR;
     const h = padT + rowH * (numFrets + 1) + padB;
 
+    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+    const mirrorV = typeof FretboardMirror !== 'undefined' && FretboardMirror.isV();
+    const colOrder = mirrorH ? [...COL_COURSES].reverse() : COL_COURSES;
+    const colLabels = mirrorH ? [...COL_LABELS].reverse() : COL_LABELS;
+
     const svg = svgEl('svg', { class: 'rc-map-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
 
-    // כותרת עמודות C F A D
-    COL_LABELS.forEach((lbl, col) => {
+    // כותרת עמודות (הפוכות כשממוררים אופקית)
+    colLabels.forEach((lbl, col) => {
       const cx = padL + col * colW + colW / 2;
       svgEl('text', {
         x: cx, y: 19, fill: 'var(--gold)', 'font-size': 16, 'font-weight': 800,
@@ -112,17 +117,18 @@ const ReferenceCards = (() => {
     });
 
     const cells = []; // תאים לחיצים: {el, courseIdx, fret}
+    const fretGutterX = mirrorH ? (padL - 18) : (w - padR + 16);
 
-    for (let fret = 0; fret <= numFrets; fret++) {
-      const y = padT + fret * rowH;
-      // מספר סריג בקצה (ימין ב-RTL — נציב בצד ימני של ה-SVG)
+    for (let row = 0; row <= numFrets; row++) {
+      const fret = mirrorV ? (numFrets - row) : row;   // סריג לוגי — לא מיקום המסך
+      const y = padT + row * rowH;
       svgEl('text', {
-        x: w - padR + 16, y: y + rowH / 2 + 4, fill: 'var(--text-dim)',
+        x: fretGutterX, y: y + rowH / 2 + 4, fill: 'var(--text-dim)',
         'font-size': 10, 'text-anchor': 'middle', 'font-family': 'monospace',
       }, svg).textContent = fret;
 
-      COL_LABELS.forEach((lbl, col) => {
-        const ci = COL_COURSES[col];
+      colLabels.forEach((lbl, col) => {
+        const ci = colOrder[col];
         const x = padL + col * colW;
         const cx = x + colW / 2;
         const cy = y + rowH / 2;
@@ -415,6 +421,9 @@ const ReferenceCards = (() => {
     mapWrap.className = 'rc-map-wrap';
     const { svg, cells } = buildScaleMap(card);
     mapWrap.appendChild(svg);
+    if (typeof FretboardMirror !== 'undefined') {
+      FretboardMirror.mountToggle(mapWrap, { onChange: () => renderCard(host, card) });
+    }
     body.appendChild(mapWrap);
 
     if (typeof FretboardScale !== 'undefined') {

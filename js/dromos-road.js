@@ -79,7 +79,7 @@ const DromosRoad = (() => {
     if (!seq.length) return;
     const stops = stripEl.querySelectorAll('.tl-road-stop');
     let i = 0;
-    const stepMs = 460;
+    const stepMs = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(460) : 460;
     if (btn) { btn.dataset.was = btn.textContent; btn.textContent = '■ עצור'; btn.classList.add('playing'); }
     const n = road.length;
     const tick = () => {
@@ -254,6 +254,10 @@ const DromosRoad = (() => {
     bRt.textContent = '🔁 הלוך-חזור';
     btns.appendChild(bUp); btns.appendChild(bRt);
     container.appendChild(btns);
+
+    if (typeof PlaybackSpeed !== 'undefined') {
+      PlaybackSpeed.mountChips(container);
+    }
 
     let strip = null;
 

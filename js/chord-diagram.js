@@ -15,6 +15,10 @@ const ChordDiagram = (() => {
   }
 
   function draw(svg, { name, shape, numFrets = 5, compact = false, showFretNumbers = true }) {
+    svg.innerHTML = '';
+    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+    const order = mirrorH ? [...SHAPE_IDX].reverse() : SHAPE_IDX;
+    const labels = mirrorH ? [...LABELS].reverse() : LABELS;
     const strW = compact ? 20 : 22;
     const frH = compact ? 17 : 19;
     const padT = compact ? 28 : 34;
@@ -41,7 +45,7 @@ const ChordDiagram = (() => {
       svgEl('text', {
         x, y: h - 1, fill: '#5a7187', 'font-size': compact ? 8.5 : 9.5,
         'text-anchor': 'middle', 'font-family': 'Heebo',
-      }, svg).textContent = LABELS[s];
+      }, svg).textContent = labels[s];
     }
 
     svgEl('line', {
@@ -66,7 +70,7 @@ const ChordDiagram = (() => {
     }
 
     for (let s = 0; s < 4; s++) {
-      const fret = fretAtShape(shape, s);
+      const fret = shape[order[s]];
       const x = padL + s * strW;
       if (fret === 'x') {
         svgEl('text', {
@@ -112,6 +116,11 @@ const ChordDiagram = (() => {
         AudioEngine.strumChord(chord.shape, 'd', 0, opts.volume ?? 0.55);
       });
     }
+    if (typeof FretboardMirror !== 'undefined' && opts.mirrorToggle !== false) {
+      FretboardMirror.mountToggle(wrap, {
+        onChange: () => draw(svg, { name: chordName, shape: chord.shape, compact: false }),
+      });
+    }
     container.appendChild(wrap);
     return wrap;
   }
@@ -121,6 +130,9 @@ const ChordDiagram = (() => {
     const data = typeof CHORDS !== 'undefined' ? CHORDS[chordName] : null;
     if (!data) return '';
     const shape = data.shape;
+    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+    const order = mirrorH ? [...SHAPE_IDX].reverse() : SHAPE_IDX;
+    const labels = mirrorH ? [...LABELS].reverse() : LABELS;
     const w = 52, h = 72;
     const left = 10, top = 16, sw = 10, sh = 12;
     let svg = `<svg viewBox="0 0 ${w} ${h}" class="chord-mini-svg">`;
@@ -133,10 +145,10 @@ const ChordDiagram = (() => {
     for (let s = 0; s < 4; s++) {
       const x = left + s * sw;
       svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + 4 * sh}" stroke="var(--text-dim)" stroke-width="0.8"/>`;
-      svg += `<text x="${x}" y="${h - 2}" text-anchor="middle" fill="var(--text-dim)" font-size="6" font-family="Heebo,sans-serif">${LABELS[s]}</text>`;
+      svg += `<text x="${x}" y="${h - 2}" text-anchor="middle" fill="var(--text-dim)" font-size="6" font-family="Heebo,sans-serif">${labels[s]}</text>`;
     }
     for (let s = 0; s < 4; s++) {
-      const fret = fretAtShape(shape, s);
+      const fret = shape[order[s]];
       const x = left + s * sw;
       if (fret === 'x') {
         svg += `<text x="${x}" y="${top - 3}" text-anchor="middle" fill="var(--accent-red)" font-size="8">x</text>`;

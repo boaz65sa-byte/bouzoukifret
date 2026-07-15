@@ -399,7 +399,8 @@ const TheoryLab = (() => {
     btn.classList.add('playing');
     _pickCells = stripEl ? Array.from(stripEl.querySelectorAll('.psm-cell')) : null;
 
-    const stepMs = (60 / Math.max(30, bpm)) * 1000 / 2; // שמיניות
+    const baseStepMs = (60 / Math.max(30, bpm)) * 1000 / 2; // שמיניות
+    const stepMs = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(baseStepMs) : baseStepMs;
     let i = 0;
 
     const tick = () => {
@@ -675,6 +676,19 @@ const TheoryLab = (() => {
     const w = padL + fretW * NECK_FRETS + padR;
     const h = padT + rowH * 3 + padB;
 
+    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+    const mirrorV = typeof FretboardMirror !== 'undefined' && FretboardMirror.isV();
+    const neckRight = padL + fretW * NECK_FRETS;
+    function neckX(f) {
+      const x = padL + f * fretW;
+      return mirrorH ? (padL + (neckRight - x)) : x;
+    }
+    function neckCenterX(f) {
+      if (f === 0) return mirrorH ? neckRight + 22 : padL - 22;
+      return (neckX(f - 1) + neckX(f)) / 2;
+    }
+    function displayRow(row) { return mirrorV ? (3 - row) : row; }
+
     const svg = svgEl('svg', { class: 'tl-neck-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
 
     // רקע עץ
@@ -684,23 +698,24 @@ const TheoryLab = (() => {
     if (mode !== 4) {
       ROW_COURSES.forEach((ci, row) => {
         if (!activeCourses.has(ci)) return;
-        svgEl('rect', { x: padL - 6, y: padT + row * rowH - rowH / 2 + 6, width: fretW * NECK_FRETS + 12, height: rowH, fill: '#e3b341', opacity: 0.1 }, svg);
+        const dr = displayRow(row);
+        svgEl('rect', { x: padL - 6, y: padT + dr * rowH - rowH / 2 + 6, width: fretW * NECK_FRETS + 12, height: rowH, fill: '#e3b341', opacity: 0.1 }, svg);
       });
     }
 
     // אינליי נקודות
     [3, 5, 7, 12].forEach(f => {
       if (f > NECK_FRETS) return;
-      const cx = padL + (f - 0.5) * fretW;
+      const cx = neckCenterX(f);
       svgEl('circle', { cx, cy: padT + rowH * 1.5, r: 4, fill: '#d8c9a0', opacity: 0.35 }, svg);
     });
 
     // סריגים אנכיים + מספרים
     for (let f = 0; f <= NECK_FRETS; f++) {
-      const x = padL + f * fretW;
+      const x = neckX(f);
       svgEl('line', { x1: x, y1: padT - 4, x2: x, y2: padT + rowH * 3 + 4, stroke: f === 0 ? '#e8d9b0' : '#8a8378', 'stroke-width': f === 0 ? 5 : 1.4, opacity: f === 0 ? 1 : 0.6 }, svg);
       if (f > 0) {
-        svgEl('text', { x: padL + (f - 0.5) * fretW, y: h - 8, fill: '#7d92a8', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = f;
+        svgEl('text', { x: neckCenterX(f), y: h - 8, fill: '#7d92a8', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = f;
       }
     }
 
@@ -708,13 +723,14 @@ const TheoryLab = (() => {
     const dotByKey = {};
 
     ROW_COURSES.forEach((ci, row) => {
-      const y = padT + row * rowH;
+      const y = padT + displayRow(row) * rowH;
       // קו מיתר
-      svgEl('line', { x1: padL - 4, y1: y, x2: w - padR, y2: y, stroke: '#b8b0a0', 'stroke-width': 1 + (3 - row) * 0.5, opacity: 0.85 }, svg);
+      svgEl('line', { x1: padL - 4, y1: y, x2: w - padR, y2: y, stroke: '#b8b0a0', 'stroke-width': 1 + ci * 0.5, opacity: 0.85 }, svg);
       // תווית מיתר (note + מספר מיתר)
       const stringNo = TUNING[ci].course; // 1=D ... 4=C
-      svgEl('text', { x: 30, y: y - 4, fill: '#e3b341', 'font-size': 15, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = TUNING[ci].note;
-      svgEl('text', { x: 30, y: y + 11, fill: '#7d92a8', 'font-size': 9, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = 'מיתר ' + stringNo;
+      const labelX = mirrorH ? (w - 30) : 30;
+      svgEl('text', { x: labelX, y: y - 4, fill: '#e3b341', 'font-size': 15, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = TUNING[ci].note;
+      svgEl('text', { x: labelX, y: y + 11, fill: '#7d92a8', 'font-size': 9, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = 'מיתר ' + stringNo;
 
       // צלילי הסולם על המיתר
       const openMidi = TUNING[ci].midi;
@@ -722,7 +738,7 @@ const TheoryLab = (() => {
         const midi = openMidi + f;
         const pc = ((midi % 12) + 12) % 12;
         if (!pcs.has(pc)) continue;
-        const cx = f === 0 ? padL - 22 : padL + (f - 0.5) * fretW;
+        const cx = neckCenterX(f);
         const isRoot = pc === ROOT_PC;
         const isIn = inPath.has(ci + '-' + f);
         const dim = (Number(mode) !== 4 && !activeCourses.has(ci));
@@ -755,14 +771,14 @@ const TheoryLab = (() => {
     if (path.length) {
       const pts = path.map(p => {
         const row = ROW_COURSES.indexOf(p.ci);
-        const x = p.fret === 0 ? padL - 22 : padL + (p.fret - 0.5) * fretW;
-        const y = padT + row * rowH;
+        const x = neckCenterX(p.fret);
+        const y = padT + displayRow(row) * rowH;
         return { x, y };
       });
       const poly = pts.map(pt => pt.x + ',' + pt.y).join(' ');
       svgEl('polyline', { points: poly, fill: 'none', stroke: '#f0cc74', 'stroke-width': 2, 'stroke-dasharray': '4 3', opacity: 0.7 }, svg);
       pts.forEach((pt, i) => {
-        svgEl('text', { x: pt.x + 11, y: pt.y - 10, fill: '#f0cc74', 'font-size': 10, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'monospace', style: 'pointer-events:none' }, svg).textContent = i + 1;
+        svgEl('text', { x: pt.x + (mirrorH ? -11 : 11), y: pt.y - 10, fill: '#f0cc74', 'font-size': 10, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'monospace', style: 'pointer-events:none' }, svg).textContent = i + 1;
       });
     }
 
@@ -822,7 +838,8 @@ const TheoryLab = (() => {
     if (!Array.isArray(path) || !path.length) return;
     _seqBtn = btn;
     if (btn) { btn.textContent = '■ עצור'; btn.classList.add('playing'); }
-    const stepMs = Math.max(180, (60 / Math.max(40, bpm || 90)) * 1000);
+    const baseStepMs = Math.max(180, (60 / Math.max(40, bpm || 90)) * 1000);
+    const stepMs = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(baseStepMs) : baseStepMs;
     let i = 0;
     const tick = () => {
       _seqDots && _seqDots.forEach(d => d.classList.remove('tl-neck-active'));
@@ -977,6 +994,10 @@ const TheoryLab = (() => {
     });
     card.appendChild(posWrap);
 
+    if (typeof FretboardMirror !== 'undefined') {
+      FretboardMirror.mountToggle(card, { onChange: () => renderBody(body, edu) });
+    }
+
     // הגריף עצמו (גלילה אופקית במובייל)
     const scroll = document.createElement('div');
     scroll.className = 'tl-neck-scroll';
@@ -1023,6 +1044,12 @@ const TheoryLab = (() => {
     });
     btns.appendChild(bScale);
     card.appendChild(btns);
+
+    if (typeof PlaybackSpeed !== 'undefined') {
+      const speedBar = document.createElement('div');
+      PlaybackSpeed.mountChips(speedBar);
+      card.appendChild(speedBar);
+    }
 
     if (dromos.tips) card.appendChild(infoLine('💡', dromos.tips));
     if (dromos.chords) card.appendChild(infoLine('🎸', 'אקורדים מתאימים: ' + dromos.chords));

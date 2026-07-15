@@ -788,6 +788,9 @@ const FretboardScale = (() => {
     });
 
     if (opts.drawPath !== false) drawMelodyConnections(svg, path, opts.color || '#f0cc74');
+    if (typeof FretboardMirror !== 'undefined') {
+      FretboardMirror.mountToggle(container, { onChange: () => mountMelody(container, opts) });
+    }
     return { svg, remapped, path, base };
   }
 
@@ -876,6 +879,9 @@ const FretboardScale = (() => {
     }));
 
     if (opts.drawPath !== false) drawPathOverlay(svg, path, opts.color || '#f0cc74');
+    if (typeof FretboardMirror !== 'undefined') {
+      FretboardMirror.mountToggle(container, { onChange: () => mount(container, opts) });
+    }
     return svg;
   }
 
@@ -977,6 +983,10 @@ const FretboardScale = (() => {
       });
       bar.appendChild(btn);
     });
+
+    if (typeof FretboardMirror !== 'undefined') {
+      FretboardMirror.mountToggle(bar, { onChange: () => render() });
+    }
 
     const board = document.createElement('div');
     board.className = 'fs-pos-board';

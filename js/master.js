@@ -133,6 +133,13 @@ const MasterModes = (() => {
         }
       });
     }
+
+    if (typeof FretboardMirror !== 'undefined') {
+      const wrap = svg.closest('.fretboard-wrap');
+      if (wrap && !wrap.querySelector('.fb-mirror-btn')) {
+        FretboardMirror.mountToggle(wrap, { onChange: () => drawModeFretboard() });
+      }
+    }
   }
 
   function updateUI() {
@@ -663,7 +670,17 @@ const MasterChords = (() => {
 
   function drawChordFretboard() {
     const chord = chords[idx];
-    if (!chord) { drawFretboard($('#fb-master-chords'), () => null); return; }
+    if (!chord) {
+      const svgEmpty = $('#fb-master-chords');
+      drawFretboard(svgEmpty, () => null);
+      if (typeof FretboardMirror !== 'undefined') {
+        const wrapEmpty = svgEmpty.closest('.fretboard-wrap');
+        if (wrapEmpty && !wrapEmpty.querySelector('.fb-mirror-btn')) {
+          FretboardMirror.mountToggle(wrapEmpty, { onChange: () => drawChordFretboard() });
+        }
+      }
+      return;
+    }
 
     drawFretboard($('#fb-master-chords'), (ci, f, midi) => {
       if (chord.frets[ci] !== f) return null;
@@ -682,6 +699,13 @@ const MasterChords = (() => {
         dot.classList.add(detected.has(pc) ? 'mc-hit' : 'mc-target');
       }
     });
+
+    if (typeof FretboardMirror !== 'undefined') {
+      const wrap = svg.closest('.fretboard-wrap');
+      if (wrap && !wrap.querySelector('.fb-mirror-btn')) {
+        FretboardMirror.mountToggle(wrap, { onChange: () => drawChordFretboard() });
+      }
+    }
   }
 
   function updateUI() {
@@ -823,6 +847,13 @@ const MasterChords = (() => {
     $('#mc-start').addEventListener('click', () => running ? stopGame() : startGame());
     $('#mc-play-chord').addEventListener('click', playChord);
     drawFretboard($('#fb-master-chords'), () => null);
+    if (typeof FretboardMirror !== 'undefined') {
+      const svgInit = $('#fb-master-chords');
+      const wrapInit = svgInit.closest('.fretboard-wrap');
+      if (wrapInit && !wrapInit.querySelector('.fb-mirror-btn')) {
+        FretboardMirror.mountToggle(wrapInit, { onChange: () => drawChordFretboard() });
+      }
+    }
   }
 
   return { init, stop: stopGame };
