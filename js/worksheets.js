@@ -56,47 +56,22 @@ const Worksheets = (() => {
     return { latin, he, pc };
   }
 
-  /* ---------- ציור דיאגרמת אקורד (SVG) — אנכי, צבעוני להדפסה ---------- */
+  /* ---------- ציור דיאגרמת אקורד — אותו מנוע ChordDiagram כמו בשיעורים,
+     בערכת צבעים 'print' (ניגודיות גבוהה על נייר לבן) ---------- */
   function chordSvg(chord) {
-    const frets = chord.frets; // [C,F,A,D]
-    const cols = [3, 2, 1, 0];   // תצוגה D A F C
-    const labels = ['D', 'A', 'F', 'C'];
-    const nums = frets.filter(f => typeof f === 'number' && f > 0);
-    const maxF = nums.length ? Math.max(...nums) : 0;
-    const minF = nums.length ? Math.min(...nums) : 1;
-    const startF = maxF > 5 ? Math.max(1, minF - 1) : 0; // הצג מאזור הצורה
-    const numFrets = 5;
-    const strW = 26, frH = 26, padT = 30, padL = 22, padR = 14, padB = 18;
-    const w = padL + strW * 3 + padR, h = padT + frH * numFrets + padB;
-    let s = `<svg viewBox="0 0 ${w} ${h}" class="ws-chord-svg" xmlns="http://www.w3.org/2000/svg">`;
-    // מיתרים
-    for (let i = 0; i < 4; i++) {
-      const x = padL + i * strW;
-      s += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + frH * numFrets}" stroke="#9aa7b4" stroke-width="1.2"/>`;
-      s += `<text x="${x}" y="${h - 4}" fill="#444" font-size="11" font-weight="700" text-anchor="middle" font-family="Heebo,sans-serif">${labels[i]}</text>`;
-    }
-    // אגוז/סריגים
-    if (startF === 0) s += `<line x1="${padL - 3}" y1="${padT}" x2="${padL + strW * 3 + 3}" y2="${padT}" stroke="#222" stroke-width="4"/>`;
-    else s += `<text x="${padL - 10}" y="${padT + frH * 0.6}" fill="#b5651d" font-size="10" font-weight="800" font-family="monospace" text-anchor="end">${startF + 1}</text>`;
-    for (let f = 1; f <= numFrets; f++) {
-      s += `<line x1="${padL}" y1="${padT + f * frH}" x2="${padL + strW * 3}" y2="${padT + f * frH}" stroke="#c9c2b4" stroke-width="1"/>`;
-    }
-    // נקודות
-    cols.forEach((cfadIdx, col) => {
-      const x = padL + col * strW;
-      const fr = frets[cfadIdx];
-      if (fr === 'x') { s += `<text x="${x}" y="${padT - 8}" fill="#c0392b" font-size="14" font-weight="800" text-anchor="middle">×</text>`; return; }
-      if (typeof fr !== 'number') return;
-      if (fr === 0) { s += `<circle cx="${x}" cy="${padT - 9}" r="5" fill="none" stroke="#2e8b57" stroke-width="1.8"/>`; return; }
-      const rel = fr - startF;
-      if (rel < 1 || rel > numFrets) return;
-      const cy = padT + (rel - 0.5) * frH;
-      const isRoot = ((OPEN_MIDI[cfadIdx] + fr) % 12) === (rootOfChord(chord));
-      s += `<circle cx="${x}" cy="${cy}" r="9" fill="${isRoot ? '#c0392b' : '#e6951c'}" stroke="#7a4a06" stroke-width="1"/>`;
-      s += `<text x="${x}" y="${cy + 3.5}" fill="#fff" font-size="10" font-weight="800" text-anchor="middle" font-family="Heebo,sans-serif">${fr}</text>`;
-    });
-    s += `</svg>`;
-    return s;
+    if (typeof ChordDiagram === 'undefined' || !ChordDiagram.draw) return '';
+    const tmp = document.createElement('div');
+    tmp.setAttribute('aria-hidden', 'true');
+    tmp.style.cssText = 'position:fixed;left:-10000px;top:0;overflow:visible;pointer-events:none;';
+    document.body.appendChild(tmp);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.classList.add('ws-chord-svg');
+    tmp.appendChild(svg);
+    ChordDiagram.draw(svg, { shape: chord.frets, theme: 'print', rootPc: rootOfChord(chord) });
+    const html = svg.outerHTML;
+    tmp.remove();
+    return html;
   }
   function rootOfChord(chord) {
     const m = String(chord.name).match(/^([A-G][#b]?)/);

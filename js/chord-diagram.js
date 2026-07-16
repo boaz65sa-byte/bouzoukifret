@@ -14,8 +14,24 @@ const ChordDiagram = (() => {
     return shape[SHAPE_IDX[displayIdx]];
   }
 
-  function draw(svg, { name, shape, numFrets = 5, compact = false, showFretNumbers = true }) {
+  /** צבעים לפי ערכת נושא: 'dark' (ברירת מחדל, בתוך האפליקציה) או
+   *  'print' (ניגודיות גבוהה על רקע לבן, לדפי עבודה מודפסים). */
+  const THEMES = {
+    dark: {
+      title: '#f0cc74', string: '#8fa6bc', fretLabel: '#5a7187', fretLabelUsed: '#e3b341',
+      nut: '#e8d9b0', fretLine: '#3b566f', mute: '#d96459', open: '#5fc88f',
+      note: '#e3b341', noteRoot: '#e3b341', noteText: '#1a1408',
+    },
+    print: {
+      title: '#1a1a1a', string: '#9aa7b4', fretLabel: '#444', fretLabelUsed: '#b5651d',
+      nut: '#222', fretLine: '#c9c2b4', mute: '#c0392b', open: '#2e8b57',
+      note: '#e6951c', noteRoot: '#c0392b', noteText: '#fff',
+    },
+  };
+
+  function draw(svg, { name, shape, numFrets = 5, compact = false, showFretNumbers = true, theme = 'dark', rootPc = null }) {
     svg.innerHTML = '';
+    const C = THEMES[theme] || THEMES.dark;
     const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
     const order = mirrorH ? [...SHAPE_IDX].reverse() : SHAPE_IDX;
     const labels = mirrorH ? [...LABELS].reverse() : LABELS;
@@ -31,7 +47,7 @@ const ChordDiagram = (() => {
     if (name) {
       svgEl('text', {
         x: padL + strW * 1.5, y: compact ? 12 : 14,
-        fill: '#f0cc74', 'font-size': titleSize, 'font-weight': 800,
+        fill: C.title, 'font-size': titleSize, 'font-weight': 800,
         'text-anchor': 'middle', 'font-family': 'Heebo',
       }, svg).textContent = name;
     }
@@ -40,29 +56,29 @@ const ChordDiagram = (() => {
       const x = padL + s * strW;
       svgEl('line', {
         x1: x, y1: padT, x2: x, y2: padT + frH * numFrets,
-        stroke: '#8fa6bc', 'stroke-width': compact ? 1 : 1.2,
+        stroke: C.string, 'stroke-width': compact ? 1 : 1.2,
       }, svg);
       svgEl('text', {
-        x, y: h - 1, fill: '#5a7187', 'font-size': compact ? 8.5 : 9.5,
+        x, y: h - 1, fill: C.fretLabel, 'font-size': compact ? 8.5 : 9.5,
         'text-anchor': 'middle', 'font-family': 'Heebo',
       }, svg).textContent = labels[s];
     }
 
     svgEl('line', {
       x1: padL - 2, y1: padT, x2: padL + strW * 3 + 2, y2: padT,
-      stroke: '#e8d9b0', 'stroke-width': compact ? 3 : 3.5,
+      stroke: C.nut, 'stroke-width': compact ? 3 : 3.5,
     }, svg);
 
     for (let f = 1; f <= numFrets; f++) {
       svgEl('line', {
         x1: padL, y1: padT + f * frH, x2: padL + strW * 3, y2: padT + f * frH,
-        stroke: '#3b566f', 'stroke-width': compact ? 0.8 : 1,
+        stroke: C.fretLine, 'stroke-width': compact ? 0.8 : 1,
       }, svg);
       if (showFretNumbers && !compact) {
         const used = shape.some(v => v !== 'x' && Number(v) === f);
         svgEl('text', {
           x: padL - 10, y: padT + (f - 0.5) * frH + 3.5,
-          fill: used ? '#e3b341' : '#5a7187',
+          fill: used ? C.fretLabelUsed : C.fretLabel,
           'font-size': 10, 'font-weight': used ? 800 : 400,
           'text-anchor': 'middle', 'font-family': 'Heebo',
         }, svg).textContent = f;
@@ -72,24 +88,27 @@ const ChordDiagram = (() => {
     for (let s = 0; s < 4; s++) {
       const fret = shape[order[s]];
       const x = padL + s * strW;
+      const openMidi = (typeof TUNING !== 'undefined') ? TUNING[3 - order[s]].midi : null;
+      const isRoot = rootPc != null && openMidi != null && fret !== 'x'
+        && (((openMidi + fret) % 12 + 12) % 12) === (((rootPc % 12) + 12) % 12);
       if (fret === 'x') {
         svgEl('text', {
-          x, y: padT - (compact ? 4 : 5), fill: '#d96459',
+          x, y: padT - (compact ? 4 : 5), fill: C.mute,
           'font-size': compact ? 10 : 11, 'font-weight': 700,
           'text-anchor': 'middle', 'font-family': 'Heebo',
         }, svg).textContent = '×';
       } else if (fret === 0) {
         svgEl('circle', {
           cx: x, cy: padT - (compact ? 7 : 9), r: compact ? 3.5 : 4,
-          fill: 'none', stroke: '#5fc88f', 'stroke-width': compact ? 1.4 : 1.6,
+          fill: isRoot ? C.noteRoot : 'none', stroke: isRoot ? C.noteRoot : C.open, 'stroke-width': compact ? 1.4 : 1.6,
         }, svg);
       } else {
         svgEl('circle', {
-          cx: x, cy: padT + (fret - 0.5) * frH, r: compact ? 6 : 7, fill: '#e3b341',
+          cx: x, cy: padT + (fret - 0.5) * frH, r: compact ? 6 : 7, fill: isRoot ? C.noteRoot : C.note,
         }, svg);
         svgEl('text', {
           x, y: padT + (fret - 0.5) * frH + (compact ? 3 : 3.5),
-          fill: '#1a1408', 'font-size': compact ? 8.5 : 9.5, 'font-weight': 800,
+          fill: C.noteText, 'font-size': compact ? 8.5 : 9.5, 'font-weight': 800,
           'text-anchor': 'middle', 'font-family': 'Heebo',
         }, svg).textContent = fret;
       }
