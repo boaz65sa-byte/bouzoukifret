@@ -1271,32 +1271,47 @@ const FretboardScale = (() => {
     const rootPc = opts.rootPc ?? 2;
     const ivs = opts.intervals || null;
     const onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
+    const positionsFn = typeof opts.positionsFn === 'function' ? opts.positionsFn : null;
     container.innerHTML = '';
     const bar = document.createElement('div');
     bar.className = 'fs-pos-bar';
-    bar.innerHTML = '<span class="fs-pos-label">פוזיציה:</span>';
-    const bases = opts.bases || MELODY_BASES.filter(b => b <= 9);
+    if (opts.barId) bar.id = opts.barId;
+    bar.innerHTML = `<span class="fs-pos-label">${opts.posLabel || 'פוזיציה:'}</span>`;
+    const staticBases = opts.bases || MELODY_BASES.filter(b => b <= 9);
     const span = opts.span ?? MELODY_POS_SPAN;
     const fire = () => { if (onChange) onChange({ posBase, stringMode }); };
-    bases.forEach(b => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn secondary fs-pos-chip' + (b === posBase ? ' active' : '');
-      btn.textContent = b === 0 ? 'פתוח' : String(b);
-      btn.dataset.base = String(b);
-      btn.addEventListener('click', () => {
-        posBase = b;
-        bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
-          x.classList.toggle('active', Number(x.dataset.base) === b);
-        });
-        fire();
-      });
-      bar.appendChild(btn);
-    });
+
     const strLbl = document.createElement('span');
     strLbl.className = 'fs-pos-label';
     strLbl.style.marginInlineStart = '12px';
     strLbl.textContent = 'מיתרים:';
+
+    function renderPosChips() {
+      bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => x.remove());
+      const bases = positionsFn ? positionsFn(stringMode) : staticBases;
+      if (!bases.includes(posBase)) posBase = bases[0];
+      // strLbl.isConnected: false on the first call (not yet appended, so insertBefore(btn,null)
+      // behaves like appendChild — chips land right after "פוזיציה:"); true on later re-renders
+      // (string-mode change), so new chips land back in front of the "מיתרים:" label.
+      const before = strLbl.isConnected ? strLbl : null;
+      bases.forEach(b => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn secondary fs-pos-chip' + (b === posBase ? ' active' : '');
+        btn.textContent = b === 0 ? 'פתוח' : String(b);
+        btn.dataset.base = String(b);
+        btn.addEventListener('click', () => {
+          posBase = b;
+          bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+            x.classList.toggle('active', Number(x.dataset.base) === b);
+          });
+          fire();
+        });
+        bar.insertBefore(btn, before);
+      });
+    }
+
+    renderPosChips();
     bar.appendChild(strLbl);
     [1, 2, 3, 4].forEach(n => {
       const btn = document.createElement('button');
@@ -1304,10 +1319,13 @@ const FretboardScale = (() => {
       btn.className = 'btn secondary fs-pos-chip fs-str-chip' + (n === stringMode ? ' active' : '');
       btn.textContent = String(n);
       btn.dataset.str = String(n);
+      btn.title = n === 1 ? 'מיתר D בלבד' : `${n} מיתרים`;
       btn.addEventListener('click', () => {
         stringMode = n;
-        if (ivs?.length) {
-          posBase = findBestPositionForStringMode(ivs, rootPc, n, bases, span);
+        if (positionsFn) {
+          renderPosChips();
+        } else if (ivs?.length) {
+          posBase = findBestPositionForStringMode(ivs, rootPc, n, staticBases, span);
           bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
             x.classList.toggle('active', Number(x.dataset.base) === posBase);
           });

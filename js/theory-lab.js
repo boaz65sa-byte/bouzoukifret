@@ -74,11 +74,13 @@ const TheoryLab = (() => {
      shape = frets array [C,F,A,D] (index0=C). מוצג משמאל לימין: D A F C
      ============================================================ */
   function buildChordDiagram(chord) {
-    // המרת frets [C,F,A,D] לסדר תצוגה D A F C (גבוה→נמוך, שמאל→ימין)
+    // המרת frets [C,F,A,D] לסדר תצוגה D A F C (גבוה→נמוך, שמאל→ימין) — או הפוך כשמראה אופקית פעילה
     const fretsCFAD = Array.isArray(chord.frets) ? chord.frets : [0, 0, 0, 0];
-    // עמודות תצוגה: [D, A, F, C] => fretsCFAD index [3,2,1,0]
-    const cols = [3, 2, 1, 0];
-    const colLabels = ['D', 'A', 'F', 'C'];
+    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
+    const mirrorV = typeof FretboardMirror !== 'undefined' && FretboardMirror.isV();
+    // עמודות תצוגה: [D, A, F, C] => fretsCFAD index [3,2,1,0] (או הפוך במירור אופקי)
+    const cols = mirrorH ? [0, 1, 2, 3] : [3, 2, 1, 0];
+    const colLabels = mirrorH ? ['C', 'F', 'A', 'D'] : ['D', 'A', 'F', 'C'];
 
     // קבע טווח סריגים. תמיכה בערכי בארה 'B' / 'B-1' (לא מספריים) — נסמן כ-? ולא נצייר נקודה
     const numericFrets = fretsCFAD.filter(f => typeof f === 'number' && f > 0);
@@ -88,6 +90,10 @@ const TheoryLab = (() => {
     const strW = 30, frH = 30, padT = 40, padL = 30, padR = 16, padB = 14;
     const w = padL + strW * 3 + padR;
     const h = padT + frH * numFrets + padB;
+    // dot/label y לפי סריג, וקו הנוט — הופכים סביב מרכז הצוואר כש-mirrorV פעיל
+    const dotY = (f) => mirrorV ? padT + (numFrets - f + 0.5) * frH : padT + (f - 0.5) * frH;
+    const lineY = (f) => mirrorV ? padT + (numFrets - f) * frH : padT + f * frH;
+    const nutY = mirrorV ? padT + frH * numFrets : padT;
 
     const svg = svgEl('svg', { class: 'tl-chord-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
 
@@ -108,15 +114,15 @@ const TheoryLab = (() => {
     }
 
     // אגוז (nut)
-    svgEl('line', { x1: padL - 3, y1: padT, x2: padL + strW * 3 + 3, y2: padT, stroke: '#e8d9b0', 'stroke-width': 4 }, svg);
+    svgEl('line', { x1: padL - 3, y1: nutY, x2: padL + strW * 3 + 3, y2: nutY, stroke: '#e8d9b0', 'stroke-width': 4 }, svg);
     // סריגים
     for (let f = 1; f <= numFrets; f++) {
-      svgEl('line', { x1: padL, y1: padT + f * frH, x2: padL + strW * 3, y2: padT + f * frH, stroke: '#3b566f', 'stroke-width': 1 }, svg);
+      svgEl('line', { x1: padL, y1: lineY(f), x2: padL + strW * 3, y2: lineY(f), stroke: '#3b566f', 'stroke-width': 1 }, svg);
     }
     // מספרי סריג בצד
     for (let f = 1; f <= numFrets; f++) {
       svgEl('text', {
-        x: padL + strW * 3 + 9, y: padT + (f - 0.5) * frH + 4, fill: '#5a708a',
+        x: padL + strW * 3 + 9, y: dotY(f) + 4, fill: '#5a708a',
         'font-size': 9, 'text-anchor': 'middle', 'font-family': 'monospace',
       }, svg).textContent = f;
     }
@@ -125,11 +131,12 @@ const TheoryLab = (() => {
     cols.forEach((cfadIdx, col) => {
       const x = padL + col * strW;
       const fret = fretsCFAD[cfadIdx];
-      const courseIdx = col; // עמודה 0=D=>course0, 1=A=>1, 2=F=>2, 3=C=>3
+      const courseIdx = mirrorH ? (3 - col) : col; // עמודה 0=D=>course0, 1=A=>1, 2=F=>2, 3=C=>3 (הפוך במירור)
+      const markY = mirrorV ? nutY + 10 : nutY - 8;
 
       if (fret === 'x') {
         svgEl('text', {
-          x, y: padT - 8, fill: '#d96459', 'font-size': 14, 'font-weight': 800,
+          x, y: markY, fill: '#d96459', 'font-size': 14, 'font-weight': 800,
           'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif',
         }, svg).textContent = '×';
         return;
@@ -137,18 +144,18 @@ const TheoryLab = (() => {
       if (typeof fret !== 'number') {
         // ערך בארה לא-מספרי (למשל 'B' / 'B-1') — סמן בסימן שאלה מעל
         svgEl('text', {
-          x, y: padT - 8, fill: 'var(--gold)', 'font-size': 12, 'font-weight': 800,
+          x, y: markY, fill: 'var(--gold)', 'font-size': 12, 'font-weight': 800,
           'text-anchor': 'middle', 'font-family': 'monospace',
         }, svg).textContent = String(fret);
         return;
       }
       if (fret === 0) {
-        const o = svgEl('circle', { cx: x, cy: padT - 10, r: 5, fill: 'none', stroke: '#5fc88f', 'stroke-width': 1.6, class: 'tl-dot tl-open' }, svg);
+        const o = svgEl('circle', { cx: x, cy: mirrorV ? nutY + 10 : nutY - 10, r: 5, fill: 'none', stroke: '#5fc88f', 'stroke-width': 1.6, class: 'tl-dot tl-open' }, svg);
         o.style.cursor = 'pointer';
         o.dataset.course = courseIdx; o.dataset.fret = 0;
         dots.push({ el: o, courseIdx, fret: 0 });
       } else {
-        const cy = padT + (Math.min(fret, numFrets) - 0.5) * frH;
+        const cy = dotY(Math.min(fret, numFrets));
         const c = svgEl('circle', { cx: x, cy, r: 9, fill: 'var(--gold)', class: 'tl-dot' }, svg);
         c.style.cursor = 'pointer';
         c.dataset.course = courseIdx; c.dataset.fret = fret;
@@ -201,9 +208,21 @@ const TheoryLab = (() => {
     // דיאגרמה
     const diaWrap = document.createElement('div');
     diaWrap.className = 'tl-chord-dia';
-    const { svg, dots } = buildChordDiagram(chord);
-    diaWrap.appendChild(svg);
+    let dots;
+    function redrawDia() {
+      diaWrap.innerHTML = '';
+      const built = buildChordDiagram(chord);
+      dots = built.dots;
+      diaWrap.appendChild(built.svg);
+    }
+    redrawDia();
     card.appendChild(diaWrap);
+    if (typeof FretboardMirror !== 'undefined') {
+      // חשוב: לא לתלות את הכפתור בתוך diaWrap עצמו — redrawDia() מנקה את ה-innerHTML שלו בכל טוגל
+      const mirrorBar = document.createElement('div');
+      card.appendChild(mirrorBar);
+      FretboardMirror.mountToggle(mirrorBar, { onChange: () => redrawDia() });
+    }
 
     // כפתורי נגינה
     const btns = document.createElement('div');
@@ -791,7 +810,10 @@ const TheoryLab = (() => {
     setTimeout(() => g.classList.remove('tl-neck-active'), 260);
   }
 
-  // "הכביש" — מסע התחנות מהשורש עד השורש, כל תחנה: דרגה, שם תו, מיתר, סריג
+  // "הכביש" — מסע התחנות מהשורש עד השורש, כל תחנה: דרגה, שם תו, מיתר, סריג.
+  // משתמש ב-DromosRoad.buildStripFromRoad המשותף (path כאן ו-road שם מגיעים משניהם מ-
+  // FretboardScale.buildScaleDegreePath, אותה צורת נתונים) — מוסיף אגב תצוגת מספר-אצבע
+  // שהמימוש העצמאי הישן כאן לא הציג, ושומר על הבהוב-הנקודה-בגריף הייחודי למסך הזה.
   function buildRoadStrip(path, dotByKey, dromos) {
     const wrap = document.createElement('div');
     wrap.className = 'tl-road';
@@ -800,34 +822,13 @@ const TheoryLab = (() => {
     head.innerHTML = `🛣️ הכביש של ${dromos.nameHe || 'הדרומוס'} — מ<b>רה</b> ועד <b>רה</b>, תחנה אחר תחנה:`;
     wrap.appendChild(head);
 
-    const track = document.createElement('div');
-    track.className = 'tl-road-track';
-    path.forEach((p, idx) => {
-      const stop = document.createElement('button');
-      stop.className = 'tl-road-stop' + (p.isRoot ? ' tl-road-root' : '');
-      const note = SOLFEGE[NOTE_NAMES[p.midi % 12]] || NOTE_NAMES[p.midi % 12];
-      const strNote = TUNING[p.ci].note;            // D/A/F/C
-      const strNo = TUNING[p.ci].course;            // 1..4
-      const flag = idx === 0 ? '🏁 התחלה' : (idx === path.length - 1 ? '🏁 סוף' : '');
-      stop.innerHTML =
-        (flag ? `<span class="tl-road-flag">${flag}</span>` : `<span class="tl-road-num">${idx + 1}</span>`) +
-        `<span class="tl-road-note">${note}</span>` +
-        `<span class="tl-road-pos">מיתר ${strNo} (${strNote}) · סריג ${p.fret === 0 ? 'פתוח' : p.fret}</span>`;
-      stop.addEventListener('click', () => {
-        ensureAudio();
-        if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.6);
+    const strip = DromosRoad.buildStripFromRoad(path, dromos.nameHe, {
+      onStopClick: (p) => {
         const g = dotByKey && dotByKey[p.ci + '-' + p.fret];
         if (g) flashNeckDot(g);
-      });
-      track.appendChild(stop);
-      if (idx < path.length - 1) {
-        const arr = document.createElement('span');
-        arr.className = 'tl-road-arrow';
-        arr.textContent = '←';
-        track.appendChild(arr);
-      }
+      },
     });
-    wrap.appendChild(track);
+    wrap.appendChild(strip.querySelector('.tl-road-track'));
     return wrap;
   }
 
@@ -971,6 +972,11 @@ const TheoryLab = (() => {
       mb.addEventListener('click', () => {
         if (_neckMode === m) return;
         _neckMode = m; stopSeq();
+        // מיישר עם שאר המסכים: לבחור בסיס-פוזיציה שבאמת מנצל את מספר המיתרים שנבחר,
+        // לא רק להשאיר את הפוזיציה הישנה כמו שהיא (חוסר-עקביות שתועד בעבר).
+        if (typeof FretboardScale !== 'undefined' && FretboardScale.findBestPositionForStringMode) {
+          _posBase = FretboardScale.findBestPositionForStringMode(dromos.intervals, ROOT_PC, m, [0, 2, 3, 5, 7, 9]);
+        }
         renderBody(body, edu);
       });
       modeWrap.appendChild(mb);

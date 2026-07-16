@@ -316,7 +316,7 @@ const SongLibrary = (() => {
       }
       container.appendChild(cell);
     });
-    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container, { editable: true });
   }
 
   function _renderBouzoukiPart(song) {
@@ -824,7 +824,8 @@ const SongLibrary = (() => {
     if (typeof ChordTooltip === 'undefined' || !detail) return;
     const editOpts = { editable: true };
     ChordTooltip.bindContainer(detail.querySelector('.song-chord-diagrams'), editOpts);
-    ChordTooltip.bindContainer(detail.querySelector('#song-strum-strip'), editOpts);
+    // #song-strum-strip is already bound (editable) by _drawSongStrumStrip() before this runs —
+    // binding it again here would be a silent no-op (bindContainer guards nodes with dataset.chordBound).
     ChordTooltip.bindContainer(detail.querySelector('#song-scroll-area'), editOpts);
     detail.querySelectorAll('.fret-chord-name').forEach(th => {
       if (th.dataset.chordBound) return;

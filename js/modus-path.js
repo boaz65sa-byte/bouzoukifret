@@ -527,12 +527,12 @@ const ModusPath = (() => {
       playChord(el.dataset.chord);
       body.querySelectorAll('.mp-chord').forEach(c => c.classList.remove('sel'));
       el.classList.add('sel');
-      if (typeof ChordTooltip !== 'undefined') ChordTooltip.renderInto('#mp-chord-diagram', el.dataset.chord);
+      if (typeof ChordTooltip !== 'undefined') ChordTooltip.renderInto('#mp-chord-diagram', el.dataset.chord, { editable: true });
     }));
     document.getElementById('mp-play-prog').addEventListener('click', () => {
       p.chords.progression.forEach((c, i) => setTimeout(() => playChord(c), i * 900));
     });
-    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(body);
+    if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(body, { editable: true });
     wireNav();
   }
 

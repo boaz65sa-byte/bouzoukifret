@@ -1,6 +1,6 @@
 # יומן התקדמות — Bouzouki Academy
 
-> קובץ זה מתעדכן בסוף כל סבב עבודה, כדי שאפשר יהיה להבין מה נעשה ומה נשאר בלי לסרוק מחדש את כל הקוד. עדכון אחרון: 2026-07-16 (5 סעיפים פתוחים — עריכת אקורדים/דרומוסים, מירור אנכי, root-invariant, YouTube מובייל).
+> קובץ זה מתעדכן בסוף כל סבב עבודה, כדי שאפשר יהיה להבין מה נעשה ומה נשאר בלי לסרוק מחדש את כל הקוד. עדכון אחרון: 2026-07-16 — כל הסעיפים הפתוחים טופלו (עריכת אקורדים/דרומוסים בכל המסכים הרלוונטיים, מירור מלא, root-invariant, YouTube מובייל, וסבב שני שסגר כפילויות קוד עם 2 באגים אמיתיים שנתפסו רק בבדיקה בדפדפן).
 
 ---
 
@@ -59,11 +59,25 @@
 
 ---
 
-## מה נשאר / הערות פתוחות (לא נעשו — לא נתבקש, או עדיפות נמוכה)
+## 2026-07-16 (המשך) — סגירת 3 הסעיפים הפתוחים
 
-1. **כפילות קוד לא-דחופה**: 4 מימושים שונים של "בורר פוזיציה+מיתרים" (`mountDromosScalePanel`, `#dromoi-pos-bar` הידני ב-app.js, `posWrap` ב-theory-lab.js, `posRow` ב-dromos-road.js) ו-2 מימושים של "road strip" (`DromosRoad.buildStripFromRoad` מול `buildRoadStrip` העצמאי ב-theory-lab.js). כולם עובדים נכון, זו רק הזדמנות ניקוי-קוד עתידית — נדחה במכוון אחרי סבב העריכה (2026-07-16) כי כמעט ואין חפיפת קבצים עם השינויים שכבר נעשו, אין כורח לעשות את זה עכשיו.
-2. **עריכת אקורדים** הופעלה ב-`exercises.js` (2026-07-16) וב-`songs.js` — פרטי שיר (`_bindSongChordTooltips`, 2026-07-16, דרך `ChordTooltip`). שאר 8 הצרכנים של `ChordTooltip`/`renderInto` (worksheets, song-teacher, song-academy, modus-path, practice-library, reference-cards, song-analyzer, song-learn) נשארו קריא-בלבד בכוונה — אפשר להדליק `editable:true` בהם בלי שינוי בליבה כשירצו. **גילוי חשוב מהפעלת ChordTooltip**: ל-`.chord-tooltip` יש `pointer-events:none` קבוע ב-CSS (בועת-מידע פסיבית) — כל תוסף אינטראקטיבי בתוכה (כפתור עריכה, תאי-סריג) חייב קודם `tip.classList.toggle('chord-tooltip-interactive', editable)` (מגדיר `pointer-events:auto`), אחרת הקליקים "עוברים דרך" ל-DOM שמתחת בשקט. תועד ב-`js/chord-tooltip.js`/`css/style.css` — לזכור אם מדליקים `editable` בצרכן נוסף.
-3. **theory-lab.js chord cards** (`buildChordDiagram`/`buildChordCard`) הם מנוע רביעי נפרד, דאטהסט אחר (`chordCurriculum` עם ברים/'B'/'B-1') שלא מתאים לסכימת `ChordLibrary` — לא בסקופ עריכת האקורדים; גם בלי מירור אנכי בכלל (לא רק אופקי חסר, כפי שהיה ב-chord-diagram.js לפני 2026-07-16).
+### עריכת אקורדים — הורחבה לכל המסכים הרלוונטיים, כולל תיקון באג אמיתי
+- **באג אמיתי שנתפס ותוקן**: ב-`songs.js`, `_drawSongStrumStrip()` (רצועת הליווי בפרטי שיר) קרא ל-`ChordTooltip.bindContainer(container)` **בלי** `editable`, לפני ש-`_bindSongChordTooltips()` קרא לאותו container **עם** `editable:true` — בגלל guard ה-`dataset.chordBound` בתוך `bindContainer`, הקריאה הראשונה "זכתה" וה-editable השני היה no-op שקט. רצועת הליווי בפרטי שיר מעולם לא הייתה ניתנת לעריכה בפועל, למרות שנראה שכן. תוקן.
+- **תשתית**: `ChordTooltip.renderInto()` קיבל תמיכת `editable` (חסרה עד עכשיו) דרך פונקציה משותפת `_buildEditableChordDiagram()` (גם `show()` הפכה להשתמש בה — פחות שכפול קוד).
+- **הודלק** גם ב: `exercises.js` (רצועת strum), `song-academy.js` (תחנת אקורדים), `modus-path.js` (תחנת אקורדים — גם `renderInto` וגם `bindContainer`).
+- **נשאר קריא-בלבד בכוונה** (הוערך ונמצא לא-מתאים): `features.js` (ליווי ג'אם חי מתקדם אוטומטית), `song-teacher.js` (תיבת אקורד מסונכרנת עם נגינה חיה), `practice-library.js`/`song-analyzer.js`/`song-learn.js` (עיון/זיהוי, לא תרגול), `reference-cards.js` (מכוון לשקף כרטיס מודפס בדיוק), `worksheets.js` (theme='print').
+
+### מירור לכרטיסי אקורד ב-theory-lab.js (מנוע רביעי נפרד) — הושלם
+- `buildChordDiagram()`/`buildChordCard()` קיבלו מירור אופקי+אנכי מלא (לא היה שם בכלל, לא רק אנכי). **באג נתפס ותוקן תוך כדי**: כפתור המירור מוחק את עצמו בכל טוגל אם הוא מותקן בתוך האלמנט שה-redraw מנקה (`innerHTML=''`) — נפתר ע"י התקנת הכפתור באלמנט-אח נפרד. עריכה נשארת לא בסקופ (דאטהסט `chordCurriculum` שונה, כולל ברים/'B'/'B-1' לא-מספריים שלא תואמים את סכימת `ChordLibrary`).
+
+### כפילות קוד — טופלה חלקית, השאר סגור בהחלטה מתועדת (לא ניקוי-קוד עיוור)
+- **`FretboardScale.mountPosControls`** קיבל תמיכת `positionsFn` (רשימת פוזיציות דינמית) — עכשיו יכול לשמש גם תרחישים כמו dromos-road's `availablePositionBases`, לא רק "הכי טוב לפי ניחוש".
+- **`js/app.js`'s `#dromoi-pos-bar` — נבדק ובוטל במכוון**: ניסיתי למזג אותו ל-`mountPosControls` (אותה מרקאפ בדיוק), אבל זה שבר את מסך dromoi בשקט — `initDromoi()` רץ בסוף app.js, שנטען (script defer) *לפני* fretboard-scale.js, כך ש-`FretboardScale` עדיין לא קיים באותה נקודה; קריאה ישירה ל-`FretboardScale.mountPosControls()` שם זרקה חריגה ש"קטעה" את שאר `initDromoi()` בשקט (כולל בניית סרגל העריכה ו-`renderDromos()` הראשוני). הוחזר למימוש הידני המקורי עם הערה מסבירה בקוד. תיקון אמיתי (סידור-מחדש של תגי ה-script) נשקל ונדחה — סיכון רחב-טווח על כל סדר האתחול של האפליקציה, לא שווה תמורת ניקוי-קוד שולי.
+- **`js/theory-lab.js`'s `posWrap`/`modeWrap` — תוקן הפער האמיתי**: לא הייתה לוגיקת auto-reposition בכלל בשינוי מספר-מיתרים (בניגוד לשאר 3 המימושים) — עכשיו קורא ל-`findBestPositionForStringMode` כמו כולם. אומת: מעבר בין 1/3/4 מיתרים על חיג'אז זז לפוזיציה הנכונה (0/7/0 בהתאמה, תואם חישוב ישיר).
+- **`js/dromos-road.js`'s `rootRow`/`modeRow`/`posRow` — נבדק, לא נמצא באג**: `availablePositionBases()` הקיים כבר שומר `posBase` תקין ומציג רק פוזיציות שבאמת מנצלות את מספר המיתרים שנבחר — עדיף בפועל מ"ניחוש אחד הכי טוב". לא מוזג ל-`mountPosControls` (מרקאפ שונה במכוון: root-select אמיתי, סינון עצמאי) — נשאר כמו שהוא.
+- **road-strip אוחד**: `DromosRoad.buildStripFromRoad` יוצא עכשיו עם `opts.onStopClick` אופציונלי; `theory-lab.js`'s `buildRoadStrip` העצמאי הוחלף בקריאה אליו (עם `onStopClick` שמדליק את הבהוב-הנקודה-בגריף הייחודי למסך). **תוצר לוואי**: theory-lab.js מציג עכשיו מספרי-אצבע ברצועת הכביש — לא הציג בכלל קודם.
+
+**מסקנה כללית מהסבב הזה**: לא כל "כפילות שנראית זהה" באמת ניתנת לאיחוד בבטחה — app.js's pos-bar נראה זהה ל-mountDromosScalePanel אבל יש אילוץ סדר-טעינה שהופך איחוד מכני לסיכון אמיתי (שנתפס רק בבדיקה בדפדפן, לא בקריאת קוד). ההחלטה לא לאחד שם, ולהשאיר dromos-road.js כמו שהוא, היא סגירה מודעת של הסעיף — לא דחייה.
 
 ---
 

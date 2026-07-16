@@ -536,6 +536,10 @@ function initDromoi() {
   $('#dr-drone').addEventListener('click', toggleDrone);
 
   if (!$('#dromoi-pos-bar')) {
+    // הערה: לא ניתן להעביר את הבלוק הזה ל-FretboardScale.mountPosControls בלי סיכון —
+    // initDromoi() רץ בסוף app.js, שנטען (script defer) *לפני* fretboard-scale.js, כך ש-
+    // FretboardScale עדיין לא קיים בנקודה הזו. הבנייה כאן ב-DOM גולמי (בלי לגעת ב-FretboardScale
+    // עד ללחיצה בפועל, כשכל הסקריפטים כבר נטענו) היא בכוונה, לא כפילות-קוד סתמית.
     const bar = document.createElement('div');
     bar.id = 'dromoi-pos-bar';
     bar.className = 'fs-pos-bar';

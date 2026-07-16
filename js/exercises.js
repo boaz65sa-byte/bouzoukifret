@@ -157,7 +157,7 @@ function drawStrumStrip(container, item) {
     }
     container.appendChild(cell);
   });
-  if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container);
+  if (typeof ChordTooltip !== 'undefined') ChordTooltip.bindContainer(container, { editable: true });
 }
 
 /* ---------- ניהול מסך ---------- */

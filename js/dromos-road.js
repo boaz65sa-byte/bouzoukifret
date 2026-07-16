@@ -124,7 +124,7 @@ const DromosRoad = (() => {
     activeStrips.clear();
   }
 
-  function buildStripFromRoad(road, nameHe) {
+  function buildStripFromRoad(road, nameHe, opts = {}) {
     const strip = document.createElement('div');
     strip.className = 'tl-road dr-road-strip';
     const track = document.createElement('div');
@@ -145,6 +145,7 @@ const DromosRoad = (() => {
         if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.6);
         stop.classList.add('tl-road-playing');
         setTimeout(() => stop.classList.remove('tl-road-playing'), 260);
+        if (typeof opts.onStopClick === 'function') opts.onStopClick(p);
       });
       track.appendChild(stop);
       if (idx < road.length - 1) {
@@ -334,8 +335,11 @@ const DromosRoad = (() => {
     }
   }
 
-  return { renderInto, buildRoad, stop, buildStrip: (intervals, rootPc, mode, nameHe, dromosId) => {
-    const sm = Number(mode) || 4;
-    return buildStripFromRoad(buildRoad(intervals, rootPc, sm, 0, dromosId), nameHe);
-  } };
+  return {
+    renderInto, buildRoad, stop, buildStripFromRoad,
+    buildStrip: (intervals, rootPc, mode, nameHe, dromosId) => {
+      const sm = Number(mode) || 4;
+      return buildStripFromRoad(buildRoad(intervals, rootPc, sm, 0, dromosId), nameHe);
+    },
+  };
 })();

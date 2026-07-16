@@ -43,6 +43,49 @@ const ChordTooltip = (() => {
     ChordDiagram.draw(svg, { name: key, shape: chord.shape, compact: true, showFretNumbers: false });
   }
 
+  /** בונה דיאגרמה+תווית+כפתור עריכה בתוך hostEl, עם לחיצה-ישירה-על-סריג ושמירה דרך ChordLibrary.
+   *  משותף בין show() (tooltip צף) ל-renderInto() (ציור קבוע בתוך container). */
+  function _buildEditableChordDiagram(hostEl, key, afterRedraw) {
+    const chord = CHORDS[key];
+    const svg = svgEl('svg', {});
+    let editing = false;
+    let shape = chord.shape.slice();
+    const redraw = () => {
+      svg.classList.add('chord-svg', 'chord-svg-tooltip');
+      ChordDiagram.draw(svg, {
+        name: key, shape, compact: !editing, showFretNumbers: editing,
+        editable: editing,
+        onFretEdit: editing ? (idx, val) => { shape[idx] = val; redraw(); } : null,
+      });
+      if (typeof afterRedraw === 'function') afterRedraw();
+    };
+    redraw();
+    hostEl.appendChild(svg);
+    const lbl = document.createElement('div');
+    lbl.className = 'chord-tooltip-label';
+    lbl.textContent = chord.he || key;
+    hostEl.appendChild(lbl);
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn secondary chord-edit-toggle';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (editing) {
+        ChordLibrary.setFret(key, ChordLibrary.shapeToFrets(shape));
+        editing = false;
+        editBtn.textContent = '✏️';
+        editBtn.classList.remove('active');
+      } else {
+        editing = true;
+        editBtn.textContent = '💾';
+        editBtn.classList.add('active');
+      }
+      redraw();
+    });
+    hostEl.appendChild(editBtn);
+  }
+
   function _position(anchor) {
     const tip = _ensureEl();
     const r = anchor.getBoundingClientRect();
@@ -72,51 +115,16 @@ const ChordTooltip = (() => {
       _position(anchorEl);
       return;
     }
-    const chord = CHORDS[key];
     tip.innerHTML = '';
-    const svg = svgEl('svg', {});
-    svg.classList.add('chord-svg', 'chord-svg-tooltip');
-    const lbl = document.createElement('div');
-    lbl.className = 'chord-tooltip-label';
-
     if (opts.editable && typeof ChordLibrary !== 'undefined') {
-      let editing = false;
-      let shape = chord.shape.slice();
-      const redraw = () => {
-        ChordDiagram.draw(svg, {
-          name: key, shape, compact: !editing, showFretNumbers: editing,
-          editable: editing,
-          onFretEdit: editing ? (idx, val) => { shape[idx] = val; redraw(); } : null,
-        });
-        svg.classList.add('chord-svg', 'chord-svg-tooltip');
-      };
-      redraw();
-      tip.appendChild(svg);
-      lbl.textContent = chord.he || key;
-      tip.appendChild(lbl);
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'btn secondary chord-edit-toggle';
-      editBtn.textContent = '✏️';
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (editing) {
-          ChordLibrary.setFret(key, ChordLibrary.shapeToFrets(shape));
-          editing = false;
-          editBtn.textContent = '✏️';
-          editBtn.classList.remove('active');
-        } else {
-          editing = true;
-          editBtn.textContent = '💾';
-          editBtn.classList.add('active');
-        }
-        redraw();
-        requestAnimationFrame(() => _position(anchorEl));
-      });
-      tip.appendChild(editBtn);
+      _buildEditableChordDiagram(tip, key, () => requestAnimationFrame(() => _position(anchorEl)));
     } else {
+      const chord = CHORDS[key];
+      const svg = svgEl('svg', {});
       _drawDiagram(svg, key);
       tip.appendChild(svg);
+      const lbl = document.createElement('div');
+      lbl.className = 'chord-tooltip-label';
       lbl.textContent = chord.he || key;
       tip.appendChild(lbl);
     }
@@ -186,20 +194,25 @@ const ChordTooltip = (() => {
   }
 
   /** מצייר דיאגרמת אקורד לתוך אלמנט נתון (לטאצ׳/מובייל) */
-  function renderInto(container, chordName) {
+  function renderInto(container, chordName, opts = {}) {
     const el = typeof container === 'string' ? document.querySelector(container) : container;
     if (!el) return false;
     const key = resolveKey(chordName);
     el.innerHTML = '';
     if (!key) { el.innerHTML = `<span class="chord-tooltip-missing">${chordName}</span>`; return false; }
-    const chord = CHORDS[key];
-    const svg = svgEl('svg', {});
-    _drawDiagram(svg, key);
-    el.appendChild(svg);
-    const lbl = document.createElement('div');
-    lbl.className = 'chord-tooltip-label';
-    lbl.textContent = chord.he || key;
-    el.appendChild(lbl);
+    if (opts.editable && typeof ChordLibrary !== 'undefined') {
+      el.style.position = el.style.position || 'relative';
+      _buildEditableChordDiagram(el, key);
+    } else {
+      const chord = CHORDS[key];
+      const svg = svgEl('svg', {});
+      _drawDiagram(svg, key);
+      el.appendChild(svg);
+      const lbl = document.createElement('div');
+      lbl.className = 'chord-tooltip-label';
+      lbl.textContent = chord.he || key;
+      el.appendChild(lbl);
+    }
     return true;
   }
 

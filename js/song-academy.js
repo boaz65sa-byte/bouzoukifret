@@ -615,7 +615,7 @@ const SongAcademy = (() => {
 
     s.chords.forEach(c => {
       const el = body.querySelector(`.sa-chord-diag[data-chord="${c}"]`);
-      if (el && typeof ChordTooltip!=='undefined') ChordTooltip.renderInto(el, c);
+      if (el && typeof ChordTooltip!=='undefined') ChordTooltip.renderInto(el, c, { editable: true });
       if (el) el.parentElement.addEventListener('click', () => {
         playChord(c);
         drawChordBoard('sa-fb-chord', c);
