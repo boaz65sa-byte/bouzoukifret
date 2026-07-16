@@ -742,7 +742,7 @@ const TheoryLab = (() => {
         const isRoot = pc === ROOT_PC;
         const isIn = inPath.has(ci + '-' + f);
         const dim = (Number(mode) !== 4 && !activeCourses.has(ci));
-        const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer' }, svg);
+        const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer', 'data-course': ci, 'data-fret': f }, svg);
         svgEl('circle', {
           cx, cy: y, r: isIn ? 12 : 9,
           fill: isRoot ? '#e3b341' : '#2a7fa8',
@@ -992,6 +992,17 @@ const TheoryLab = (() => {
       });
       posWrap.appendChild(pb);
     });
+    if (typeof openDromoiForEdit === 'function' && typeof DromosOverrides !== 'undefined') {
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'tl-pos-chip tl-edit-btn';
+      editBtn.textContent = '✒️ ערוך';
+      editBtn.title = 'עריכת פוזיציה/אצבוע במסך הדרומוסים';
+      editBtn.addEventListener('click', () => {
+        openDromoiForEdit({ dromosId: dromos.id, rootPc: ROOT_PC, posBase: _posBase, stringMode: _neckMode });
+      });
+      posWrap.appendChild(editBtn);
+    }
     card.appendChild(posWrap);
 
     if (typeof FretboardMirror !== 'undefined') {

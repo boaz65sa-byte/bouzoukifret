@@ -978,10 +978,14 @@ const LearnHub = (() => {
         <span>🔄 <b>stem-proxy דורש הפעלה מחדש</b> — עצרו (Ctrl+C) והריצו שוב ב-<code>tools\\stem-proxy</code></span>
         <code class="learn-proxy-cmd">npm start</code>`;
     } else {
+      const desktop = typeof DeviceUtils === 'undefined' || !DeviceUtils.isMobile();
+      const setupHtml = desktop
+        ? `<button type="button" class="btn secondary learn-proxy-setup-btn">⚙️ הגדרות פרוקסי</button>
+        <code class="learn-proxy-cmd">cd tools\\stem-proxy &amp;&amp; npm start</code>`
+        : '';
       el.innerHTML = `
         <span>⚙️ <b>stem-proxy לא פעיל</b> — ${mobileHint}</span>
-        <button type="button" class="btn secondary learn-proxy-setup-btn">⚙️ הגדרות פרוקסי</button>
-        <code class="learn-proxy-cmd">cd tools\\stem-proxy &amp;&amp; npm start</code>`;
+        ${setupHtml}`;
       el.querySelector('.learn-proxy-setup-btn')?.addEventListener('click', () => _showProxySetupModal());
     }
   }
@@ -1068,6 +1072,12 @@ const LearnHub = (() => {
   function _renderShell() {
     const root = document.getElementById('learn-hub-app');
     if (!root) return;
+    const desktop = typeof DeviceUtils === 'undefined' || !DeviceUtils.isMobile();
+    const proxySetupLi = desktop
+      ? `<li><strong>Stem proxy</strong> — בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code>
+            או <code>start-windows.bat</code> · <button type="button" class="btn secondary" id="learn-open-proxy-setup" style="margin-top:6px">⚙️ הגדרות פרוקסי</button></li>
+          <li><strong>YouTube</strong> — התקינו yt-dlp: <code>pip install yt-dlp</code> או <code>winget install yt-dlp</code></li>`
+      : `<li><strong>stem-proxy</strong> — לא נדרש במובייל; ההורדה נשמרת ישירות במכשיר.</li>`;
     root.innerHTML = `
       <div id="learn-flow-mount"></div>
       <details class="learn-setup card">
@@ -1075,9 +1085,7 @@ const LearnHub = (() => {
         <ol>
           <li><strong>ניתוח בסיסי</strong> — העלאת MP3/WAV עובדת בדפדפן בלבד (Essentia.js).</li>
           <li><strong>config.js</strong> — העתיקו <code>config.example.js</code> ל-<code>config.js</code> והגדירו <code>stemProxyUrl: 'http://localhost:3456'</code>.</li>
-          <li><strong>Stem proxy</strong> — בטרמינל: <code>cd tools/stem-proxy && npm install && npm start</code>
-            או <code>start-windows.bat</code> · <button type="button" class="btn secondary" id="learn-open-proxy-setup" style="margin-top:6px">⚙️ הגדרות פרוקסי</button></li>
-          <li><strong>YouTube</strong> — התקינו yt-dlp: <code>pip install yt-dlp</code> או <code>winget install yt-dlp</code></li>
+          ${proxySetupLi}
           <li><strong>LALAL / Moises</strong> — הוסיפו מפתחות ב-<code>tools/stem-proxy/.env</code> (ראו <code>.env.example</code>).</li>
           <li>ריחוף על אקורד בכל האפליקציה → דיאגרמת fingering. בניתוח שיר: האטה עם שמירת pitch + זיהוי אקורד חי (Meyda).</li>
           <li><strong>ייצוא / ייבוא:</strong> אחרי ניתוח — JSON או TXT. אפשר לטעון JSON שמור (עם או בלי קובץ אודיו) בלי לרוץ שוב Essentia.</li>

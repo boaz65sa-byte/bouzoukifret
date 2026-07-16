@@ -130,7 +130,7 @@ function drawTab(svg, item) {
 /* ---------- דיאגרמת אקורד (D·A·F·C משמאל — סטנדרט בוזוקי) ---------- */
 function drawChordDiagram(container, name) {
   if (typeof ChordDiagram !== 'undefined') {
-    ChordDiagram.renderCard(container, name);
+    ChordDiagram.renderCard(container, name, { editable: true });
     return;
   }
 }

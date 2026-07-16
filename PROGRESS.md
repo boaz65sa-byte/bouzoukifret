@@ -1,10 +1,19 @@
 # יומן התקדמות — Bouzouki Academy
 
-> קובץ זה מתעדכן בסוף כל סבב עבודה, כדי שאפשר יהיה להבין מה נעשה ומה נשאר בלי לסרוק מחדש את כל הקוד. עדכון אחרון: 2026-07-15 (דפי עבודה + פרטבורד).
+> קובץ זה מתעדכן בסוף כל סבב עבודה, כדי שאפשר יהיה להבין מה נעשה ומה נשאר בלי לסרוק מחדש את כל הקוד. עדכון אחרון: 2026-07-16 (5 סעיפים פתוחים — עריכת אקורדים/דרומוסים, מירור אנכי, root-invariant, YouTube מובייל).
 
 ---
 
 ## מה נעשה (מהחדש לישן)
+
+### 0. חמשת הסעיפים הפתוחים מ-PROGRESS.md — כולם טופלו
+1. **YouTube — דיאלוג "הורדה למחשב" מותאם מובייל**: `js/learn-youtube.js` — שני נקודות-קריאה נוספות ל-`_showProxySetupModal()` (הבאנר + אקורדיון ההגדרות) עכשיו בדוקות `DeviceUtils.isMobile()`, במובייל מוצג טקסט קצר במקום הוראות Windows/yt-dlp.
+2. **מירור אנכי לדיאגרמות אקורד**: `js/chord-diagram.js` — `draw()`/`miniHTML()` קוראים עכשיו גם ל-`FretboardMirror.isV()`, עם `fretY()`/`dotY()` שהופכות את הגריד סביב מרכז הצוואר (נוט זז לתחתית, לא CSS transform — אותו עיקרון כמו `courseY` הראשי).
+3. **Root-invariant override — checkbox אופציונלי**: `js/dromos-overrides.js` (`setInvariant`/`getInvariant`/`getKind`/`resetInvariant`, מפתח `dromosId|*|posBase|stringMode`) + `js/fretboard-scale.js` (`FretboardScale.saveInvariantOverride`/`resolveOverridePath`/`resolveInvariantPath`). ברירת המחדל (מדויק-לטוניקה) נשארת; checkbox "החל על כל הטוניקות" ב-`mountDromosScalePanel` וב-`initDromoi()` שומר יחסית ל-**היסט-מיתר מהעוגן** (`courseOffset = p.ci - anchor.ci`) ולא מיתר אבסולוטי — **תוקן תוך כדי בדיקה**: גרסה ראשונה ששמרה מיתר אבסולוטי נשברה בשקט (כל הנקודות נופלות מחוץ לתיבה) בכל טוניקה שבה השורש יושב על מיתר אחר; הפתרון: לשמור היסט יחסי לעוגן, לא מיתר מוחלט.
+4. **עריכת אקורדים — לחיצה ישירה על הדיאגרמה**: `js/chord-diagram.js` `draw()` מקבל `editable`+`onFretEdit` (תא-סריג לחיץ קובע ישירות, לא מחזור-בלחיצה; "×"/עיגול-פתוח תמיד לחיצים במצב עריכה). `js/chord-library.js` — `ChordLibrary.setFret()` חדש, עוטף `upsertFromForm` ושומר על `he`/`cat`/`desc` קיימים. הופעל דרך `renderCard({editable:true})` ב-`js/exercises.js` בלבד (יעד ראשי); שאר 9 הצרכנים של `ChordDiagram`/`ChordTooltip` נשארו קריא-בלבד לעת עתה — אפשר להדליק בלי שינוי בליבה.
+5. **theory-lab / dromos-road — כפתור "✒️ ערוך" (deep-link)**: לא נבנה מנוע עריכה שלישי (ההחלטה הקודמת "להשאיר כך" השתנתה לכיוון deep-link, לא בוטלה). כפתור חדש ליד בורר הפוזיציה בשני המסכים קורא ל-`openDromoiForEdit({dromosId, rootPc, posBase, stringMode})` חדש ב-`js/app.js` — מזין את מסך `dromoi` הקיים באותו מצב ופותח אותו ישירות במצב עריכה (מדמה קליק על `#dromoi-edit-toggle`, לא בונה state חדש). אגב: נוספו `data-course`/`data-fret` ל-`tl-neck-dot` ב-theory-lab.js (הכנה זולה לאיחוד עתידי).
+
+אומת בדפדפן (לא רק syntax check): זרימת עריכת אקורד מקצה-לקצה כולל `syncToGlobalChords()`; מירור אנכי הופך קואורדינטות נכון; **טרנספוזיציית root-invariant אומתה בפועל** על "חיג'אז" בין טוניקת D ל-G — הבאג באחסון-מיתר-אבסולוטי נתפס ותוקן רק בזכות הבדיקה בדפדפן, לא ב-code review; שני כפתורי ה-deep-link מנווטים נכון למסך dromoi במצב עריכה.
 
 ### -1. דפי עבודה — עיצוב אקורדים מאוחד עם השיעורים
 - דפי עבודה מסוג "דרומוסים" כבר השתמשו במנוע המשותף (`mountDromosScalePanel`), אבל דפי עבודה מסוג "אקורדים" השתמשו בציור SVG נפרד ופשוט (`chordSvg`) שלא תאם ויזואלית ל-`ChordDiagram` שמשמש בשאר האפליקציה.
@@ -52,11 +61,9 @@
 
 ## מה נשאר / הערות פתוחות (לא נעשו — לא נתבקש, או עדיפות נמוכה)
 
-1. **דיאלוג "הורדה למחשב" (YouTube)** מוצג באותו נוסח למובייל ולמחשב, אף שלמובייל הוא לא רלוונזי (Web Share API כבר עושה את זה אוטומטית שם). לא תוקן — רק זוהה ותואר למשתמש.
-2. **theory-lab.js ו-dromos-road.js** קוראים overrides מותאמים נכון (מוצג שם אוטומטית) אבל **אין להם כפתור עריכה עצמאי** — מנוע ציור שונה לגמרי מהמנוע הראשי (`drawDromosNeck` מותאם, לא `drawFretboard`), ובניית עורך שם דורשת מימוש שלישי מקביל. הוחלט להשאיר כך (סיכון מול תועלת).
-3. **כפילות קוד לא-דחופה**: 4 מימושים שונים של "בורר פוזיציה+מיתרים" (`mountDromosScalePanel`, `#dromoi-pos-bar` הידני ב-app.js, `posWrap` ב-theory-lab.js, `posRow` ב-dromos-road.js) ו-2 מימושים של "road strip". כולם עובדים נכון, זו רק הזדמנות ניקוי-קוד עתידית.
-4. **מירור אנכי ב-chord-diagram.js** לא מומש בכוונה (רק אופקי) — דיאגרמות אקורד תמיד עם הנוט למעלה, כמו בכל תרשים מקובל.
-5. **DromosOverrides אינו root-invariant** — override נשמר per-root מדויק. שינוי טוניקה (rootPc) במסכים הבודדים שמאפשרים זאת (dromos-road עם בורר שורש) לא יחיל override שנשמר על root אחר. תיעוד מכוון, לא באג.
+1. **כפילות קוד לא-דחופה**: 4 מימושים שונים של "בורר פוזיציה+מיתרים" (`mountDromosScalePanel`, `#dromoi-pos-bar` הידני ב-app.js, `posWrap` ב-theory-lab.js, `posRow` ב-dromos-road.js) ו-2 מימושים של "road strip" (`DromosRoad.buildStripFromRoad` מול `buildRoadStrip` העצמאי ב-theory-lab.js). כולם עובדים נכון, זו רק הזדמנות ניקוי-קוד עתידית — נדחה במכוון אחרי סבב העריכה (2026-07-16) כי כמעט ואין חפיפת קבצים עם השינויים שכבר נעשו, אין כורח לעשות את זה עכשיו.
+2. **עריכת אקורדים** (2026-07-16) הופעלה רק ב-`exercises.js`; `chord-tooltip.js` (10 צרכנים) ו-worksheets/מסכי שיעור מודרך נשארו קריא-בלבד בכוונה — אפשר להדליק `editable:true` בהם בלי שינוי בליבה כשירצו.
+3. **theory-lab.js chord cards** (`buildChordDiagram`/`buildChordCard`) הם מנוע רביעי נפרד, דאטהסט אחר (`chordCurriculum` עם ברים/'B'/'B-1') שלא מתאים לסכימת `ChordLibrary` — לא בסקופ עריכת האקורדים; גם בלי מירור אנכי בכלל (לא רק אופקי חסר, כפי שהיה ב-chord-diagram.js לפני 2026-07-16).
 
 ---
 

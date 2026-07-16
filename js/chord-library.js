@@ -127,6 +127,21 @@ const ChordLibrary = (() => {
     return chord;
   }
 
+  /** שומר סריגים חדשים לאקורד קיים/חדש מתוך אינטראקציה על הדיאגרמה (בלי הטופס הטקסטואלי) —
+   *  שומר he/cat/desc קיימים כדי לא לאבד אותם. frets בסדר D,A,F,C (כמו shapeToFrets). */
+  function setFret(chordName, frets) {
+    const existing = getById(chordName);
+    const data = {
+      id: chordName,
+      name: chordName,
+      he: existing?.he || (typeof CHORDS !== 'undefined' && CHORDS[chordName]?.he) || chordName,
+      frets,
+      cat: existing?.cat || 'custom',
+      desc: existing?.desc || '',
+    };
+    return upsertFromForm(data, chordName);
+  }
+
   function remove(id) {
     const store = loadStore();
     if (DEFAULT_CHORDS.some(d => d.id === id)) {
@@ -344,7 +359,7 @@ const ChordLibrary = (() => {
   }
 
   return {
-    init, getAll, getById, syncToGlobalChords, upsertFromForm, remove, resetAll,
-    fretsToShape, DEFAULT_CHORDS, onPreview, renderList,
+    init, getAll, getById, syncToGlobalChords, upsertFromForm, setFret, remove, resetAll,
+    shapeToFrets, fretsToShape, DEFAULT_CHORDS, onPreview, renderList,
   };
 })();

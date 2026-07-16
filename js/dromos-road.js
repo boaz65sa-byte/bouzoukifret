@@ -289,6 +289,17 @@ const DromosRoad = (() => {
           btn.addEventListener('click', () => { posBase = b; rebuild(); });
           posRow.appendChild(btn);
         });
+        if (dromosId && typeof openDromoiForEdit === 'function' && typeof DromosOverrides !== 'undefined') {
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.className = 'tl-pos-chip dr-edit-btn';
+          editBtn.textContent = '✒️ ערוך';
+          editBtn.title = 'עריכת פוזיציה/אצבוע במסך הדרומוסים';
+          editBtn.addEventListener('click', () => {
+            openDromoiForEdit({ dromosId, rootPc, posBase, stringMode });
+          });
+          posRow.appendChild(editBtn);
+        }
       }
       rebuild();
     }

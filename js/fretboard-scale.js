@@ -50,8 +50,8 @@ const FretboardScale = (() => {
    */
   function buildScaleDegreePath(intervals, rootPc, startBase = 0, span = MELODY_POS_SPAN, stringMode = 4, dromosId = null) {
     if (dromosId && typeof DromosOverrides !== 'undefined') {
-      const ov = DromosOverrides.get(dromosId, rootPc, startBase, stringMode, span);
-      if (ov) return ov.path.map(p => ({ ...p }));
+      const resolved = resolveOverridePath(dromosId, intervals, rootPc, startBase, span, stringMode);
+      if (resolved) return resolved;
     }
     const courses = coursesForStringMode(stringMode);
     const degrees = [...(intervals || []), 12];
@@ -277,6 +277,54 @@ const FretboardScale = (() => {
 
   function midiFromFret(courseIdx, fret) {
     return TUNING[courseIdx].midi + fret;
+  }
+
+  /** שומר תבנית "כל הטוניקות" — כל נקודה נשמרת יחסית לעוגן-השורש: intervalIdx (דרגת סולם)
+   *  ו-courseOffset (מיתר, כהיסט מהמיתר שבו יושב השורש בפועל — לא מיתר אבסולוטי). ההיסט הזה
+   *  קריטי: השורש יכול לשבת על מיתר שונה בכל טוניקה (למשל דו לעומת סול באותה תיבת-פוזיציה),
+   *  ואם שומרים מיתר אבסולוטי התבנית "נשברת" בטוניקות שבהן העוגן על מיתר אחר. */
+  function saveInvariantOverride(dromosId, intervals, rootPc, posBase, stringMode, span, path) {
+    if (!dromosId || typeof DromosOverrides === 'undefined' || !DromosOverrides.setInvariant) return;
+    const courses = coursesForStringMode(stringMode);
+    const anchor = findRootInBox(rootPc, posBase, span, courses);
+    const relPath = path.map(p => {
+      const intervalIdx = intervals.findIndex(iv => normPc(rootPc + iv) === normPc(p.midi));
+      const courseOffset = anchor ? p.ci - anchor.ci : 0;
+      return { courseOffset, intervalIdx, degree: p.degree, finger: p.finger };
+    });
+    DromosOverrides.setInvariant(dromosId, posBase, stringMode, span, relPath);
+  }
+
+  /** ממיר תבנית "כל הטוניקות" (יחסית לעוגן) למסלול אבסולוטי (ci/fret/midi) בטוניקה הנוכחית.
+   *  נקודה שהמיתר/הסריג שלה לא נכנסים לתיבת הפוזיציה בטוניקה הזו — מושמטת (לא מפילה את כל ה-override). */
+  function resolveInvariantPath(dromosId, intervals, rootPc, posBase, span, stringMode) {
+    if (!dromosId || typeof DromosOverrides === 'undefined' || !DromosOverrides.getInvariant) return null;
+    const inv = DromosOverrides.getInvariant(dromosId, posBase, stringMode, span);
+    if (!inv) return null;
+    const courses = coursesForStringMode(stringMode);
+    const anchor = findRootInBox(rootPc, posBase, span, courses);
+    if (!anchor) return null;
+    const out = [];
+    inv.path.forEach(p => {
+      if (p.intervalIdx == null || p.intervalIdx < 0) return;
+      const iv = intervals[p.intervalIdx];
+      if (iv == null) return;
+      const ci = anchor.ci + (p.courseOffset || 0);
+      if (ci < 0 || ci > 3 || !courses.includes(ci)) return;
+      const target = anchor.midi + iv;
+      const fret = fretFromMidi(ci, target);
+      if (fret == null || fret < posBase || fret > posBase + span) return;
+      out.push({ ci, fret, midi: target, degree: p.degree, positionBase: posBase, finger: p.finger });
+    });
+    return out.length ? out : null;
+  }
+
+  /** override מדויק-לטוניקה קודם (ברירת מחדל), ורק בהיעדרו — override "כל הטוניקות" מתועתק */
+  function resolveOverridePath(dromosId, intervals, rootPc, posBase, span, stringMode) {
+    if (!dromosId || typeof DromosOverrides === 'undefined') return null;
+    const exact = DromosOverrides.get(dromosId, rootPc, posBase, stringMode, span);
+    if (exact) return exact.path.map(p => ({ ...p }));
+    return resolveInvariantPath(dromosId, intervals, rootPc, posBase, span, stringMode);
   }
 
   /** כל בסיסי הפוזיציה שבהם הסריג נמצא בתיבת span סריגים */
@@ -1104,6 +1152,15 @@ const FretboardScale = (() => {
       };
 
       editBtn = mkEditBtn('✏️ ערוך פוזיציה', 'fs-edit-toggle');
+      const invariantLbl = document.createElement('label');
+      invariantLbl.className = 'fs-edit-invariant-lbl';
+      invariantLbl.hidden = true;
+      const invariantChk = document.createElement('input');
+      invariantChk.type = 'checkbox';
+      invariantChk.className = 'fs-edit-invariant-chk';
+      invariantLbl.appendChild(invariantChk);
+      invariantLbl.appendChild(document.createTextNode(' החל על כל הטוניקות'));
+      editBar.appendChild(invariantLbl);
       saveBtn = mkEditBtn('💾 שמור', 'fs-edit-save');
       cancelBtn = mkEditBtn('ביטול', 'fs-edit-cancel');
       resetBtn = mkEditBtn('↺ אפס להתחלה', 'fs-edit-reset');
@@ -1116,6 +1173,7 @@ const FretboardScale = (() => {
 
       function setEditUI(active) {
         editBtn.hidden = active;
+        invariantLbl.hidden = !active;
         saveBtn.hidden = !active;
         cancelBtn.hidden = !active;
         resetBtn.hidden = !active;
@@ -1128,11 +1186,16 @@ const FretboardScale = (() => {
       editBtn.addEventListener('click', () => {
         editMode = true;
         draft = path.map(p => ({ ...p }));
+        invariantChk.checked = false;
         setEditUI(true);
         render();
       });
       saveBtn.addEventListener('click', () => {
-        DromosOverrides.set(dromosId, rootPc, posBase, stringMode, span, draft);
+        if (invariantChk.checked) {
+          saveInvariantOverride(dromosId, ivs, rootPc, posBase, stringMode, span, draft);
+        } else {
+          DromosOverrides.set(dromosId, rootPc, posBase, stringMode, span, draft);
+        }
         editMode = false;
         draft = null;
         setEditUI(false);
@@ -1147,6 +1210,7 @@ const FretboardScale = (() => {
       resetBtn.addEventListener('click', () => {
         if (!confirm('לאפס את הפוזיציה הזו לברירת המחדל?')) return;
         DromosOverrides.reset(dromosId, rootPc, posBase, stringMode);
+        DromosOverrides.resetInvariant(dromosId, posBase, stringMode);
         editMode = false;
         draft = null;
         setEditUI(false);
@@ -1180,7 +1244,11 @@ const FretboardScale = (() => {
       } else {
         path = renderDromosScale(svg, ivs, rootPc, { posBase, stringMode, dromosId, onDotClick });
       }
-      if (badge) badge.hidden = !(typeof DromosOverrides !== 'undefined' && DromosOverrides.has(dromosId, rootPc, posBase, stringMode));
+      if (badge) {
+        const kind = typeof DromosOverrides !== 'undefined' ? DromosOverrides.getKind(dromosId, rootPc, posBase, stringMode) : null;
+        badge.hidden = !kind;
+        if (kind) badge.textContent = kind === 'invariant' ? '✓ מותאם (כל הטוניקות)' : '✓ מותאם';
+      }
       if (onChange) onChange({ posBase, stringMode, rootPc, path, svg });
     }
 
@@ -1331,6 +1399,7 @@ const FretboardScale = (() => {
     SCALE_STRING_MODES,
     nextPositionBase,
     findBestPositionForStringMode,
+    saveInvariantOverride,
     buildDPath,
     makeState,
     mount,

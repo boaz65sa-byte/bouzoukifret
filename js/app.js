@@ -397,6 +397,32 @@ let _dromoiStringMode = 4;
 let _dromoiEditMode = false;
 let _dromoiDraft = null;
 
+/** deep-link ממסכים אחרים (theory-lab, dromos-road) — קופץ למסך dromoi עם אותו
+ *  דרומוס/שורש/פוזיציה/מיתרים, ופותח מיד במצב עריכה (במקום לבנות עורך שלישי עצמאי). */
+function openDromoiForEdit({ dromosId, rootPc, posBase, stringMode } = {}) {
+  const d = DROMOI.find(x => x.id === dromosId);
+  if (d) currentDromos = d;
+  if (rootPc != null) currentRoot = rootPc;
+  if (posBase != null) _dromoiPosBase = posBase;
+  if (stringMode != null) _dromoiStringMode = stringMode;
+
+  const rootSel = document.getElementById('dr-root');
+  if (rootSel && rootPc != null) rootSel.value = String(rootPc);
+  const bar = document.getElementById('dromoi-pos-bar');
+  if (bar) {
+    bar.querySelectorAll('.fs-pos-chip[data-base]').forEach(x => {
+      x.classList.toggle('active', Number(x.dataset.base) === _dromoiPosBase);
+    });
+    bar.querySelectorAll('.fs-str-chip').forEach(x => {
+      x.classList.toggle('active', Number(x.dataset.str) === _dromoiStringMode);
+    });
+  }
+
+  document.querySelector('.nav-btn[data-screen="dromoi"]')?.click();
+  rebuildDromoiList();
+  document.getElementById('dromoi-edit-toggle')?.click();
+}
+
 function setDromoiFilter(filter) {
   dromoiFilter = filter || 'all';
   document.querySelectorAll('#dromoi-filter [data-filter]').forEach(btn => {
@@ -577,6 +603,15 @@ function initDromoi() {
         return b;
       };
       const editBtn = mkEditBtn('✏️ ערוך פוזיציה', 'dromoi-edit-toggle');
+      const invariantLbl = document.createElement('label');
+      invariantLbl.className = 'fs-edit-invariant-lbl';
+      invariantLbl.hidden = true;
+      const invariantChk = document.createElement('input');
+      invariantChk.type = 'checkbox';
+      invariantChk.id = 'dromoi-edit-invariant';
+      invariantLbl.appendChild(invariantChk);
+      invariantLbl.appendChild(document.createTextNode(' החל על כל הטוניקות'));
+      editBar.appendChild(invariantLbl);
       const saveBtn = mkEditBtn('💾 שמור', 'dromoi-edit-save');
       const cancelBtn = mkEditBtn('ביטול', 'dromoi-edit-cancel');
       const resetBtn = mkEditBtn('↺ אפס להתחלה', 'dromoi-edit-reset');
@@ -590,6 +625,7 @@ function initDromoi() {
 
       function setEditUI(active) {
         editBtn.hidden = active;
+        invariantLbl.hidden = !active;
         saveBtn.hidden = !active;
         cancelBtn.hidden = !active;
         resetBtn.hidden = !active;
@@ -598,12 +634,17 @@ function initDromoi() {
       editBtn.addEventListener('click', () => {
         _dromoiEditMode = true;
         _dromoiDraft = null;
+        invariantChk.checked = false;
         setEditUI(true);
         renderDromos();
       });
       saveBtn.addEventListener('click', () => {
         const span = typeof FretboardScale !== 'undefined' ? FretboardScale.MELODY_POS_SPAN : 4;
-        DromosOverrides.set(currentDromos.id, currentRoot, _dromoiPosBase, _dromoiStringMode, span, _dromoiDraft || []);
+        if (invariantChk.checked) {
+          FretboardScale.saveInvariantOverride(currentDromos.id, currentDromos.intervals, currentRoot, _dromoiPosBase, _dromoiStringMode, span, _dromoiDraft || []);
+        } else {
+          DromosOverrides.set(currentDromos.id, currentRoot, _dromoiPosBase, _dromoiStringMode, span, _dromoiDraft || []);
+        }
         _dromoiEditMode = false;
         _dromoiDraft = null;
         setEditUI(false);
@@ -619,6 +660,7 @@ function initDromoi() {
       resetBtn.addEventListener('click', () => {
         if (!confirm('לאפס את הפוזיציה הזו לברירת המחדל?')) return;
         DromosOverrides.reset(currentDromos.id, currentRoot, _dromoiPosBase, _dromoiStringMode);
+        DromosOverrides.resetInvariant(currentDromos.id, _dromoiPosBase, _dromoiStringMode);
         _dromoiEditMode = false;
         _dromoiDraft = null;
         setEditUI(false);
@@ -751,7 +793,9 @@ function renderDromos() {
 
   const editBadge = $('#dromoi-edit-badge');
   if (editBadge && typeof DromosOverrides !== 'undefined') {
-    editBadge.hidden = !DromosOverrides.has(d.id, currentRoot, _dromoiPosBase, _dromoiStringMode);
+    const kind = DromosOverrides.getKind(d.id, currentRoot, _dromoiPosBase, _dromoiStringMode);
+    editBadge.hidden = !kind;
+    if (kind) editBadge.textContent = kind === 'invariant' ? '✓ מותאם (כל הטוניקות)' : '✓ מותאם';
   }
 
   if (typeof FretboardMirror !== 'undefined') {
