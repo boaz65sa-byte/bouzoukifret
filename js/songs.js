@@ -822,15 +822,16 @@ const SongLibrary = (() => {
 
   function _bindSongChordTooltips(detail) {
     if (typeof ChordTooltip === 'undefined' || !detail) return;
-    ChordTooltip.bindContainer(detail.querySelector('.song-chord-diagrams'));
-    ChordTooltip.bindContainer(detail.querySelector('#song-strum-strip'));
-    ChordTooltip.bindContainer(detail.querySelector('#song-scroll-area'));
+    const editOpts = { editable: true };
+    ChordTooltip.bindContainer(detail.querySelector('.song-chord-diagrams'), editOpts);
+    ChordTooltip.bindContainer(detail.querySelector('#song-strum-strip'), editOpts);
+    ChordTooltip.bindContainer(detail.querySelector('#song-scroll-area'), editOpts);
     detail.querySelectorAll('.fret-chord-name').forEach(th => {
       if (th.dataset.chordBound) return;
       th.dataset.chord = th.textContent.trim();
       th.dataset.chordBound = '1';
       th.style.cursor = 'help';
-      ChordTooltip.bindHover(th, () => th.dataset.chord);
+      ChordTooltip.bindHover(th, () => th.dataset.chord, editOpts);
     });
   }
 

@@ -58,11 +58,14 @@ const ChordTooltip = (() => {
     tip.style.top = `${top}px`;
   }
 
-  function show(chordName, anchorEl) {
+  function show(chordName, anchorEl, opts = {}) {
     if (!anchorEl) return;
     clearTimeout(_hideTimer);
     const key = resolveKey(chordName);
     const tip = _ensureEl();
+    // ה-tooltip הוא pointer-events:none כברירת מחדל (בועת מידע פסיבית) — במצב editable
+    // צריך להחזיר לו אינטראקטיביות כדי שכפתור העריכה/תאי הסריג יקבלו קליקים בכלל.
+    tip.classList.toggle('chord-tooltip-interactive', !!opts.editable);
     if (!key) {
       tip.innerHTML = `<span class="chord-tooltip-missing">${chordName}</span>`;
       tip.hidden = false;
@@ -72,12 +75,51 @@ const ChordTooltip = (() => {
     const chord = CHORDS[key];
     tip.innerHTML = '';
     const svg = svgEl('svg', {});
-    _drawDiagram(svg, key);
-    tip.appendChild(svg);
+    svg.classList.add('chord-svg', 'chord-svg-tooltip');
     const lbl = document.createElement('div');
     lbl.className = 'chord-tooltip-label';
-    lbl.textContent = chord.he || key;
-    tip.appendChild(lbl);
+
+    if (opts.editable && typeof ChordLibrary !== 'undefined') {
+      let editing = false;
+      let shape = chord.shape.slice();
+      const redraw = () => {
+        ChordDiagram.draw(svg, {
+          name: key, shape, compact: !editing, showFretNumbers: editing,
+          editable: editing,
+          onFretEdit: editing ? (idx, val) => { shape[idx] = val; redraw(); } : null,
+        });
+        svg.classList.add('chord-svg', 'chord-svg-tooltip');
+      };
+      redraw();
+      tip.appendChild(svg);
+      lbl.textContent = chord.he || key;
+      tip.appendChild(lbl);
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'btn secondary chord-edit-toggle';
+      editBtn.textContent = '✏️';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (editing) {
+          ChordLibrary.setFret(key, ChordLibrary.shapeToFrets(shape));
+          editing = false;
+          editBtn.textContent = '✏️';
+          editBtn.classList.remove('active');
+        } else {
+          editing = true;
+          editBtn.textContent = '💾';
+          editBtn.classList.add('active');
+        }
+        redraw();
+        requestAnimationFrame(() => _position(anchorEl));
+      });
+      tip.appendChild(editBtn);
+    } else {
+      _drawDiagram(svg, key);
+      tip.appendChild(svg);
+      lbl.textContent = chord.he || key;
+      tip.appendChild(lbl);
+    }
     tip.hidden = false;
     requestAnimationFrame(() => _position(anchorEl));
   }
@@ -102,17 +144,17 @@ const ChordTooltip = (() => {
     });
   }
 
-  function bindHover(el, getChordName) {
+  function bindHover(el, getChordName, opts = {}) {
     if (!el) return;
     const resolve = () => (typeof getChordName === 'function' ? getChordName() : getChordName);
     el.addEventListener('mouseenter', () => {
       const name = resolve();
-      if (name) show(name, el);
+      if (name) show(name, el, opts);
     });
     el.addEventListener('mouseleave', hide);
     el.addEventListener('focus', () => {
       const name = resolve();
-      if (name) show(name, el);
+      if (name) show(name, el, opts);
     });
     el.addEventListener('blur', hide);
     // מגע/קליק — toggle (במובייל אין hover)
@@ -125,7 +167,7 @@ const ChordTooltip = (() => {
         _activeAnchor = null;
       } else {
         clearTimeout(_hideTimer);
-        show(name, el);
+        show(name, el, opts);
         _activeAnchor = el;
         _bindDocDismiss();
       }
@@ -133,13 +175,13 @@ const ChordTooltip = (() => {
   }
 
   /** כל האלמנטים עם data-chord בתוך root */
-  function bindContainer(root) {
+  function bindContainer(root, opts = {}) {
     const el = typeof root === 'string' ? document.querySelector(root) : root;
     if (!el) return;
     el.querySelectorAll('[data-chord]').forEach(node => {
       if (node.dataset.chordBound) return;
       node.dataset.chordBound = '1';
-      bindHover(node, () => node.dataset.chord);
+      bindHover(node, () => node.dataset.chord, opts);
     });
   }
 
