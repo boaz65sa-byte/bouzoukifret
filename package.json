@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "vercel-build": "node scripts/ensure-deno.js",
-    "test": "node tools/smoke-test.js"
+    "test": "node tools/smoke-test.js",
+    "mobile:www": "node scripts/prepare-capacitor-www.js"
   },
   "dependencies": {
     "yt-dlp-exec": "^1.0.2"

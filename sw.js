@@ -1,16 +1,18 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v47';
+const CACHE_STATIC = 'bouzouki-static-v48';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
   './',
   './index.html',
   './manifest.json',
+  './privacy.html',
   './css/style.css',
   './config.example.js',
   './js/device-utils.js',
+  './js/store-mode.js',
   './js/fretboard-mirror.js',
   './js/playback-speed.js',
   './js/dromos-overrides.js',
@@ -18,6 +20,8 @@ const PRECACHE = [
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable.svg',
+  './icons/icon-512-maskable.png',
   './js/data.js',
   './js/maqamat-data.js',
   './js/audio.js',

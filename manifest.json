@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "בוזוקי אקדמי — Μπουζούκι",
   "short_name": "בוזוקי",
   "description": "כלי לימוד אינטראקטיבי לבוזוקי יווני — דרומוסים, תרגילים, ניתוח שירים",
@@ -10,6 +11,7 @@
   "theme_color": "#0b1623",
   "lang": "he",
   "dir": "rtl",
+  "categories": ["education", "music"],
   "icons": [
     {
       "src": "icons/icon.svg",
@@ -28,6 +30,18 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

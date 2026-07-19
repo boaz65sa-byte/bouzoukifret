@@ -186,6 +186,7 @@
       <p id="offline-badge" class="offline-badge" hidden></p>
       <p id="sidebar-xp" class="sidebar-xp" hidden></p>
       <p>כיוונון טטראחורדו<br><b>C · F · A · D</b></p>
+      <p style="margin-top:8px;font-size:11px"><a href="privacy.html" target="_blank" rel="noopener" style="color:var(--muted)">מדיניות פרטיות</a></p>
     </div>
   </aside>
 
@@ -1151,6 +1152,7 @@
 <script src="config.example.js" defer></script>
 <script src="config.js" onerror="void 0" defer></script>
 <script src="js/device-utils.js" defer></script>
+<script src="js/store-mode.js" defer></script>
 <script src="js/fretboard-mirror.js" defer></script>
 <script src="js/playback-speed.js" defer></script>
 <script src="js/dromos-overrides.js" defer></script>
@@ -1215,8 +1217,27 @@
 <script src="js/install-prompt.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-BouzoukiTuner.init();
-SongLibrary.init();
+// רישום ה-Service Worker קודם לכל, ולא תלוי בהצלחת שום init() למטה — כדי שפתיחה
+// ראשונה-אי-פעם אופליין (לפני שיש קאש בכלל) תמשיך לתמוך במצב offline בפעם הבאה
+// גם אם מודול כלשהו נכשל בטעינה/אתחול.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').then(() => {
+    const el = document.getElementById('offline-badge');
+    if (!el) return;
+    const upd = () => {
+      el.hidden = false;
+      el.textContent = navigator.onLine ? '● מוכן offline' : '● offline';
+      el.classList.toggle('offline-active', !navigator.onLine);
+    };
+    upd();
+    window.addEventListener('online', upd);
+    window.addEventListener('offline', upd);
+  }).catch(() => {});
+}
+
+try {
+if (typeof BouzoukiTuner !== 'undefined') BouzoukiTuner.init();
+if (typeof SongLibrary !== 'undefined') SongLibrary.init();
 if (typeof IntervalTrainer !== 'undefined') IntervalTrainer.init();
 if (typeof ModeQuiz !== 'undefined') ModeQuiz.init();
 if (typeof ScaleExplorer !== 'undefined') ScaleExplorer.init();
@@ -1252,20 +1273,8 @@ if (typeof SkillsCoach !== 'undefined') SkillsCoach.init();
 if (typeof LearnHub !== 'undefined') LearnHub.init();
 if (typeof LearnLibrary !== 'undefined') LearnLibrary.init();
 if (typeof HomeHub !== 'undefined') HomeHub.init();
-
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('sw.js').then(() => {
-    const el = document.getElementById('offline-badge');
-    if (!el) return;
-    const upd = () => {
-      el.hidden = false;
-      el.textContent = navigator.onLine ? '● מוכן offline' : '● offline';
-      el.classList.toggle('offline-active', !navigator.onLine);
-    };
-    upd();
-    window.addEventListener('online', upd);
-    window.addEventListener('offline', upd);
-  }).catch(() => {});
+} catch (e) {
+  console.error('[init] module init failed:', e);
 }
 });
 </script>

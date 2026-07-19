@@ -1,0 +1,19 @@
+{
+  "appId": "com.bouzoukifret.app",
+  "appName": "בוזוקי אקדמי",
+  "webDir": "www",
+  "backgroundColor": "#0b1623",
+  "android": {
+    "backgroundColor": "#0b1623"
+  },
+  "ios": {
+    "backgroundColor": "#0b1623",
+    "contentInset": "automatic"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "backgroundColor": "#0b1623",
+      "showSpinner": false
+    }
+  }
+}

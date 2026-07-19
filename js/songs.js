@@ -838,7 +838,23 @@ const SongLibrary = (() => {
 
   /* ===================== UI — רינדור ===================== */
 
+  // בגרסת חנות (TWA/Capacitor) — מאפסים את מילות השירים המוגנות (בית+פזמון, אמנים בשם)
+  // באובייקט בזיכרון, חד-פעמי. אקורדים/שם/אמן/מבנה נשארים; משאיר את אתר הדפדפן ללא שינוי.
+  let _lyricsStripped = false;
+  function _stripLyricsForStoreBuild() {
+    if (_lyricsStripped) return;
+    if (typeof StoreMode === 'undefined' || !StoreMode.isStoreBuild()) return;
+    if (typeof SONG_CATALOG === 'undefined') return;
+    SONG_CATALOG.forEach(song => {
+      (song.sections || []).forEach(section => {
+        (section.lines || []).forEach(line => { line.lyrics = ''; });
+      });
+    });
+    _lyricsStripped = true;
+  }
+
   function init() {
+    _stripLyricsForStoreBuild();
     const app = document.getElementById('songs-app');
     if (!app) return;
 

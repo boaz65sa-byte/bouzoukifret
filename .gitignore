@@ -14,3 +14,9 @@ learn-downloads/*
 !package-lock.json
 !scripts/**
 !tools/stem-proxy/package.json
+
+# עטיפת Capacitor (iOS) — mobile/www נוצר ע"י scripts/prepare-capacitor-www.js (עותק, לא מקור),
+# ו-android/ios הם פרויקטים נייטיביים גדולים שנוצרים ע"י `npx cap add` — לא נשמרים ב-git
+mobile/www/
+mobile/android/
+mobile/ios/

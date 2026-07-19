@@ -32,6 +32,17 @@ $$('.nav-btn').forEach(btn => {
   });
 });
 
+// בגרסת חנות (TWA/Capacitor) — מסתירים את כל אשכול "למד מהשיר (YouTube)": שלושת המסכים
+// האלה נשענים על שרשרת הורדה/פרוקסי צד-שלישי שאסורה במפורש במדיניות שתי החנויות.
+if (typeof StoreMode !== 'undefined' && StoreMode.isStoreBuild()) {
+  ['learn', 'learn-lib', 'vocal-melody'].forEach(screen => {
+    const btn = document.querySelector(`.nav-btn[data-screen="${screen}"]`);
+    // .nav-btn { display:flex } בסגנון הראשי הייתה עוקפת בשקט את display:none של [hidden]
+    // (אותה ספציפיות, כלל ה-author מנצח) — משתמשים ב-style ישיר כדי להימנע מהתנגשות cascade.
+    if (btn) btn.style.display = 'none';
+  });
+}
+
 let activeSchedulers = [];
 
 /** מנועי נגינה רשומים — כל מודול שנכנס לרשימה ייעצר במעבר מסך */
