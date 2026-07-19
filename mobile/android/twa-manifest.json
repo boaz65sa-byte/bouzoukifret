@@ -1,0 +1,39 @@
+{
+  "packageId": "app.vercel.bouzoukifret.twa",
+  "host": "bouzoukifret.vercel.app",
+  "name": "בוזוקי אקדמי — Μπουζούκι",
+  "launcherName": "בוזוקי",
+  "display": "standalone",
+  "themeColor": "#0b1623",
+  "themeColorDark": "#0b1623",
+  "navigationColor": "#0b1623",
+  "navigationColorDark": "#0b1623",
+  "navigationDividerColor": "#0b1623",
+  "navigationDividerColorDark": "#0b1623",
+  "backgroundColor": "#0b1623",
+  "enableNotifications": false,
+  "startUrl": "/index.html",
+  "iconUrl": "https://bouzoukifret.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://bouzoukifret.vercel.app/icons/icon-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "manual",
+  "webManifestUrl": "https://bouzoukifret.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://bouzoukifret.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "default"
+}

@@ -18,5 +18,21 @@ learn-downloads/*
 # עטיפת Capacitor (iOS) — mobile/www נוצר ע"י scripts/prepare-capacitor-www.js (עותק, לא מקור),
 # ו-android/ios הם פרויקטים נייטיביים גדולים שנוצרים ע"י `npx cap add` — לא נשמרים ב-git
 mobile/www/
-mobile/android/
 mobile/ios/
+
+# TWA (Android) — mobile/android/twa-manifest.json כן נשמר (קונפיג-מקור), אבל לא שום דבר
+# שנוצר סביבו ע"י `bubblewrap build`: מפתח חתימה (קריטי — לעולם לא ל-git!), סיסמאות, ופרויקט
+# ה-Gradle שנוצר אוטומטית באותה תיקייה
+mobile/android/*.keystore
+mobile/android/*password*
+mobile/android/*.aab
+mobile/android/*.apk
+mobile/android/app/
+mobile/android/gradle/
+mobile/android/.gradle/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/build.gradle
+mobile/android/settings.gradle
+mobile/android/gradle.properties
+mobile/android/local.properties

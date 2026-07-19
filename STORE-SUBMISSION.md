@@ -47,23 +47,21 @@
 - [x] `.well-known/assetlinks.json` — תבנית עם placeholders (למילוי אחרי יצירת keystore, ראו למטה)
 - [x] `mobile/capacitor.config.json` — קונפיג Capacitor מוכן (appId/appName/צבעים)
 - [x] `scripts/prepare-capacitor-www.js` (גם `npm run mobile:www`) — מעתיק את קבצי האתר ל-`mobile/www` (הרצה מאומתת: 75 קבצים, בלי `api/`/`tools/`/`penia-master`/סודות)
+- [x] `mobile/android/twa-manifest.json` — הוכן **ידנית** (עוקף לגמרי את אשף ה-`bubblewrap init` האינטראקטיבי, שמבקש להתקין JDK ולא ניתן להריץ בסביבה הזו). **חשוב**: זו שחזור-סכימה ידני שלי, לא פלט אמיתי של הכלי — לא הצלחתי להריץ את `bubblewrap` בפועל כאן (חסר JDK) כדי לוודא שהוא נטען בלי שגיאה. סביר שיעבוד ישירות, אבל אם `bubblewrap build` יתלונן על שדה לא-מוכר — זה הסימן לבדוק מול תיעוד הכלי העדכני.
 
 ## Google Play — שלבים שנשארו אצלך (Android Studio + JDK נדרשים, לא זמינים בסביבה הזו)
 
 1. התקן Java 17 JDK ו-Android Studio (ל-build ה-AAB בפועל).
-2. הרץ (ניסיתי כאן — האשף אינטראקטיבי ומבקש להתקין JDK, לא ניתן להריץ ללא טרמינל אינטראקטיבי):
+2. מתוך `mobile/android/` (איפה ש-`twa-manifest.json` כבר יושב) — **לא צריך להריץ `bubblewrap init` בכלל**, ישר:
    ```
-   npx @bubblewrap/cli init --manifest=https://bouzoukifret.vercel.app/manifest.json
+   cd mobile/android
+   npx @bubblewrap/cli build
    ```
-3. פרמטרים מוכנים להזנה באשף (מבוססי `manifest.json` הנוכחי):
-   - **Host**: `bouzoukifret.vercel.app`
-   - **Package ID מוצע**: `app.vercel.bouzoukifret.twa` (Bubblewrap מציע ברירת מחדל דומה מה-host; אפשר לשנות — **בלתי הפיך אחרי פרסום ראשון בחנות**, כדאי להחליט מראש אם יש דומיין/מותג אחר שעדיף)
-   - **App name**: בוזוקי אקדמי — Μπουζούκι
-   - **Theme color / Background color**: `#0b1623`
-   - **Icon URL**: `https://bouzoukifret.vercel.app/icons/icon-512.png`
-   - **Maskable icon URL**: `https://bouzoukifret.vercel.app/icons/icon-512-maskable.png`
-4. בסיום `bubblewrap init` יווצר keystore חתימה — קח את ה-**SHA256 fingerprint** שלו (`keytool -list -v -keystore <your.keystore>`) ואת ה-**package name** הסופי, ומלא אותם ב-`.well-known/assetlinks.json` (במקום ה-placeholders), ואז **פרסם מחדש** את האתר כדי שהקובץ יהיה זמין ב-`https://bouzoukifret.vercel.app/.well-known/assetlinks.json` — TWA לא יאומת בלי זה.
-5. `bubblewrap build` מפיק את ה-AAB — מעלים אותו ל-Play Console.
+   בריצה הראשונה הכלי ישאל על התקנת JDK/Android SDK (ענה לפי מה שכבר מותקן אצלך) ויצור keystore חתימה חדש (כי `twa-manifest.json` מצביע על `./android.keystore` שעדיין לא קיים).
+   *אם מעדיף בכל זאת את האשף המלא במקום להסתמך על הקובץ שהכנתי*: `npx @bubblewrap/cli init --manifest=https://bouzoukifret.vercel.app/manifest.json` (מריץ מ-`mobile/android/` גם כן) — הפרמטרים הרלוונטיים כבר בתוך `twa-manifest.json` להשוואה/העתקה ידנית לתוך האשף.
+3. **Package ID**: `app.vercel.bouzoukifret.twa` (ב-`twa-manifest.json`) — נבחר כברירת מחדל סבירה מה-host, **בלתי הפיך אחרי פרסום ראשון בחנות** — שווה להחליט מראש אם יש דומיין/מותג אחר שעדיף, ולערוך את השדה `packageId` לפני ה-build הראשון אם כן.
+4. אחרי `bubblewrap build` יש keystore חתימה (`mobile/android/android.keystore`) — קח את ה-**SHA256 fingerprint** שלו (`keytool -list -v -keystore android.keystore`) ואת ה-package name הסופי, ומלא אותם ב-`.well-known/assetlinks.json` (במקום ה-placeholders), ואז **פרסם מחדש** את האתר כדי שהקובץ יהיה זמין ב-`https://bouzoukifret.vercel.app/.well-known/assetlinks.json` — TWA לא יאומת בלי זה.
+5. ה-AAB שנוצר (`mobile/android/app-release-bundle.aab` בד"כ) — מעלים אותו ל-Play Console.
 6. במסך Play Console: למלא Data Safety Form (טבלה למעלה), להעלות `privacy.html` כקישור מדיניות פרטיות, ולצרף את "App Review notes" למעלה בשדה ההערות לבודק.
 
 ## Apple App Store — שלבים שנשארו אצלך (Mac + Xcode הכרחיים, לא זמינים בסביבה הזו בכלל)
