@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "REPLACE_WITH_ANDROID_PACKAGE_ID",
+      "package_name": "app.vercel.bouzoukifret.twa",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_SHA256_SIGNING_FINGERPRINT"
+        "08:9A:18:43:17:4F:A1:9F:96:56:AF:B2:50:69:E8:22:9B:7E:6E:71:94:9A:15:55:8A:F3:21:3E:3D:C6:F5:83"
       ]
     }
   }
