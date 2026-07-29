@@ -1,7 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#0b1623"/>
-  <ellipse cx="180" cy="340" rx="120" ry="125" fill="#e3b341"/>
-  <ellipse cx="180" cy="340" rx="48" ry="52" fill="#0b1623"/>
-  <rect x="230" y="70" width="42" height="250" rx="14" transform="rotate(38 251 195)" fill="#e3b341"/>
-  <rect x="340" y="40" width="70" height="52" rx="12" transform="rotate(38 375 66)" fill="#f0cc74"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg-glow" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#132335"/>
+      <stop offset="100%" stop-color="#0b1623"/>
+    </radialGradient>
+    <linearGradient id="body-grad" x1="20%" y1="10%" x2="85%" y2="95%">
+      <stop offset="0%" stop-color="#f6d989"/>
+      <stop offset="45%" stop-color="#e6b93f"/>
+      <stop offset="100%" stop-color="#b9832a"/>
+    </linearGradient>
+    <linearGradient id="neck-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c8912c"/>
+      <stop offset="50%" stop-color="#e9bd4c"/>
+      <stop offset="100%" stop-color="#c8912c"/>
+    </linearGradient>
+    <linearGradient id="head-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbe6ab"/>
+      <stop offset="100%" stop-color="#e9bd4c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg-glow)"/>
+
+  <g transform="translate(512,512) rotate(35)">
+    <!-- strings -->
+    <g stroke="#fff6dc" stroke-opacity="0.75" stroke-width="3" stroke-linecap="round">
+      <line x1="-15" y1="-368" x2="-42" y2="378"/>
+      <line x1="-5"  y1="-368" x2="-14" y2="378"/>
+      <line x1="5"   y1="-368" x2="14"  y2="378"/>
+      <line x1="15"  y1="-368" x2="42"  y2="378"/>
+    </g>
+
+    <!-- neck -->
+    <rect x="-36" y="-330" width="72" height="600" rx="16" fill="url(#neck-grad)" stroke="#8a5f1c" stroke-width="3"/>
+    <!-- frets -->
+    <g stroke="#5b3c14" stroke-width="6" stroke-linecap="round">
+      <line x1="-34" y1="-250" x2="34" y2="-250"/>
+      <line x1="-34" y1="-165" x2="34" y2="-165"/>
+      <line x1="-34" y1="-80"  x2="34" y2="-80"/>
+      <line x1="-34" y1="5"    x2="34" y2="5"/>
+      <line x1="-34" y1="90"   x2="34" y2="90"/>
+      <line x1="-34" y1="175"  x2="34" y2="175"/>
+    </g>
+    <!-- fret inlay dots -->
+    <circle cx="0" cy="-207" r="7" fill="#5b3c14"/>
+    <circle cx="0" cy="47"   r="7" fill="#5b3c14"/>
+
+    <!-- headstock -->
+    <rect x="-78" y="-430" width="156" height="108" rx="26" fill="url(#head-grad)" stroke="#8a5f1c" stroke-width="3"/>
+    <!-- tuning pegs, 4 per side = 8 total -->
+    <g fill="#3a3f4b" stroke="#1c1f26" stroke-width="2">
+      <circle cx="-96" cy="-405" r="13"/>
+      <circle cx="-96" cy="-376" r="13"/>
+      <circle cx="-96" cy="-347" r="13"/>
+      <circle cx="-96" cy="-318" r="13"/>
+      <circle cx="96"  cy="-405" r="13"/>
+      <circle cx="96"  cy="-376" r="13"/>
+      <circle cx="96"  cy="-347" r="13"/>
+      <circle cx="96"  cy="-318" r="13"/>
+    </g>
+    <g fill="#c9cdd6">
+      <circle cx="-96" cy="-405" r="4"/>
+      <circle cx="-96" cy="-376" r="4"/>
+      <circle cx="-96" cy="-347" r="4"/>
+      <circle cx="-96" cy="-318" r="4"/>
+      <circle cx="96"  cy="-405" r="4"/>
+      <circle cx="96"  cy="-376" r="4"/>
+      <circle cx="96"  cy="-347" r="4"/>
+      <circle cx="96"  cy="-318" r="4"/>
+    </g>
+
+    <!-- body (pear-shaped resonator) -->
+    <path d="M 0,110
+             C 130,110 205,195 205,300
+             C 205,410 130,470 0,470
+             C -130,470 -205,410 -205,300
+             C -205,195 -130,110 0,110 Z"
+          fill="url(#body-grad)" stroke="#8a5f1c" stroke-width="4"/>
+
+    <!-- bridge -->
+    <rect x="-46" y="372" width="92" height="24" rx="7" fill="#6b4416"/>
+
+    <!-- soundhole + rosette -->
+    <circle cx="0" cy="230" r="78" fill="none" stroke="#8a651f" stroke-opacity="0.55" stroke-width="5"/>
+    <circle cx="0" cy="230" r="62" fill="none" stroke="#8a651f" stroke-opacity="0.4" stroke-width="3"/>
+    <circle cx="0" cy="230" r="46" fill="#0b1623"/>
+  </g>
 </svg>
