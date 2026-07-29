@@ -44,25 +44,16 @@
 - [x] תוקן באג חוסן שיכל לעצור רישום Service Worker בפתיחה ראשונה אופליין
 - [x] `privacy.html` — מדיניות פרטיות מלאה (סופרסט, כולל תיאור מה שונה בגרסת חנות)
 - [x] `manifest.json` — אייקון maskable (SVG+PNG, אומת עם ניתוח פיקסלים שהתוכן נשאר בתוך אזור 80% הבטוח), `id`, `categories`
-- [x] `.well-known/assetlinks.json` — תבנית עם placeholders (למילוי אחרי יצירת keystore, ראו למטה)
+- [x] `.well-known/assetlinks.json` — **מולא בערכים אמיתיים ומאומת חי בפרודקשן** (package `app.vercel.bouzoukifret.twa`, fingerprint תואם לקיסטור החתימה בפועל — נבדק ב-2026-07-28 מול `https://bouzoukifret.vercel.app/.well-known/assetlinks.json`, זהה ל-100% לקובץ המקומי)
 - [x] `mobile/capacitor.config.json` — קונפיג Capacitor מוכן (appId/appName/צבעים)
 - [x] `scripts/prepare-capacitor-www.js` (גם `npm run mobile:www`) — מעתיק את קבצי האתר ל-`mobile/www` (הרצה מאומתת: 75 קבצים, בלי `api/`/`tools/`/`penia-master`/סודות)
-- [x] `mobile/android/twa-manifest.json` — הוכן **ידנית** (עוקף לגמרי את אשף ה-`bubblewrap init` האינטראקטיבי, שמבקש להתקין JDK ולא ניתן להריץ בסביבה הזו). **חשוב**: זו שחזור-סכימה ידני שלי, לא פלט אמיתי של הכלי — לא הצלחתי להריץ את `bubblewrap` בפועל כאן (חסר JDK) כדי לוודא שהוא נטען בלי שגיאה. סביר שיעבוד ישירות, אבל אם `bubblewrap build` יתלונן על שדה לא-מוכר — זה הסימן לבדוק מול תיעוד הכלי העדכני.
+- [x] **Bubblewrap build הושלם בפועל** (2026-07-19/20, על המכשיר של המשתמש) — `mobile/android/twa-manifest.json` הוא כעת פלט אמיתי של הכלי (`generatorApp: bubblewrap-cli`, לא ידני), `mobile/android/android.keystore` נוצר, וקיימים `app-release-bundle.aab` + `app-release-signed.apk` מוכנים להעלאה. כל הקבצים הרגישים (keystore, aab, apk) מוגנים ב-`.gitignore`.
+- [x] **Play Console — כל 10 הצהרות התוכן הושלמו** (2026-07-28, דרך אוטומציית דפדפן עם אישור המשתמש לפני כל שמירה): מדיניות פרטיות (קישור ל-`privacy.html`), מודעות (ללא), פרטי כניסה (ללא הגבלות גישה), סיווג תוכן IARC (קטגוריה "כל סוגי האפליקציות האחרים", שימוש עיקרי=חינוך → **PEGI 3 / USK 0 / IARC Generic 3+**, Everyone בכל האזורים), קהל יעד (כל הגילאים, לא הצטרפות ל-Teacher Approved), אבטחת נתונים (לא נאסף/לא משותף + תג התחייבות ל-Families Policy), אפליקציות ממשלתיות (לא), תכונות פיננסיות (לא), אפליקציות בתחום הבריאות (לא), מזהה פרסום Android 13 (לא בשימוש). כמו כן מולאו שם/תיאורים/קטגוריה (חינוך)/פרטי קשר בדף החנות הראשי.
 
-## Google Play — שלבים שנשארו אצלך (Android Studio + JDK נדרשים, לא זמינים בסביבה הזו)
+## Google Play — מה נשאר לך (רק שני פריטים ידניים)
 
-1. התקן Java 17 JDK ו-Android Studio (ל-build ה-AAB בפועל).
-2. מתוך `mobile/android/` (איפה ש-`twa-manifest.json` כבר יושב) — **לא צריך להריץ `bubblewrap init` בכלל**, ישר:
-   ```
-   cd mobile/android
-   npx @bubblewrap/cli build
-   ```
-   בריצה הראשונה הכלי ישאל על התקנת JDK/Android SDK (ענה לפי מה שכבר מותקן אצלך) ויצור keystore חתימה חדש (כי `twa-manifest.json` מצביע על `./android.keystore` שעדיין לא קיים).
-   *אם מעדיף בכל זאת את האשף המלא במקום להסתמך על הקובץ שהכנתי*: `npx @bubblewrap/cli init --manifest=https://bouzoukifret.vercel.app/manifest.json` (מריץ מ-`mobile/android/` גם כן) — הפרמטרים הרלוונטיים כבר בתוך `twa-manifest.json` להשוואה/העתקה ידנית לתוך האשף.
-3. **Package ID**: `app.vercel.bouzoukifret.twa` (ב-`twa-manifest.json`) — נבחר כברירת מחדל סבירה מה-host, **בלתי הפיך אחרי פרסום ראשון בחנות** — שווה להחליט מראש אם יש דומיין/מותג אחר שעדיף, ולערוך את השדה `packageId` לפני ה-build הראשון אם כן.
-4. אחרי `bubblewrap build` יש keystore חתימה (`mobile/android/android.keystore`) — קח את ה-**SHA256 fingerprint** שלו (`keytool -list -v -keystore android.keystore`) ואת ה-package name הסופי, ומלא אותם ב-`.well-known/assetlinks.json` (במקום ה-placeholders), ואז **פרסם מחדש** את האתר כדי שהקובץ יהיה זמין ב-`https://bouzoukifret.vercel.app/.well-known/assetlinks.json` — TWA לא יאומת בלי זה.
-5. ה-AAB שנוצר (`mobile/android/app-release-bundle.aab` בד"כ) — מעלים אותו ל-Play Console.
-6. במסך Play Console: למלא Data Safety Form (טבלה למעלה), להעלות `privacy.html` כקישור מדיניות פרטיות, ולצרף את "App Review notes" למעלה בשדה ההערות לבודק.
+1. **העלאת נכסים גרפיים** — הכלי לא יכול לגשת לקבצים מקומיים מחוץ לתיקיית השיתוף שלו, אז צריך לגרור ידנית ב-Play Console → "דף האפליקציה בחנות" → "נכסים חזותיים נפוצים"/"נכסים חזותיים ייעודיים": האייקון (`store-assets/app-icon-1024.png` — הפוך ל-512×512 PNG אם צריך, `icons/icon-512.png` כבר בגודל הנכון), ה-Feature Graphic (`store-assets/play-store-feature-graphic.png`, 1024×500 — נבדק ויזואלית, העברית תקינה), וצילומי מסך אמיתיים (עדיין לא צולמו — פתחו את `bouzoukifret.vercel.app` בטלפון/DevTools בתצוגת מובייל וצלמו את 6 המסכים המפורטים ב-`STORE-LISTING.md`).
+2. **מעבר מ-Internal Testing ל-Production ושליחה לבדיקה** — יש כבר release שנוצר ואושר במסלול הבדיקה הפנימית (`mobile/android/app-release-bundle.aab` כבר הועלה שם). אחרי שהגרפיקה מוכנה: לעבור למסלול "ייצור" (Production) ב-Play Console, לוודא שה-AAB הנכון מקושר, ולשלוח לבדיקה — כל שאר הטפסים (Data Safety, App content, Store listing) כבר מוכנים ולא ידרשו מילוי נוסף.
 
 ## Apple App Store — שלבים שנשארו אצלך (Mac + Xcode הכרחיים, לא זמינים בסביבה הזו בכלל)
 
