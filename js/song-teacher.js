@@ -41,6 +41,17 @@ const SongTeacher = (() => {
   let _lastHeldNoteIdx = -1;
   let _tabCols = [];
   const STR_LABELS = ['D', 'A', 'F', 'C'];
+  let _manualMode = 'text';   // 'text' | 'manual'
+  let _manualNotes = [];      // [{course,fret,steps}] — נבנה ע"י העורך הידני
+  let _manualCourse = 0;
+  const MANUAL_EXAMPLE =
+`BPM: 96
+STEP: 0.5
+D: 0 . 2 . 3 . . 0
+A: . 2 . . . 0 . .
+F: . . . . . . . .
+C: . . . . . . . .
+CH: Dm . . . G . . .`;
 
   function _esc(s) {
     return String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
@@ -947,6 +958,194 @@ const SongTeacher = (() => {
     renderShell(el);
   }
 
+  /* ============================================================
+     קלט ידני — טקסט טאב או עורך תו-אחר-תו (בלי אודיו, בלי AI)
+     ============================================================ */
+  function courseFromLabel(label) {
+    const i = STR_LABELS.indexOf(String(label || '').toUpperCase());
+    return i >= 0 ? i : null;
+  }
+
+  /** מפרש טקסט טאב פשוט (ראו MANUAL_EXAMPLE לפורמט) ל-{tabNotes, chords, bpm} */
+  function parseTextTab(text) {
+    let bpm = 90;
+    let stepBeats = 0.5;
+    const courseTokens = { 0: null, 1: null, 2: null, 3: null };
+    let chordTokens = null;
+
+    String(text || '').split('\n').forEach(rawLine => {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) return;
+      let m = line.match(/^(BPM|STEP)\s*:\s*([\d.]+)/i);
+      if (m) {
+        const v = parseFloat(m[2]);
+        if (m[1].toUpperCase() === 'BPM' && v > 0) bpm = v;
+        else if (v > 0) stepBeats = v;
+        return;
+      }
+      m = line.match(/^(CH|D|A|F|C)\s*:?\s*(.*)$/i);
+      if (!m) return;
+      const tokens = m[2].split(/[\s,]+/).filter(Boolean);
+      const label = m[1].toUpperCase();
+      if (label === 'CH') chordTokens = tokens;
+      else courseTokens[courseFromLabel(label)] = tokens;
+    });
+
+    const maxLen = Math.max(0, ...Object.values(courseTokens).map(t => t?.length || 0), chordTokens?.length || 0);
+    if (!maxLen) throw new Error('לא נמצאו שורות D/A/F/C עם תווים');
+    const stepDur = stepBeats * (60 / bpm);
+
+    const tabNotes = [];
+    for (let i = 0; i < maxLen; i++) {
+      [0, 1, 2, 3].forEach(ci => {
+        const tok = courseTokens[ci]?.[i];
+        if (tok == null || tok === '.' || tok === '-') return;
+        if (!/^\d+$/.test(tok)) return;
+        const fret = parseInt(tok, 10);
+        tabNotes.push({ time: i * stepDur, course: ci, fret, midi: TUNING[ci].midi + fret, duration: stepDur });
+      });
+    }
+    if (!tabNotes.length) throw new Error('לא נמצאו מספרי סריג בשורות D/A/F/C — רק נקודות/מקפים');
+
+    const chords = [];
+    let lastChord = null;
+    if (chordTokens) {
+      chordTokens.forEach((tok, i) => {
+        if (!tok || tok === '.' || tok === '-') return;
+        if (tok === lastChord) return;
+        chords.push({ time: i * stepDur, chord: tok });
+        lastChord = tok;
+      });
+    }
+    return { tabNotes, chords, bpm };
+  }
+
+  function manualNotesToLesson() {
+    let t = 0;
+    const bpmInput = $('#st-manual-bpm');
+    const bpm = Math.max(20, parseInt(bpmInput?.value, 10) || 90);
+    const stepDur = 0.5 * (60 / bpm);
+    const tabNotes = _manualNotes.map(n => {
+      const dur = (n.steps || 1) * stepDur;
+      const entry = n.rest ? null : { time: t, course: n.course, fret: n.fret, midi: TUNING[n.course].midi + n.fret, duration: dur };
+      t += dur;
+      return entry;
+    }).filter(Boolean);
+    return { tabNotes, chords: [], bpm };
+  }
+
+  function renderManualNotesList() {
+    const host = $('#st-manual-list');
+    if (!host) return;
+    if (!_manualNotes.length) {
+      host.innerHTML = '<p class="hint">עדיין לא הוספתם תווים — בחרו מיתר, סריג, ולחצו "הוסף תו".</p>';
+      return;
+    }
+    host.innerHTML = _manualNotes.map((n, i) => `
+      <span class="st-manual-chip">
+        ${n.rest ? '⏸ מנוחה' : `${STR_LABELS[n.course]} · סריג ${n.fret}`}
+        <button type="button" class="st-manual-del" data-i="${i}" title="הסר">✕</button>
+      </span>`).join('');
+    host.querySelectorAll('.st-manual-del').forEach(b => b.addEventListener('click', () => {
+      _manualNotes.splice(parseInt(b.dataset.i, 10), 1);
+      renderManualNotesList();
+    }));
+  }
+
+  function tryLoadManualResult(result, host) {
+    try {
+      loadAnalysis({ ...result, engine: 'manual-tab' });
+      setStatus('השיעור נבנה מהקלט הידני שלכם', 100);
+      if (host) host.textContent = '';
+    } catch (err) {
+      if (host) host.textContent = 'שגיאה: ' + (err.message || err);
+    }
+  }
+
+  function renderManualPanel(el) {
+    const panel = $('#st-manual-panel', el);
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="st-load-row">
+        <button type="button" class="btn small st-manual-mode ${_manualMode === 'text' ? 'active' : ''}" data-m="text">📝 טקסט טאב</button>
+        <button type="button" class="btn small st-manual-mode ${_manualMode === 'manual' ? 'active' : ''}" data-m="manual">🖱️ בנייה ידנית תו-אחר-תו</button>
+      </div>
+      <div id="st-manual-body"></div>`;
+    panel.querySelectorAll('.st-manual-mode').forEach(b => b.addEventListener('click', () => {
+      _manualMode = b.dataset.m;
+      renderManualPanel(el);
+    }));
+    const body = $('#st-manual-body', el);
+    if (_manualMode === 'text') renderTextTabUI(body);
+    else renderManualBuilderUI(body);
+  }
+
+  function renderTextTabUI(body) {
+    body.innerHTML = `
+      <p class="hint">כתבו שורה לכל מיתר (D/A/F/C — מדק לעבה), מספר-סריג בכל "עמודה", נקודה = בלי תו. אפשר גם שורת אקורדים (CH) ו-BPM/STEP:</p>
+      <textarea id="st-manual-text" class="st-manual-textarea" rows="8" placeholder="${_esc(MANUAL_EXAMPLE)}"></textarea>
+      <div class="st-load-row">
+        <button type="button" class="btn small secondary" id="st-manual-example">💡 מלא דוגמה</button>
+        <button type="button" class="btn gold" id="st-manual-parse">🎓 טען לשיעור</button>
+      </div>
+      <p id="st-manual-err" class="hint" style="color:var(--danger,#e66);"></p>`;
+    $('#st-manual-example', body).addEventListener('click', () => { $('#st-manual-text', body).value = MANUAL_EXAMPLE; });
+    $('#st-manual-parse', body).addEventListener('click', () => {
+      const errHost = $('#st-manual-err', body);
+      errHost.textContent = '';
+      try {
+        const result = parseTextTab($('#st-manual-text', body).value);
+        tryLoadManualResult(result, errHost);
+      } catch (err) {
+        errHost.textContent = 'שגיאה: ' + (err.message || err);
+      }
+    });
+  }
+
+  function renderManualBuilderUI(body) {
+    body.innerHTML = `
+      <p class="hint">בחרו מיתר וסריג, הוסיפו תו-אחר-תו — בדיוק כמו שהייתם מקלידים טאב, רק בלחיצות.</p>
+      <div class="st-load-row">
+        ${STR_LABELS.map((l, i) => `<button type="button" class="btn small st-manual-course${i === _manualCourse ? ' active' : ''}" data-c="${i}">${l}</button>`).join('')}
+        <label>סריג: <input type="number" id="st-manual-fret" min="0" max="15" value="0" style="width:56px;"></label>
+        <label>משך (פסיעות): <input type="number" id="st-manual-steps" min="0.5" max="8" step="0.5" value="1" style="width:56px;"></label>
+      </div>
+      <div class="st-load-row">
+        <button type="button" class="btn small" id="st-manual-add">➕ הוסף תו</button>
+        <button type="button" class="btn small secondary" id="st-manual-rest">⏸ הוסף מנוחה</button>
+        <button type="button" class="btn small secondary" id="st-manual-undo">↺ הסר אחרון</button>
+        <label>BPM: <input type="number" id="st-manual-bpm" min="20" max="220" value="90" style="width:64px;"></label>
+      </div>
+      <div id="st-manual-list" class="st-manual-list"></div>
+      <div class="st-load-row">
+        <button type="button" class="btn gold" id="st-manual-build">🎓 טען לשיעור</button>
+      </div>
+      <p id="st-manual-err2" class="hint" style="color:var(--danger,#e66);"></p>`;
+    body.querySelectorAll('.st-manual-course').forEach(b => b.addEventListener('click', () => {
+      _manualCourse = parseInt(b.dataset.c, 10);
+      body.querySelectorAll('.st-manual-course').forEach(x => x.classList.toggle('active', x === b));
+    }));
+    $('#st-manual-add', body).addEventListener('click', () => {
+      const fret = Math.max(0, Math.min(15, parseInt($('#st-manual-fret', body).value, 10) || 0));
+      const steps = Math.max(0.5, parseFloat($('#st-manual-steps', body).value) || 1);
+      _manualNotes.push({ course: _manualCourse, fret, steps });
+      renderManualNotesList();
+    });
+    $('#st-manual-rest', body).addEventListener('click', () => {
+      const steps = Math.max(0.5, parseFloat($('#st-manual-steps', body).value) || 1);
+      _manualNotes.push({ rest: true, steps });
+      renderManualNotesList();
+    });
+    $('#st-manual-undo', body).addEventListener('click', () => { _manualNotes.pop(); renderManualNotesList(); });
+    $('#st-manual-build', body).addEventListener('click', () => {
+      const errHost = $('#st-manual-err2', body);
+      errHost.textContent = '';
+      if (!_manualNotes.some(n => !n.rest)) { errHost.textContent = 'הוסיפו לפחות תו אחד (לא רק מנוחות).'; return; }
+      tryLoadManualResult(manualNotesToLesson(), errHost);
+    });
+    renderManualNotesList();
+  }
+
   function renderShell(el) {
     el.innerHTML = `
       <div class="card st-load">
@@ -968,8 +1167,11 @@ const SongTeacher = (() => {
         </div>
         <div class="st-prog"><div class="st-prog-bar"><div id="st-prog-fill"></div></div></div>
         <p class="st-hint st-tip">💡 לדיוק מלודיה גבוה יותר — בודדו קודם את הכלי המוביל ב"ניתוח שיר" (stem separation), ואז העלו את הקובץ המבודד לכאן.</p>
+        <div class="st-load-row" style="gap:0; align-items:center;"><span style="color:var(--text-dim);font-size:12px;">או — בלי קובץ אודיו בכלל:</span></div>
+        <div id="st-manual-panel"></div>
       </div>
       <div id="st-lesson"></div>`;
+    renderManualPanel(el);
     $('#st-file', el).addEventListener('change', e => { if (e.target.files[0]) analyzeFile(e.target.files[0]); });
     const jsonInput = $('#st-json', el);
     if (jsonInput) {

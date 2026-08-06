@@ -148,6 +148,9 @@
       <button class="nav-btn" data-screen="scalechords">
         <span class="nav-ico">🎹</span> אקורדים לפי דרומוס
       </button>
+      <button class="nav-btn" data-screen="duet-voices">
+        <span class="nav-ico">👥</span> קול שני לדואט
+      </button>
       <button class="nav-btn" data-screen="backing">
         <span class="nav-ico">🎶</span> רצועות ליווי
       </button>
@@ -1044,6 +1047,15 @@
       <div id="worksheets-app"></div>
     </section>
 
+    <!-- ========== מסך: קול שני לדואט ========== -->
+    <section class="screen" id="screen-duet-voices">
+      <header class="screen-head">
+        <h1>קול שני לדואט 👥</h1>
+        <p class="lead">מנגנים שיר בקול אחד בפוזיציה מסוימת? קבלו אוטומטית את הקול השני — כדי ששני נגני בוזוקי ינגנו יחד דו-קולית</p>
+      </header>
+      <div id="duet-voices-app"></div>
+    </section>
+
     <!-- ========== מסך: אולפן בוזוקי ========== -->
     <section class="screen" id="screen-bouzouki-studio">
       <header class="screen-head">
@@ -1167,6 +1179,7 @@
 <script src="js/course.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/fretboard-scale.js" defer></script>
+<script src="js/duet-voices.js" defer></script>
 <script src="js/exercises.js" defer></script>
 <script src="js/listen.js" defer></script>
 <script src="js/game.js" defer></script>
@@ -1242,6 +1255,7 @@ if (typeof IntervalTrainer !== 'undefined') IntervalTrainer.init();
 if (typeof ModeQuiz !== 'undefined') ModeQuiz.init();
 if (typeof ScaleExplorer !== 'undefined') ScaleExplorer.init();
 if (typeof ScaleChords !== 'undefined') ScaleChords.init();
+if (typeof DuetVoices !== 'undefined') DuetVoices.init();
 if (typeof BackingTracks !== 'undefined') BackingTracks.init();
 if (typeof JamSimulator !== 'undefined') JamSimulator.init();
 if (typeof XpSystem !== 'undefined') XpSystem.init();
