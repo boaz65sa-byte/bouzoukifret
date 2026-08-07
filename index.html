@@ -154,6 +154,9 @@
       <button class="nav-btn" data-screen="mode-positions">
         <span class="nav-ico">🪜</span> פוזיציות המודוס
       </button>
+      <button class="nav-btn nav-featured" data-screen="composer">
+        <span class="nav-ico">🎼</span> מלחין — תווים וטאב
+      </button>
       <button class="nav-btn" data-screen="backing">
         <span class="nav-ico">🎶</span> רצועות ליווי
       </button>
@@ -1068,6 +1071,15 @@
       <div id="mode-positions-app"></div>
     </section>
 
+    <!-- ========== מסך: מלחין ========== -->
+    <section class="screen" id="screen-composer">
+      <header class="screen-head">
+        <h1>מלחין — תווים וטאב 🎼</h1>
+        <p class="lead">הלחינו קטע לבוזוקי — בלחיצה על הגריף או בהדבקת/העלאת טאב-טקסט — וקבלו גם טאב וגם תווים אמיתיים על חמישייה (עם שם התו מתחת לכל תו), עם ניגון והדפסה</p>
+      </header>
+      <div id="composer-app"></div>
+    </section>
+
     <!-- ========== מסך: אולפן בוזוקי ========== -->
     <section class="screen" id="screen-bouzouki-studio">
       <header class="screen-head">
@@ -1193,6 +1205,7 @@
 <script src="js/fretboard-scale.js" defer></script>
 <script src="js/duet-voices.js" defer></script>
 <script src="js/mode-positions.js" defer></script>
+<script src="js/composer.js" defer></script>
 <script src="js/exercises.js" defer></script>
 <script src="js/listen.js" defer></script>
 <script src="js/game.js" defer></script>
@@ -1270,6 +1283,7 @@ if (typeof ScaleExplorer !== 'undefined') ScaleExplorer.init();
 if (typeof ScaleChords !== 'undefined') ScaleChords.init();
 if (typeof DuetVoices !== 'undefined') DuetVoices.init();
 if (typeof ModePositions !== 'undefined') ModePositions.init();
+if (typeof Composer !== 'undefined') Composer.init();
 if (typeof BackingTracks !== 'undefined') BackingTracks.init();
 if (typeof JamSimulator !== 'undefined') JamSimulator.init();
 if (typeof XpSystem !== 'undefined') XpSystem.init();
