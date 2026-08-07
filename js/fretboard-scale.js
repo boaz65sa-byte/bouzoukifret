@@ -115,8 +115,46 @@ const FretboardScale = (() => {
     return placeTargetsOnNeck(targets, posBase, span, courses);
   }
 
+  /** כמו placeTargetsOnNeck, אבל *לא* קופצת לתיבה הבאה כשתו לא נכנס — עוצרת
+   *  במקום. משמש ל"פוזיציה" (buildDegreePositionPath): פוזיציה מבטיחה תיבה
+   *  קבועה (posBase..posBase+span) — אם היא "קופצת" תיבה בשקט (כמו במסלול
+   *  מלודיה רגיל), התו יוצא פיזית מחוץ לתיבה שהפוזיציה מבטיחה להציג, וזה
+   *  שקר ויזואלי. עם 1-2 מיתרים אוקטבה שלמה לא תמיד נכנסת בתיבה צרה —
+   *  זה מצב אמיתי (לא באג): הפוזיציה פשוט מכסה פחות מאוקטבה שלמה. */
+  function placeTargetsInFixedBox(targets, posBase, span, courses, degreeLabels = null) {
+    const road = [];
+    let prev = null;
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
+      if (i > 0 && target <= (road[road.length - 1]?.midi ?? -1)) continue;
+      const cands = [];
+      courses.forEach(ci => {
+        const f = fretFromMidi(ci, target);
+        if (f == null || f < posBase || f > posBase + span) return;
+        cands.push({ ci, fret: f, midi: target });
+      });
+      if (!cands.length) break;
+      const pick = pickScaleStep(cands, prev);
+      if (!pick) break;
+      road.push({
+        ...pick,
+        degree: degreeLabels ? degreeLabels[i] : i + 1,
+        positionBase: posBase,
+        finger: fingerForFret(pick.fret, posBase),
+      });
+      prev = pick;
+    }
+    return road;
+  }
+
   /** מוצא את הסריג הנמוך-ביותר (מ-minFret ומעלה) על המיתר הכי-נמוך הפעיל
-   *  שבו יושבת דרגה נתונה (0-based, 0=שורש) — עוגן ל"פוזיציה" קלאסית. */
+   *  שבו יושבת דרגה נתונה (0-based, 0=שורש) — עוגן ל"פוזיציה" קלאסית.
+   *  בכוונה *לא* מיתר D קבוע: המסלול העולה בנוי לזרום מהמיתר הכי-עבה (נמוך)
+   *  אל הכי-דק (D) ככל שהצליל עולה — זה מה ששומר על כל הסולם בתוך תיבה צרה
+   *  שמשתמשת בכל המיתרים הפעילים. עיגון על D (המיתר העליון) נוסה וגרם לכל
+   *  המסלול לקרוס למיתר D בלבד (12 סריגים על מיתר אחד) כי אין "מעלה" ממנו
+   *  לעבור אליו — נבדק בדפדפן וזוהה ע"י המשתמש (נקודות-דרך לא מחוברות,
+   *  מספרים מול שמות-תווים על מיתרים אחרים). */
   function findDegreeAnchor(intervals, rootPc, degIdx, stringMode, minFret = 0) {
     const n = intervals?.length;
     if (!n) return null;
@@ -154,7 +192,7 @@ const FretboardScale = (() => {
     }
     const rootMidiBase = anchor.midi - degreeOffsets[0];
     const targets = degreeOffsets.map(iv => rootMidiBase + iv);
-    const path = placeTargetsOnNeck(targets, anchor.fret, span, courses, degreeLabels);
+    const path = placeTargetsInFixedBox(targets, anchor.fret, span, courses, degreeLabels);
     return { posBase: anchor.fret, path };
   }
 
@@ -162,10 +200,20 @@ const FretboardScale = (() => {
    * כל "פוזיציות הדרגה" ברצף עולה לאורך כל הצוואר — פוזיציה 1 מתחילה בדרגה 1
    * (השורש), פוזיציה 2 בדרגה 2, וכן הלאה, כל אחת ממש איפה שהקודמת הפסיקה,
    * עד שנגמר הצוואר. גנרי לכל דרומוס/מודוס (עובד על intervals בלבד).
+   *
+   * ליד קצה הצוואר (או עם 1-2 מיתרים בלבד) תיבה צרה לפעמים לא מספיקה
+   * לאוקטבה שלמה — התיבה עדיין תקינה (placeTargetsInFixedBox לא "משקר"
+   * ומראה תווים מחוץ לתיבה), אבל פוזיציה עם רק תו-שניים אינה שימושית
+   * לתרגול; minNotes מסנן פוזיציות-זנב כאלה מרשימת הפוזיציות המוצגות,
+   * בלי להפסיק את החיפוש (עדיין ממשיכים לדרגה/סריג הבאים).
    */
-  function buildAllDegreePositions(intervals, rootPc, stringMode = 4, span = MELODY_POS_SPAN) {
+  function buildAllDegreePositions(intervals, rootPc, stringMode = 4, span = MELODY_POS_SPAN, minNotes = null) {
     const n = intervals?.length;
     if (!n) return [];
+    // עם פחות מיתרים תיבה צרה (span) פשוט לא יכולה להכיל כמה שהיא מכילה עם
+    // יותר מיתרים — סף אחיד לכל מספרי-המיתרים היה מסנן כמעט הכל ב-1-2 מיתרים
+    // (נבדק: המקסימום האמיתי המושג ב-1 מיתר הוא 4 תווים, לא n+1).
+    const minKeep = minNotes ?? Math.min(n + 1, stringMode + 1);
     const out = [];
     let minFret = 0;
     let degIdx = 0;
@@ -173,7 +221,9 @@ const FretboardScale = (() => {
     while (minFret <= NUM_FRETS && guard++ < 30) {
       const { posBase, path } = buildDegreePositionPath(intervals, rootPc, degIdx, span, stringMode, minFret);
       if (posBase == null || !path.length) break;
-      out.push({ position: out.length + 1, degree: (degIdx % n) + 1, posBase, path });
+      if (path.length >= minKeep) {
+        out.push({ position: out.length + 1, degree: (degIdx % n) + 1, posBase, path });
+      }
       minFret = posBase + 1;
       degIdx++;
     }
@@ -1482,6 +1532,7 @@ const FretboardScale = (() => {
     buildAllDegreePositions,
     findDegreeAnchor,
     placeTargetsOnNeck,
+    placeTargetsInFixedBox,
     scalePlaySequence,
     fretsOnDToIntervals,
     renderDromosScale,
