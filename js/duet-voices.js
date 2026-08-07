@@ -29,34 +29,6 @@ C: . . . . . . . .`;
     return String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
   }
 
-  /** לכל תו במנגינה: מוצא את הדרגה שלו בדרומוס, מזיז ב-shift דרגות,
-   *  ומחפש סריג/מיתר קרוב לתו המקורי (מעדיף מיתר שונה, לא אותו מיתר). */
-  function computeVoice2(v1, intervals, rootPc, shift) {
-    const n = intervals.length;
-    if (!n) return [];
-    return v1.map(note => {
-      const pc = normPc(note.midi);
-      const degIdx = intervals.findIndex(iv => normPc(rootPc + iv) === pc);
-      if (degIdx < 0) return null;
-      const anchorMidi = note.midi - intervals[degIdx];
-      const newIdx0 = degIdx + shift;
-      const octaves = Math.floor(newIdx0 / n);
-      const wrapIdx = ((newIdx0 % n) + n) % n;
-      const targetMidi = anchorMidi + intervals[wrapIdx] + octaves * 12;
-
-      let best = null;
-      let bestScore = Infinity;
-      for (let ci = 0; ci < 4; ci++) {
-        const fret = FretboardScale.fretFromMidi(ci, targetMidi);
-        if (fret == null) continue;
-        const score = Math.abs(fret - note.fret) + (ci === note.course ? 1 : 0);
-        if (score < bestScore) { bestScore = score; best = { ci, fret }; }
-      }
-      if (!best) return null;
-      return { time: note.time, course: best.ci, fret: best.fret, midi: targetMidi, duration: note.duration };
-    });
-  }
-
   function ensureSvg(host) {
     let svg = host.querySelector('svg.fretboard');
     if (!svg) {
@@ -142,7 +114,7 @@ C: . . . . . . . .`;
     stopPlayback();
     const d = DROMOI.find(x => x.id === dromosId) || DROMOI[0];
     lastV1 = parsed.tabNotes;
-    lastV2 = computeVoice2(lastV1, d.intervals, rootPc, degrees * dir);
+    lastV2 = FretboardScale.harmonizeMelody(lastV1, d.intervals, rootPc, degrees * dir);
     if (lastV2.every(n => !n)) {
       err.textContent = 'לא נמצא קול שני — ודאו שהמנגינה בנויה מתווי הדרומוס שנבחר (לא צלילים כרומטיים מחוץ לסולם)';
     }
@@ -183,8 +155,11 @@ C: . . . . . . . .`;
       <p class="lead" style="margin-bottom:10px;">הזינו מנגינה קצרה בפורמט טאב (בדיוק כמו ב"למד אותי את השיר") — קול שני יחושב תו-תו כהרמוניה דיאטונית מהדרומוס שבחרתם, כדי ששני נגני בוזוקי ינגנו יחד דו-קולית על מנגינה אמיתית, לא ריצת סולם.</p>
       <div class="card">
         <textarea id="duet-tab-text" class="st-manual-textarea" rows="6" placeholder="${esc(EXAMPLE_TAB)}"></textarea>
-        <div class="st-load-row" style="display:flex;gap:8px;margin-top:8px;">
+        <div class="st-load-row" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">
           <button type="button" class="btn small secondary" id="duet-example">💡 מלא דוגמה</button>
+          <label class="btn small secondary" style="cursor:pointer;">📂 העלה קובץ טאב (.txt)
+            <input type="file" id="duet-tab-file" accept=".txt" style="display:none;">
+          </label>
           <button type="button" class="btn gold" id="duet-build">🎶 בנה קול שני</button>
         </div>
         <p id="duet-err" class="hint" style="color:var(--danger,#e66);"></p>
@@ -225,6 +200,13 @@ C: . . . . . . . .`;
     }
 
     host.querySelector('#duet-example').addEventListener('click', () => { textArea.value = EXAMPLE_TAB; });
+    host.querySelector('#duet-tab-file').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => { textArea.value = String(evt.target.result || ''); rebuild(); };
+      reader.readAsText(file);
+    });
     host.querySelector('#duet-build').addEventListener('click', rebuild);
     dromosSel.addEventListener('change', rebuild);
     rootSel.addEventListener('change', rebuild);

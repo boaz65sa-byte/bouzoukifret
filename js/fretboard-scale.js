@@ -401,6 +401,42 @@ const FretboardScale = (() => {
     return TUNING[courseIdx].midi + fret;
   }
 
+  /**
+   * הרמוניה דיאטונית לכל תו במנגינה נתונה — לא ריצת-סולם. לכל תו מוצאים
+   * את דרגתו בדרומוס/שורש הנתון, מזיזים ב-shiftDegrees דרגות (חיובי=מעל,
+   * שלילי=מתחת; 2/-2=טרצה כברירת מחדל), ומחפשים סריג קרוב לתו המקורי —
+   * מעדיפים מיתר *שונה* מהמקור (לא רק "הכי קרוב"), כדי ששני הקולות יהיו
+   * גם פיזית מובחנים על הגריף, לא רק תיאורטית.
+   * @param {{time,course,fret,midi,duration}[]} notes
+   * @returns מערך מקביל (אותו אורך) — null במקום תו שלא בסולם/לא נכנס לאף מיתר.
+   */
+  function harmonizeMelody(notes, intervals, rootPc, shiftDegrees) {
+    const n = intervals?.length;
+    if (!n || !notes?.length) return [];
+    return notes.map(note => {
+      if (note == null) return null;
+      const pc = normPc(note.midi);
+      const degIdx = intervals.findIndex(iv => normPc(rootPc + iv) === pc);
+      if (degIdx < 0) return null;
+      const anchorMidi = note.midi - intervals[degIdx];
+      const newIdx0 = degIdx + shiftDegrees;
+      const octaves = Math.floor(newIdx0 / n);
+      const wrapIdx = ((newIdx0 % n) + n) % n;
+      const targetMidi = anchorMidi + intervals[wrapIdx] + octaves * 12;
+
+      let best = null;
+      let bestScore = Infinity;
+      for (let ci = 0; ci < 4; ci++) {
+        const fret = fretFromMidi(ci, targetMidi);
+        if (fret == null) continue;
+        const score = Math.abs(fret - note.fret) + (ci === note.course ? 1 : 0);
+        if (score < bestScore) { bestScore = score; best = { ci, fret }; }
+      }
+      if (!best) return null;
+      return { time: note.time, course: best.ci, fret: best.fret, midi: targetMidi, duration: note.duration };
+    });
+  }
+
   /** שומר תבנית "כל הטוניקות" — כל נקודה נשמרת יחסית לעוגן-השורש: intervalIdx (דרגת סולם)
    *  ו-courseOffset (מיתר, כהיסט מהמיתר שבו יושב השורש בפועל — לא מיתר אבסולוטי). ההיסט הזה
    *  קריטי: השורש יכול לשבת על מיתר שונה בכל טוניקה (למשל דו לעומת סול באותה תיבת-פוזיציה),
@@ -1533,6 +1569,7 @@ const FretboardScale = (() => {
     findDegreeAnchor,
     placeTargetsOnNeck,
     placeTargetsInFixedBox,
+    harmonizeMelody,
     scalePlaySequence,
     fretsOnDToIntervals,
     renderDromosScale,

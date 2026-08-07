@@ -44,6 +44,14 @@ const SongTeacher = (() => {
   let _manualMode = 'text';   // 'text' | 'manual'
   let _manualNotes = [];      // [{course,fret,steps}] — נבנה ע"י העורך הידני
   let _manualCourse = 0;
+  let _v2On = false;
+  let _v2DromosId = null;
+  let _v2RootPc = 2;
+  let _v2Degrees = 2;
+  let _v2Dir = -1;
+  let _v2Svg = null;
+  let _v2Path = [];
+  let _v2PlayTimer = null;
   const MANUAL_EXAMPLE =
 `BPM: 96
 STEP: 0.5
@@ -234,6 +242,151 @@ CH: Dm . . . G . . .`;
       if (text) extra = ` · «${text.length > 36 ? text.slice(0, 36) + '…' : text}»`;
     }
     return `משפט ${_phraseIdx + 1}/${_phrases.length} · ${p.length} תווים${extra}`;
+  }
+
+  /* ============================================================
+     קול שני (הרמוניה) למשפט הנוכחי — "תרגלו קטע-קטע, קול שני אוטומטי
+     לכל קטע, ובסוף גם לכל השיר". בונה על FretboardScale.harmonizeMelody
+     (אותו מנוע כמו DuetVoices) ומנגן בנפרד מהמנוע הראשי (לא נוגע ב-rAF
+     clock/לולאה/מהירות של play() — כדי לא לסכן את הליבה הקיימת).
+     ============================================================ */
+  function v2Intervals() {
+    const d = DROMOI.find(x => x.id === _v2DromosId) || DROMOI[0];
+    return d.intervals;
+  }
+
+  function stopV2Playback() {
+    if (_v2PlayTimer) { clearTimeout(_v2PlayTimer); _v2PlayTimer = null; }
+  }
+
+  function ensureV2Svg(host) {
+    let svg = host.querySelector('svg.fretboard');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('fretboard', 'fs-neck-board');
+      svg.setAttribute('dir', 'ltr');
+      host.innerHTML = '';
+      host.appendChild(svg);
+    }
+    return svg;
+  }
+
+  function drawV2Board(intervals, rootPc, path) {
+    if (!_v2Svg || typeof drawFretboard !== 'function') return;
+    const pcsSet = new Set(intervals.map(iv => normPc2(rootPc + iv)));
+    const pathMap = new Map(path.filter(Boolean).map(p => [`${p.course}-${p.fret}`, p]));
+    drawFretboard(_v2Svg, (ci, f, midi) => {
+      const pc = normPc2(midi);
+      if (!pcsSet.has(pc)) return null;
+      const onPath = pathMap.get(`${ci}-${f}`);
+      if (onPath) return { type: pc === normPc2(rootPc) ? 'root' : 'note', label: String(path.filter(Boolean).indexOf(onPath) + 1) };
+      return { type: 'note', label: NOTE_NAMES[pc] };
+    });
+  }
+  function normPc2(pc) { return ((pc % 12) + 12) % 12; }
+
+  function renderV2NoteList(host, path) {
+    const real = path.filter(Boolean);
+    if (!real.length) { host.innerHTML = '<p class="hint">אין קול שני למשפט הזה — ודאו שהמנגינה בדרומוס שנבחר.</p>'; return; }
+    host.innerHTML = path.map((n, i) => n
+      ? `<span class="duet-note-chip" data-i="${i}" style="display:inline-block;padding:3px 8px;margin:2px;border-radius:6px;background:var(--card-bg,#2a2a2a);">${i + 1}. ${STR_LABELS[n.course]}·${n.fret}</span>`
+      : `<span class="duet-note-chip" data-i="${i}" style="display:inline-block;padding:3px 8px;margin:2px;border-radius:6px;opacity:.4;">${i + 1}. —</span>`
+    ).join('');
+  }
+
+  function updateV2Display() {
+    if (!_v2On) return;
+    if (!$('#st-v2-list')) return;
+    const phrase = _phrases[_phraseIdx] || [];
+    _v2Path = FretboardScale.harmonizeMelody(phrase, v2Intervals(), _v2RootPc, _v2Degrees * _v2Dir);
+    drawV2Board(v2Intervals(), _v2RootPc, _v2Path);
+    renderV2NoteList($('#st-v2-list'), _v2Path);
+  }
+
+  function setV2ChipActive(host, i, active) {
+    const chip = host?.querySelector(`[data-i="${i}"]`);
+    if (chip) chip.style.background = active ? 'var(--gold, #f0cc74)' : 'var(--card-bg,#2a2a2a)';
+  }
+
+  /** ניגון פשוט (לא תלוי במנוע הראשי) — קול 1 בלבד / קול 2 בלבד / ביחד,
+   *  למשפט הנוכחי או לשיר כולו. */
+  function playV2Sequence(paths, svgs, listHosts) {
+    stopV2Playback();
+    if (typeof AudioEngine === 'undefined' || !AudioEngine.pluckCourse) return;
+    AudioEngine.ensureCtx();
+    const len = Math.max(0, ...paths.map(p => p.length));
+    if (!len) return;
+    let i = 0;
+    function step() {
+      let maxDur = 0.3;
+      paths.forEach((path, vi) => {
+        if (i > 0) setV2ChipActive(listHosts[vi], i - 1, false);
+        const note = path[i];
+        if (!note) return;
+        AudioEngine.pluckCourse(note.course, note.fret, 0, 0.55);
+        if (svgs[vi] && FretboardScale.flashMidi) FretboardScale.flashMidi(svgs[vi], note.midi);
+        setV2ChipActive(listHosts[vi], i, true);
+        maxDur = Math.max(maxDur, note.duration || 0.3);
+      });
+      i++;
+      if (i < len) _v2PlayTimer = setTimeout(step, maxDur * 1000);
+      else _v2PlayTimer = null;
+    }
+    step();
+  }
+
+  function renderV2Panel(host) {
+    const wrap = $('#st-v2-wrap', host);
+    if (!wrap) return;
+    if (!_v2On) {
+      wrap.innerHTML = `<button type="button" class="btn secondary" id="st-v2-toggle">🎵 הצג קול שני (הרמוניה) למשפט הנוכחי</button>`;
+      $('#st-v2-toggle', wrap).addEventListener('click', () => { _v2On = true; renderV2Panel(host); });
+      return;
+    }
+    if (_v2DromosId == null) {
+      _v2DromosId = _dromos?.dromos?.id || DROMOI[0].id;
+      _v2RootPc = _dromos?.root ?? 2;
+    }
+    wrap.innerHTML = `
+      <div class="st-load-row" style="flex-wrap:wrap;gap:8px;">
+        <label>דרומוס: <select id="st-v2-dromos" class="ctrl-select">${DROMOI.map(d => `<option value="${d.id}"${d.id === _v2DromosId ? ' selected' : ''}>${d.nameHe}</option>`).join('')}</select></label>
+        <label>שורש: <select id="st-v2-root" class="ctrl-select">${NOTE_NAMES.map((n, i) => `<option value="${i}"${i === _v2RootPc ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label>מרחק: <select id="st-v2-deg" class="ctrl-select">${[2, 3, 4, 5, 6].map(v => `<option value="${v}"${v === _v2Degrees ? ' selected' : ''}>${v} דרגות</option>`).join('')}</select></label>
+        <label>כיוון: <select id="st-v2-dir" class="ctrl-select"><option value="-1"${_v2Dir === -1 ? ' selected' : ''}>מתחת</option><option value="1"${_v2Dir === 1 ? ' selected' : ''}>מעל</option></select></label>
+        <button type="button" class="btn small secondary" id="st-v2-off">✕ כבה</button>
+      </div>
+      <div id="st-v2-board" style="margin-top:8px;"></div>
+      <div id="st-v2-list" class="duet-note-list"></div>
+      <div class="st-load-row" style="gap:8px;margin-top:8px;">
+        <button type="button" class="btn small secondary" id="st-v2-play1">▶ קול 1 (משפט)</button>
+        <button type="button" class="btn small secondary" id="st-v2-play2">▶ קול 2 (משפט)</button>
+        <button type="button" class="btn small gold" id="st-v2-playboth">▶▶ ביחד (משפט)</button>
+        <button type="button" class="btn small gold" id="st-v2-playsong">▶▶ ביחד (כל השיר)</button>
+        <button type="button" class="btn small secondary" id="st-v2-stop">⏹ עצור</button>
+      </div>`;
+    _v2Svg = ensureV2Svg($('#st-v2-board', wrap));
+
+    $('#st-v2-dromos', wrap).addEventListener('change', e => { _v2DromosId = e.target.value; updateV2Display(); });
+    $('#st-v2-root', wrap).addEventListener('change', e => { _v2RootPc = parseInt(e.target.value, 10); updateV2Display(); });
+    $('#st-v2-deg', wrap).addEventListener('change', e => { _v2Degrees = parseInt(e.target.value, 10); updateV2Display(); });
+    $('#st-v2-dir', wrap).addEventListener('change', e => { _v2Dir = parseInt(e.target.value, 10); updateV2Display(); });
+    $('#st-v2-off', wrap).addEventListener('click', () => { stopV2Playback(); _v2On = false; renderV2Panel(host); });
+    $('#st-v2-play1', wrap).addEventListener('click', () => {
+      playV2Sequence([_phrases[_phraseIdx] || []], [_v2Svg], [$('#st-v2-list')]);
+    });
+    $('#st-v2-play2', wrap).addEventListener('click', () => {
+      playV2Sequence([_v2Path], [_v2Svg], [$('#st-v2-list')]);
+    });
+    $('#st-v2-playboth', wrap).addEventListener('click', () => {
+      playV2Sequence([_phrases[_phraseIdx] || [], _v2Path], [_fbSvg, _v2Svg], [null, $('#st-v2-list')]);
+    });
+    $('#st-v2-playsong', wrap).addEventListener('click', () => {
+      const fullV2 = FretboardScale.harmonizeMelody(_melody, v2Intervals(), _v2RootPc, _v2Degrees * _v2Dir);
+      playV2Sequence([_melody, fullV2], [_fbSvg, _v2Svg], [null, null]);
+    });
+    $('#st-v2-stop', wrap).addEventListener('click', stopV2Playback);
+
+    updateV2Display();
   }
 
   function learnHint() {
@@ -1084,12 +1237,22 @@ CH: Dm . . . G . . .`;
     body.innerHTML = `
       <p class="hint">כתבו שורה לכל מיתר (D/A/F/C — מדק לעבה), מספר-סריג בכל "עמודה", נקודה = בלי תו. אפשר גם שורת אקורדים (CH) ו-BPM/STEP:</p>
       <textarea id="st-manual-text" class="st-manual-textarea" rows="8" placeholder="${_esc(MANUAL_EXAMPLE)}"></textarea>
-      <div class="st-load-row">
+      <div class="st-load-row" style="flex-wrap:wrap;align-items:center;">
         <button type="button" class="btn small secondary" id="st-manual-example">💡 מלא דוגמה</button>
+        <label class="btn small secondary" style="cursor:pointer;">📂 העלה קובץ טאב (.txt)
+          <input type="file" id="st-manual-file" accept=".txt" style="display:none;">
+        </label>
         <button type="button" class="btn gold" id="st-manual-parse">🎓 טען לשיעור</button>
       </div>
       <p id="st-manual-err" class="hint" style="color:var(--danger,#e66);"></p>`;
     $('#st-manual-example', body).addEventListener('click', () => { $('#st-manual-text', body).value = MANUAL_EXAMPLE; });
+    $('#st-manual-file', body).addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => { $('#st-manual-text', body).value = String(evt.target.result || ''); };
+      reader.readAsText(file);
+    });
     $('#st-manual-parse', body).addEventListener('click', () => {
       const errHost = $('#st-manual-err', body);
       errHost.textContent = '';
@@ -1263,6 +1426,12 @@ CH: Dm . . . G . . .`;
           <button type="button" class="btn small st-learn-mode ${_learnMode === 'box' ? 'active' : ''}" data-m="box">תיבת χιγκίζ (D+A)</button>
         </div>
         <div id="st-fb-host" class="st-fb-scroll" dir="ltr"></div>
+      </div>
+
+      <div class="card st-v2-card">
+        <div class="st-fb-title">🎵 קול שני למשפט הנוכחי</div>
+        <p class="hint">תרגלו כל משפט בנפרד עם קול שני אוטומטי — כשעברתם על כל המשפטים, נגנו את כל השיר עם שני הקולות ביחד.</p>
+        <div id="st-v2-wrap"></div>
       </div>
 
       <div class="card st-tab-wrap">
@@ -1447,6 +1616,7 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
 
   function bindLesson(host) {
     $('#st-play', host).addEventListener('click', togglePlay);
+    renderV2Panel(host);
     $('#st-phrase-prev', host)?.addEventListener('click', () => {
       if (_phraseIdx > 0) {
         _phraseIdx--;
@@ -1454,6 +1624,8 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
         buildTabScore();
         $('#st-phrase-label').textContent = phraseLabel();
         highlightLyricPlayback(_phraseIdx, 0);
+        stopV2Playback();
+        updateV2Display();
       }
     });
     $('#st-phrase-next', host)?.addEventListener('click', () => {
@@ -1463,6 +1635,8 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
         buildTabScore();
         $('#st-phrase-label').textContent = phraseLabel();
         highlightLyricPlayback(_phraseIdx, 0);
+        stopV2Playback();
+        updateV2Display();
       }
     });
     host.querySelectorAll('.st-learn-mode').forEach(b => b.addEventListener('click', () => {
@@ -1490,6 +1664,8 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
       if (hint) hint.textContent = learnHint();
       const lbl = $('#st-phrase-label');
       if (lbl) lbl.textContent = phraseLabel();
+      stopV2Playback();
+      updateV2Display();
     }));
     host.querySelectorAll('.st-speed').forEach(b => b.addEventListener('click', () => {
       _speed = parseFloat(b.dataset.s);
@@ -1518,6 +1694,7 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
 
   function stopAll() {
     stop();
+    stopV2Playback();
     revokeVocalUrl();
   }
 
