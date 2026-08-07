@@ -43,6 +43,51 @@ const FretboardScale = (() => {
     return path;
   }
 
+  /** מניחה רצף targets (MIDI עולה) על הצוואר, תיבה אחר תיבה — הליבה המשותפת
+   *  בין buildScaleDegreePath (מתחיל תמיד בשורש) ל-buildDegreePositionPath
+   *  (מתחיל בכל דרגה). degreeLabels אופציונלי — תוויות דרגה לכל target (ברירת
+   *  מחדל: 1..targets.length, כמו סולם-מהשורש). */
+  function placeTargetsOnNeck(targets, startBase, span, courses, degreeLabels = null) {
+    const road = [];
+    let prev = null;
+    let activeBase = startBase;
+
+    targets.forEach((target, i) => {
+      if (i > 0 && target <= (road[road.length - 1]?.midi ?? -1)) return;
+
+      let placed = false;
+      let tryBase = activeBase;
+      let guard = 0;
+
+      while (!placed && tryBase <= NUM_FRETS - span && guard++ < 24) {
+        const cands = [];
+        courses.forEach(ci => {
+          const f = fretFromMidi(ci, target);
+          if (f == null || f < tryBase || f > tryBase + span) return;
+          cands.push({ ci, fret: f, midi: target });
+        });
+
+        if (cands.length) {
+          const pick = pickScaleStep(cands, prev);
+          if (pick) {
+            road.push({
+              ...pick,
+              degree: degreeLabels ? degreeLabels[i] : i + 1,
+              positionBase: tryBase,
+              finger: fingerForFret(pick.fret, tryBase),
+            });
+            prev = pick;
+            activeBase = tryBase;
+            placed = true;
+          }
+        } else {
+          tryBase = nextPositionBase(tryBase);
+        }
+      }
+    });
+    return road;
+  }
+
   /**
    * מסלול סולם בפוזיציה גיטרתית — תיבת span סריגים משותפת, 1–4 מיתרים, טרנספוזיציה.
    * @param {number} stringMode — 1|2|3|4 מיתרים פעילים
@@ -66,46 +111,73 @@ const FretboardScale = (() => {
     const anchor = findRootInBox(rootPc, posBase, span, courses);
     if (!anchor) return [];
 
-    const startMidi = anchor.midi;
-    const targets = degrees.map(iv => startMidi + iv);
-    const road = [];
-    let prev = null;
-    let activeBase = posBase;
+    const targets = degrees.map(iv => anchor.midi + iv);
+    return placeTargetsOnNeck(targets, posBase, span, courses);
+  }
 
-    targets.forEach((target, i) => {
-      if (i > 0 && target <= (road[road.length - 1]?.midi ?? -1)) return;
-
-      let placed = false;
-      let tryBase = activeBase;
-      let guard = 0;
-
-      while (!placed && tryBase <= NUM_FRETS - span && guard++ < 24) {
-        const cands = [];
-        courses.forEach(ci => {
-          const f = fretFromMidi(ci, target);
-          if (f == null || f < tryBase || f > tryBase + span) return;
-          cands.push({ ci, fret: f, midi: target });
-        });
-
-        if (cands.length) {
-          const pick = pickScaleStep(cands, prev);
-          if (pick) {
-            road.push({
-              ...pick,
-              degree: i + 1,
-              positionBase: tryBase,
-              finger: fingerForFret(pick.fret, tryBase),
-            });
-            prev = pick;
-            activeBase = tryBase;
-            placed = true;
-          }
-        } else {
-          tryBase = nextPositionBase(tryBase);
-        }
+  /** מוצא את הסריג הנמוך-ביותר (מ-minFret ומעלה) על המיתר הכי-נמוך הפעיל
+   *  שבו יושבת דרגה נתונה (0-based, 0=שורש) — עוגן ל"פוזיציה" קלאסית. */
+  function findDegreeAnchor(intervals, rootPc, degIdx, stringMode, minFret = 0) {
+    const n = intervals?.length;
+    if (!n) return null;
+    const lowCourse = coursesForStringMode(stringMode)[0];
+    const targetPc = normPc(rootPc + intervals[((degIdx % n) + n) % n]);
+    for (let f = minFret; f <= NUM_FRETS; f++) {
+      if (normPc(TUNING[lowCourse].midi + f) === targetPc) {
+        return { fret: f, ci: lowCourse, midi: TUNING[lowCourse].midi + f };
       }
-    });
-    return road;
+    }
+    return null;
+  }
+
+  /**
+   * "פוזיציה N" קלאסית — מתחילה בדיוק כשדרגה degIdx (0-based) היא התו הנמוך
+   * ביותר על המיתר הכי-נמוך הפעיל, וממנה עולה אוקטבה שלמה (n+1 דרגות).
+   * שונה מ-buildScaleDegreePath שמתחיל תמיד מהשורש בלי קשר לתיבה.
+   * @returns {{posBase:number|null, path:Array}}
+   */
+  function buildDegreePositionPath(intervals, rootPc, degIdx, span = MELODY_POS_SPAN, stringMode = 4, minFret = 0) {
+    const n = intervals?.length;
+    if (!n) return { posBase: null, path: [] };
+    const anchor = findDegreeAnchor(intervals, rootPc, degIdx, stringMode, minFret);
+    if (!anchor) return { posBase: null, path: [] };
+
+    const courses = coursesForStringMode(stringMode);
+    const d0 = ((degIdx % n) + n) % n;
+    const degreeOffsets = [];
+    const degreeLabels = [];
+    for (let k = 0; k <= n; k++) {
+      const idx = (d0 + k) % n;
+      const oct = Math.floor((d0 + k) / n);
+      degreeOffsets.push(intervals[idx] + oct * 12);
+      degreeLabels.push(idx + 1);
+    }
+    const rootMidiBase = anchor.midi - degreeOffsets[0];
+    const targets = degreeOffsets.map(iv => rootMidiBase + iv);
+    const path = placeTargetsOnNeck(targets, anchor.fret, span, courses, degreeLabels);
+    return { posBase: anchor.fret, path };
+  }
+
+  /**
+   * כל "פוזיציות הדרגה" ברצף עולה לאורך כל הצוואר — פוזיציה 1 מתחילה בדרגה 1
+   * (השורש), פוזיציה 2 בדרגה 2, וכן הלאה, כל אחת ממש איפה שהקודמת הפסיקה,
+   * עד שנגמר הצוואר. גנרי לכל דרומוס/מודוס (עובד על intervals בלבד).
+   */
+  function buildAllDegreePositions(intervals, rootPc, stringMode = 4, span = MELODY_POS_SPAN) {
+    const n = intervals?.length;
+    if (!n) return [];
+    const out = [];
+    let minFret = 0;
+    let degIdx = 0;
+    let guard = 0;
+    while (minFret <= NUM_FRETS && guard++ < 30) {
+      const { posBase, path } = buildDegreePositionPath(intervals, rootPc, degIdx, span, stringMode, minFret);
+      if (posBase == null || !path.length) break;
+      out.push({ position: out.length + 1, degree: (degIdx % n) + 1, posBase, path });
+      minFret = posBase + 1;
+      degIdx++;
+    }
+    return out;
   }
 
   /** עלייה + ירידה לנגינת סולם */
@@ -1406,6 +1478,10 @@ const FretboardScale = (() => {
     allPositions,
     buildBoxPath,
     buildScaleDegreePath,
+    buildDegreePositionPath,
+    buildAllDegreePositions,
+    findDegreeAnchor,
+    placeTargetsOnNeck,
     scalePlaySequence,
     fretsOnDToIntervals,
     renderDromosScale,

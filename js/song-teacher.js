@@ -1521,5 +1521,5 @@ svg.fretboard-svg{width:100%;max-width:100%;height:auto;margin:10px 0;}
     revokeVocalUrl();
   }
 
-  return { init, stop: stopAll, analyzeFile, loadAnalysis, loadVocalLesson };
+  return { init, stop: stopAll, analyzeFile, loadAnalysis, loadVocalLesson, parseTextTab };
 })();
