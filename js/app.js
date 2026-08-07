@@ -101,6 +101,9 @@ function stopAllPlayback() {
   if (typeof ReferenceCards !== 'undefined') ReferenceCards.stop();
   if (typeof BouzoukiStudio !== 'undefined') BouzoukiStudio.stop();
   if (typeof SongTeacher !== 'undefined') SongTeacher.stop();
+  if (typeof DuetVoices !== 'undefined') DuetVoices.stop();
+  if (typeof ModePositions !== 'undefined') ModePositions.stop();
+  if (typeof Composer !== 'undefined') Composer.stop();
   if (typeof SkillsCoach !== 'undefined') SkillsCoach.stop();
   if (typeof SongLearn !== 'undefined') SongLearn.stop();
   if (typeof ModusPath !== 'undefined') ModusPath.stop();

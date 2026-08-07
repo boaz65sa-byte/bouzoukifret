@@ -225,5 +225,5 @@ C: . . . . . . . .`;
     host.querySelector('#duet-stop').addEventListener('click', stopPlayback);
   }
 
-  return { init };
+  return { init, stop: stopPlayback };
 })();

@@ -157,5 +157,5 @@ const ModePositions = (() => {
     rebuild(host);
   }
 
-  return { init };
+  return { init, stop: stopPlayback };
 })();

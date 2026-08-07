@@ -21,17 +21,48 @@ C: . . . . . . . .`;
     { v: 3, label: '1/2.' }, { v: 4, label: '1 שלם' },
   ];
   const BEAT_TO_VEX = { 0.25: '16', 0.5: '8', 0.75: '8d', 1: 'q', 1.5: 'qd', 2: 'h', 3: 'hd', 4: 'w' };
+  const PIANO_MIN = 48;  // C3 — תואם למיתר C פתוח (הכי-נמוך בבוזוקי)
+  const PIANO_MAX = 77;  // F5 — בערך מיתר D בסריג 15 (הכי-גבוה)
+  const PHRASE_KEY = 'bouzouki-composer-phrases-v1';
 
   let _Vex = null;
   let _loadingVex = null;
   let _notes = [];        // [{course,fret,midi,beats}]
-  let _mode = 'click';     // 'click' | 'text'
+  let _mode = 'click';     // 'click' | 'text' | 'piano' | 'listen' | 'import'
   let _course = 0;
   let _svg = null;
   let _playTimer = null;
+  let _micStream = null;
+  let _micCtx = null;
+  let _micRunning = false;
+  let _micLastMidi = null;
 
   function normPc(pc) { return ((pc % 12) + 12) % 12; }
   function esc(s) { return String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
+
+  /** ממיר MIDI לזוג מיתר/סריג בפועל על הבוזוקי — מעדיף המשך על אותו מיתר
+   *  כמו התו הקודם (נגינה נוחה יותר), ואז את הסריג הנמוך ביותר האפשרי.
+   *  זה החלק שהופך קלט "טהור" (קלידים/מיקרופון, שיודעים רק צליל) לקלט
+   *  שמישהו יכול לנגן בפועל על הבוזוקי. */
+  function pickCourseFretForMidi(midi) {
+    const prev = _notes[_notes.length - 1];
+    let best = null;
+    let bestScore = Infinity;
+    for (let ci = 0; ci < 4; ci++) {
+      const fret = FretboardScale.fretFromMidi(ci, midi);
+      if (fret == null) continue;
+      const score = fret + (prev && ci === prev.course ? -3 : 0);
+      if (score < bestScore) { bestScore = score; best = { ci, fret }; }
+    }
+    return best;
+  }
+
+  function addNoteFromMidi(midi, beats) {
+    const pick = pickCourseFretForMidi(midi);
+    if (!pick) return false;
+    _notes.push({ course: pick.ci, fret: pick.fret, midi, beats });
+    return true;
+  }
 
   function loadVexFlow() {
     if (_Vex) return Promise.resolve(_Vex);
@@ -229,6 +260,7 @@ C: . . . . . . . .`;
       const fret = Math.max(0, Math.min(15, parseInt(body.querySelector('#composer-fret').value, 10) || 0));
       const midi = TUNING[_course].midi + fret;
       _notes.push({ course: _course, fret, midi, beats: selDur });
+      if (typeof AudioEngine !== 'undefined') { AudioEngine.ensureCtx(); AudioEngine.pluckCourse(_course, fret, 0, 0.5); }
       rerenderAll();
     });
     body.querySelector('#composer-undo').addEventListener('click', () => { _notes.pop(); rerenderAll(); });
@@ -278,9 +310,314 @@ C: . . . . . . . .`;
     });
   }
 
+  /* ---------- קלט: קלידים וירטואליים ---------- */
+  function renderPianoInput(body) {
+    const BLACK_PC = new Set([1, 3, 6, 8, 10]);
+    const whiteW = 34;
+    let selDur = 1;
+    let whiteIdx = -1;
+    const keys = [];
+    for (let m = PIANO_MIN; m <= PIANO_MAX; m++) {
+      const black = BLACK_PC.has(normPc(m));
+      if (!black) whiteIdx++;
+      keys.push({ midi: m, black, x: black ? whiteIdx * whiteW + whiteW * 0.66 : whiteIdx * whiteW });
+    }
+    const totalW = (whiteIdx + 1) * whiteW;
+
+    body.innerHTML = `
+      <p class="hint">לחיצה על קליד מנגנת אותו ומוסיפה אותו למלחין — הפוזיציה על הבוזוקי נבחרת אוטומטית.</p>
+      <div class="st-load-row"><span>משך:</span>
+        ${BEAT_DURATIONS.map(d => `<button type="button" class="btn small composer-pdur${d.v === 1 ? ' active' : ''}" data-v="${d.v}">${d.label}</button>`).join('')}
+      </div>
+      <div style="overflow-x:auto;border:1px solid var(--border,#3a3a3a);border-radius:8px;background:#161616;">
+        <div id="composer-piano" style="position:relative;height:120px;width:${totalW}px;">
+          ${keys.filter(k => !k.black).map(k => `<button type="button" class="piano-key piano-white" data-midi="${k.midi}"
+              style="position:absolute;left:${k.x}px;top:0;width:${whiteW - 1}px;height:100%;background:#f5f5f0;border:1px solid #333;border-radius:0 0 4px 4px;color:#333;font-size:9px;padding-bottom:4px;display:flex;align-items:flex-end;justify-content:center;">${normPc(k.midi) === 0 ? 'C' : ''}</button>`).join('')}
+          ${keys.filter(k => k.black).map(k => `<button type="button" class="piano-key piano-black" data-midi="${k.midi}"
+              style="position:absolute;left:${k.x}px;top:0;width:${whiteW * 0.6}px;height:62%;background:#1a1a1a;border:1px solid #000;border-radius:0 0 3px 3px;z-index:2;"></button>`).join('')}
+        </div>
+      </div>
+      <div class="st-load-row" style="margin-top:8px;"><button type="button" class="btn small secondary" id="composer-piano-undo">↺ הסר אחרון</button></div>`;
+
+    body.querySelectorAll('.composer-pdur').forEach(b => b.addEventListener('click', () => {
+      selDur = parseFloat(b.dataset.v);
+      body.querySelectorAll('.composer-pdur').forEach(x => x.classList.toggle('active', x === b));
+    }));
+    body.querySelectorAll('.piano-key').forEach(b => b.addEventListener('click', () => {
+      const midi = parseInt(b.dataset.midi, 10);
+      const added = addNoteFromMidi(midi, selDur);
+      if (!added) return;
+      const last = _notes[_notes.length - 1];
+      if (typeof AudioEngine !== 'undefined') { AudioEngine.ensureCtx(); AudioEngine.pluckCourse(last.course, last.fret, 0, 0.5); }
+      rerenderAll();
+    }));
+    body.querySelector('#composer-piano-undo').addEventListener('click', () => { _notes.pop(); rerenderAll(); });
+  }
+
+  /* ---------- קלט: האזנה חיה מהמיקרופון ---------- */
+  function midiFromFreq(freq) {
+    return Math.round(69 + 12 * Math.log2(freq / 440));
+  }
+
+  async function startMicListen(statusEl, selDurGetter) {
+    if (_micRunning) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      statusEl.textContent = 'הדפדפן הזה לא תומך בגישה למיקרופון.';
+      return;
+    }
+    try {
+      _micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch (e) {
+      statusEl.textContent = 'לא ניתן לגשת למיקרופון — ' + (e.message || e);
+      return;
+    }
+    _micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = _micCtx.createMediaStreamSource(_micStream);
+    const analyser = _micCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    src.connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    _micRunning = true;
+    _micLastMidi = null;
+    statusEl.textContent = '🎙️ מקשיב… נגנו תו-תו, השאירו רגע שקט קצר בין תווים.';
+
+    const loop = () => {
+      if (!_micRunning) return;
+      analyser.getFloatTimeDomainData(buf);
+      const { freq, rms } = Listen.detectPitch(buf, _micCtx.sampleRate);
+      if (!freq || rms < 0.02) {
+        _micLastMidi = null; // שקט = "נתק" בין תווים, כדי שאותו תו יזוהה שוב אם חוזר
+      } else {
+        const midi = midiFromFreq(freq);
+        if (midi !== _micLastMidi) {
+          _micLastMidi = midi;
+          const added = addNoteFromMidi(midi, selDurGetter());
+          if (added) {
+            rerenderAll();
+            statusEl.textContent = `🎙️ זוהה: ${midiToNoteName(midi)} — ${_notes.length} תווים עד כה`;
+          }
+        }
+      }
+      requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  function stopMicListen(statusEl) {
+    _micRunning = false;
+    if (_micStream) { _micStream.getTracks().forEach(t => t.stop()); _micStream = null; }
+    if (_micCtx) { try { _micCtx.close(); } catch (_) {} _micCtx = null; }
+    if (statusEl) statusEl.textContent = 'המיקרופון כבוי.';
+  }
+
+  function renderListenInput(body) {
+    let selDur = 1;
+    body.innerHTML = `
+      <p class="hint">נגנו על הבוזוקי (או כל כלי/קול) אל תוך המיקרופון — כל תו שמזוהה נוסף אוטומטית למלחין. מבוסס על אותו מנוע זיהוי-גובה-צליל שמשמש את "מאמן מאזין" ואת המכוון — לא מנוע חדש.</p>
+      <div class="st-load-row"><span>משך ברירת מחדל לתו מזוהה:</span>
+        ${BEAT_DURATIONS.map(d => `<button type="button" class="btn small composer-ldur${d.v === 1 ? ' active' : ''}" data-v="${d.v}">${d.label}</button>`).join('')}
+      </div>
+      <div class="st-load-row">
+        <button type="button" class="btn gold" id="composer-mic-start">🎙️ התחל להאזין</button>
+        <button type="button" class="btn small secondary" id="composer-mic-stop">⏹ עצור האזנה</button>
+        <button type="button" class="btn small secondary" id="composer-mic-undo">↺ הסר תו אחרון</button>
+      </div>
+      <p id="composer-mic-status" class="hint">המיקרופון כבוי.</p>`;
+    body.querySelectorAll('.composer-ldur').forEach(b => b.addEventListener('click', () => {
+      selDur = parseFloat(b.dataset.v);
+      body.querySelectorAll('.composer-ldur').forEach(x => x.classList.toggle('active', x === b));
+    }));
+    const statusEl = body.querySelector('#composer-mic-status');
+    body.querySelector('#composer-mic-start').addEventListener('click', () => startMicListen(statusEl, () => selDur));
+    body.querySelector('#composer-mic-stop').addEventListener('click', () => stopMicListen(statusEl));
+    body.querySelector('#composer-mic-undo').addEventListener('click', () => { _notes.pop(); rerenderAll(); });
+  }
+
+  /* ---------- קלט: ייבוא MusicXML / ABC ---------- */
+  function parseMusicXML(text) {
+    const dom = new DOMParser().parseFromString(text, 'application/xml');
+    if (dom.querySelector('parsererror')) throw new Error('קובץ MusicXML לא תקין');
+    const divisionsEl = dom.querySelector('divisions');
+    let divisions = divisionsEl ? parseInt(divisionsEl.textContent, 10) : 1;
+    const notes = [];
+    dom.querySelectorAll('note').forEach(noteEl => {
+      if (noteEl.querySelector('rest')) return; // MVP: שתיקות מדולגות, לא מוצגות כתו
+      const pitch = noteEl.querySelector('pitch');
+      if (!pitch) return;
+      const step = pitch.querySelector('step')?.textContent;
+      const octave = parseInt(pitch.querySelector('octave')?.textContent, 10);
+      const alter = parseInt(pitch.querySelector('alter')?.textContent, 10) || 0;
+      const stepPc = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[step];
+      if (stepPc == null || Number.isNaN(octave)) return;
+      const midi = (octave + 1) * 12 + stepPc + alter;
+      const durEl = noteEl.querySelector('duration');
+      const divs = durEl ? parseInt(durEl.textContent, 10) : divisions;
+      const beats = Math.round((divs / (divisions || 1)) * 4) / 4 || 1;
+      notes.push({ midi, beats });
+    });
+    if (!notes.length) throw new Error('לא נמצאו תווים בקובץ (רק שתיקות/אקורדים לא נתמכים עדיין)');
+    return notes;
+  }
+
+  function parseABC(text) {
+    // MVP: קול יחיד, בלי אקורדים/קשירות — A-G עם אוקטבות ('/,), דיאזים/במולים (^/_), אורך אחרי האות
+    const lines = text.split('\n').filter(l => l.trim() && !l.trim().startsWith('X:') && !l.trim().startsWith('T:') &&
+      !l.trim().startsWith('M:') && !l.trim().startsWith('L:') && !l.trim().startsWith('K:'));
+    const body = lines.join(' ');
+    const re = /(\^{1,2}|_{1,2}|=)?([A-Ga-g])([',]*)(\d*\/?\d*)/g;
+    const notes = [];
+    let m;
+    while ((m = re.exec(body))) {
+      const [, acc, letter, oct, lenStr] = m;
+      const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[letter.toUpperCase()];
+      let octave = letter === letter.toUpperCase() ? 4 : 5; // ABC: אות גדולה (C) = דו אמצעי = MIDI 60, קטנה = אוקטבה למעלה
+      for (const ch of oct) { if (ch === "'") octave++; else if (ch === ',') octave--; }
+      let alter = 0;
+      if (acc === '^') alter = 1; else if (acc === '^^') alter = 2;
+      else if (acc === '_') alter = -1; else if (acc === '__') alter = -2;
+      const midi = (octave + 1) * 12 + base + alter;
+      let beats = 1;
+      if (lenStr) {
+        if (lenStr.includes('/')) {
+          const [n, d] = lenStr.split('/');
+          beats = (parseInt(n, 10) || 1) / (parseInt(d, 10) || 2);
+        } else {
+          beats = parseInt(lenStr, 10) || 1;
+        }
+      }
+      notes.push({ midi, beats });
+    }
+    if (!notes.length) throw new Error('לא נמצאו תווים — ודאו שזה ABC notation תקין (קול יחיד)');
+    return notes;
+  }
+
+  function renderImportInput(body) {
+    body.innerHTML = `
+      <p class="hint">ייבוא MusicXML (.musicxml/.xml) או ABC notation (.abc/.txt) — קול יחיד, בלי אקורדים/קשירות (MVP). לכל תו נבחרת אוטומטית פוזיציה על הבוזוקי.</p>
+      <div class="st-load-row" style="flex-wrap:wrap;align-items:center;">
+        <label class="btn small secondary" style="cursor:pointer;">📂 העלה MusicXML
+          <input type="file" id="composer-xml-file" accept=".xml,.musicxml" style="display:none;">
+        </label>
+        <label class="btn small secondary" style="cursor:pointer;">📂 העלה ABC
+          <input type="file" id="composer-abc-file" accept=".abc,.txt" style="display:none;">
+        </label>
+      </div>
+      <p id="composer-import-err" class="hint" style="color:var(--danger,#e66);"></p>`;
+    const err = body.querySelector('#composer-import-err');
+    function loadNotesFromParsed(parsedNotes) {
+      _notes = [];
+      let dropped = 0;
+      parsedNotes.forEach(n => { if (!addNoteFromMidi(n.midi, n.beats)) dropped++; });
+      rerenderAll();
+      err.textContent = dropped
+        ? `הובאו ${_notes.length} תווים — ${dropped} תווים היו מחוץ לטווח הנגינה האפשרי בבוזוקי (נמוכים/גבוהים מדי) ולכן דולגו.`
+        : '';
+    }
+    body.querySelector('#composer-xml-file').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      err.textContent = '';
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try { loadNotesFromParsed(parseMusicXML(String(evt.target.result || ''))); }
+        catch (ex) { err.textContent = 'שגיאה: ' + (ex.message || ex); }
+      };
+      reader.readAsText(file);
+    });
+    body.querySelector('#composer-abc-file').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      err.textContent = '';
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try { loadNotesFromParsed(parseABC(String(evt.target.result || ''))); }
+        catch (ex) { err.textContent = 'שגיאה: ' + (ex.message || ex); }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  /* ---------- ספריית פרזות אישית (localStorage) ---------- */
+  function loadPhraseLibrary() {
+    try { return JSON.parse(localStorage.getItem(PHRASE_KEY) || '[]'); } catch (_) { return []; }
+  }
+  function savePhraseLibrary(list) {
+    try { localStorage.setItem(PHRASE_KEY, JSON.stringify(list)); } catch (_) {}
+  }
+
+  function renderLibraryPanel() {
+    const host = document.getElementById('composer-library');
+    if (!host) return;
+    const list = loadPhraseLibrary();
+    if (!list.length) { host.innerHTML = '<p class="hint">עדיין לא שמרתם פרזות.</p>'; return; }
+    host.innerHTML = list.map((p, i) => `
+      <div class="card" style="padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <b>${esc(p.name)}</b>
+        <span class="hint">${p.notes.length} תווים</span>
+        <button type="button" class="btn small secondary" data-load="${i}">📂 טען</button>
+        <button type="button" class="btn small secondary" data-del="${i}">🗑️ מחק</button>
+      </div>`).join('');
+    host.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', () => {
+      const p = loadPhraseLibrary()[parseInt(b.dataset.load, 10)];
+      if (!p) return;
+      _notes = p.notes.map(n => ({ ...n }));
+      rerenderAll();
+    }));
+    host.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      const idx = parseInt(b.dataset.del, 10);
+      const list2 = loadPhraseLibrary();
+      if (!confirm(`למחוק את "${list2[idx]?.name}"?`)) return;
+      list2.splice(idx, 1);
+      savePhraseLibrary(list2);
+      renderLibraryPanel();
+    }));
+  }
+
+  function saveCurrentAsPhrase() {
+    if (!_notes.length) { alert('אין תווים לשמור'); return; }
+    const name = prompt('שם לפרזה:', 'פרזה ' + (loadPhraseLibrary().length + 1));
+    if (!name) return;
+    const list = loadPhraseLibrary();
+    list.push({ name, notes: _notes.map(n => ({ ...n })), savedAt: Date.now() });
+    savePhraseLibrary(list);
+    renderLibraryPanel();
+  }
+
+  /* ---------- שמירה/טעינה כ-JSON ---------- */
+  function saveJson() {
+    if (!_notes.length) { alert('אין תווים לשמור'); return; }
+    const blob = new Blob([JSON.stringify({ notes: _notes }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bouzouki-composition.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function loadJsonFile(file) {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const data = JSON.parse(String(evt.target.result || ''));
+        if (!Array.isArray(data.notes)) throw new Error('פורמט לא תקין');
+        _notes = data.notes;
+        rerenderAll();
+      } catch (e) {
+        alert('שגיאה בטעינת הקובץ: ' + (e.message || e));
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function renderInputPanel(host) {
     const body = document.getElementById('composer-input-body');
-    if (_mode === 'click') renderClickInput(body); else renderTextInput(body);
+    if (_mode === 'click') renderClickInput(body);
+    else if (_mode === 'text') renderTextInput(body);
+    else if (_mode === 'piano') renderPianoInput(body);
+    else if (_mode === 'listen') renderListenInput(body);
+    else if (_mode === 'import') renderImportInput(body);
   }
 
   function printSheet() {
@@ -317,16 +654,24 @@ C: . . . . . . . .`;
     if (!host) return;
     host.innerHTML = `
       <div class="card">
-        <div class="st-load-row">
+        <div class="st-load-row" style="flex-wrap:wrap;">
           <button type="button" class="btn small composer-mode active" data-m="click">🖱️ לחיצה על הגריף</button>
+          <button type="button" class="btn small composer-mode" data-m="piano">🎹 קלידים</button>
+          <button type="button" class="btn small composer-mode" data-m="listen">🎙️ האזנה חיה</button>
           <button type="button" class="btn small composer-mode" data-m="text">📝 טקסט-טאב / קובץ</button>
+          <button type="button" class="btn small composer-mode" data-m="import">📥 ייבוא MusicXML/ABC</button>
         </div>
         <div id="composer-input-body"></div>
       </div>
-      <div class="duet-play-controls" style="display:flex;gap:8px;margin:16px 0;">
+      <div class="duet-play-controls" style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;">
         <button type="button" id="composer-play" class="btn gold">▶ נגן</button>
         <button type="button" id="composer-stop" class="btn secondary">⏹ עצור</button>
         <button type="button" id="composer-print" class="btn secondary">🖨️ הדפס / שמור PDF</button>
+        <button type="button" id="composer-save-json" class="btn secondary">💾 שמור כ-JSON</button>
+        <label class="btn secondary" style="cursor:pointer;">📂 טען JSON
+          <input type="file" id="composer-load-json" accept=".json" style="display:none;">
+        </label>
+        <button type="button" id="composer-save-phrase" class="btn gold">⭐ שמור לספריית הפרזות</button>
       </div>
       <div class="card">
         <h3>🎼 תווים (חמישייה)</h3>
@@ -336,12 +681,18 @@ C: . . . . . . . .`;
         <h3>🪕 טאב</h3>
         <div id="composer-board"></div>
         <div id="composer-list" class="duet-note-list"></div>
+      </div>
+      <div class="card">
+        <h3>⭐ ספריית הפרזות שלי</h3>
+        <div id="composer-library"></div>
       </div>`;
 
     _svg = ensureSvg(document.getElementById('composer-board'));
     renderInputPanel(host);
+    renderLibraryPanel();
 
     host.querySelectorAll('.composer-mode').forEach(b => b.addEventListener('click', () => {
+      if (_mode === 'listen' && b.dataset.m !== 'listen') stopMicListen(null);
       _mode = b.dataset.m;
       host.querySelectorAll('.composer-mode').forEach(x => x.classList.toggle('active', x === b));
       renderInputPanel(host);
@@ -349,9 +700,15 @@ C: . . . . . . . .`;
     host.querySelector('#composer-play').addEventListener('click', play);
     host.querySelector('#composer-stop').addEventListener('click', stopPlayback);
     host.querySelector('#composer-print').addEventListener('click', printSheet);
+    host.querySelector('#composer-save-json').addEventListener('click', saveJson);
+    host.querySelector('#composer-load-json').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) loadJsonFile(file);
+    });
+    host.querySelector('#composer-save-phrase').addEventListener('click', saveCurrentAsPhrase);
 
     rerenderAll();
   }
 
-  return { init };
+  return { init, stop: () => stopMicListen(null) };
 })();
