@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v49';
+const CACHE_STATIC = 'bouzouki-static-v50';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -90,6 +90,7 @@ const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.js',
   'https://unpkg.com/meyda@5.6.2/dist/web/meyda.min.js',
   'https://cdn.jsdelivr.net/npm/vexflow@5.0.0/build/cjs/vexflow.min.js',
+  'https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.min.js',
 ];
 
 const CDN_HOSTS = new Set(['cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com']);

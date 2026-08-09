@@ -27,6 +27,8 @@ C: . . . . . . . .`;
 
   let _Vex = null;
   let _loadingVex = null;
+  let _AT = null;
+  let _loadingAT = null;
   let _notes = [];        // [{course,fret,midi,beats}]
   let _mode = 'click';     // 'click' | 'text' | 'piano' | 'listen' | 'import'
   let _course = 0;
@@ -79,6 +81,52 @@ C: . . . . . . . .`;
       document.head.appendChild(s);
     });
     return _loadingVex;
+  }
+
+  function loadAlphaTab() {
+    if (_AT) return Promise.resolve(_AT);
+    if (_loadingAT) return _loadingAT;
+    _loadingAT = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.min.js';
+      s.onload = () => {
+        if (typeof alphaTab === 'undefined') { reject(new Error('alphaTab לא נטען')); return; }
+        _AT = alphaTab;
+        resolve(_AT);
+      };
+      s.onerror = () => reject(new Error('טעינת alphaTab מהרשת נכשלה — בדקו חיבור לאינטרנט'));
+      document.head.appendChild(s);
+    });
+    return _loadingAT;
+  }
+
+  /** ממיר Score של alphaTab (הטראק הראשון, staff/voice ראשונים בלבד — MVP)
+   *  למערך {midi,beats} — אותו פורמט ביניים כמו MusicXML/ABC. */
+  function scoreToNotes(score) {
+    const track = score.tracks?.[0];
+    const staff = track?.staves?.[0];
+    if (!staff) throw new Error('לא נמצא טראק/staff בקובץ');
+    const notes = [];
+    staff.bars.forEach(bar => {
+      const voice = bar.voices?.[0];
+      voice?.beats.forEach(beat => {
+        if (beat.isRest) return; // MVP: שתיקות מדולגות, כמו בייבוא MusicXML
+        const dur = beat.duration; // חיובי=1/dur (רבע=4), שלילי=כפולות-שלם
+        let beats = dur > 0 ? 4 / dur : 4 * Math.abs(dur);
+        if (beat.dots === 1) beats *= 1.5;
+        else if (beat.dots === 2) beats *= 1.75;
+        beat.notes.forEach(note => notes.push({ midi: Math.round(note.realValue), beats }));
+      });
+    });
+    if (!notes.length) throw new Error('לא נמצאו תווים בטראק/staff הראשון (רק שתיקות, או קול נוסף לא-ראשי)');
+    return notes;
+  }
+
+  async function parseGuitarPro(file) {
+    const AT = await loadAlphaTab();
+    const buf = await file.arrayBuffer();
+    const score = AT.importer.ScoreLoader.loadScoreFromBytes(new Uint8Array(buf));
+    return scoreToNotes(score);
   }
 
   function beatsToVexDuration(beats) {
@@ -493,13 +541,16 @@ C: . . . . . . . .`;
 
   function renderImportInput(body) {
     body.innerHTML = `
-      <p class="hint">ייבוא MusicXML (.musicxml/.xml) או ABC notation (.abc/.txt) — קול יחיד, בלי אקורדים/קשירות (MVP). לכל תו נבחרת אוטומטית פוזיציה על הבוזוקי.</p>
+      <p class="hint">ייבוא MusicXML (.musicxml/.xml), ABC notation (.abc/.txt), או Guitar Pro (.gp/.gpx/.gp5/.gp4/.gp3) — קול/טראק ראשון בלבד, בלי אקורדים/קשירות (MVP). לכל תו נבחרת אוטומטית פוזיציה על הבוזוקי.</p>
       <div class="st-load-row" style="flex-wrap:wrap;align-items:center;">
         <label class="btn small secondary" style="cursor:pointer;">📂 העלה MusicXML
           <input type="file" id="composer-xml-file" accept=".xml,.musicxml" style="display:none;">
         </label>
         <label class="btn small secondary" style="cursor:pointer;">📂 העלה ABC
           <input type="file" id="composer-abc-file" accept=".abc,.txt" style="display:none;">
+        </label>
+        <label class="btn small secondary" style="cursor:pointer;">📂 העלה Guitar Pro
+          <input type="file" id="composer-gp-file" accept=".gp,.gpx,.gp5,.gp4,.gp3" style="display:none;">
         </label>
       </div>
       <p id="composer-import-err" class="hint" style="color:var(--danger,#e66);"></p>`;
@@ -534,6 +585,17 @@ C: . . . . . . . .`;
         catch (ex) { err.textContent = 'שגיאה: ' + (ex.message || ex); }
       };
       reader.readAsText(file);
+    });
+    body.querySelector('#composer-gp-file').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      err.textContent = 'טוען מנוע Guitar Pro (ספרייה חיצונית, יכול לקחת רגע)…';
+      try {
+        const parsedNotes = await parseGuitarPro(file);
+        loadNotesFromParsed(parsedNotes);
+      } catch (ex) {
+        err.textContent = 'שגיאה: ' + (ex.message || ex);
+      }
     });
   }
 
