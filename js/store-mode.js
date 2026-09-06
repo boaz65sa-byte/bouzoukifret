@@ -19,5 +19,9 @@ const StoreMode = (() => {
     return _cached;
   }
 
-  return { isStoreBuild };
+  function isScreenAllowed(screen) {
+    return !isStoreBuild() || !['learn', 'learn-lib', 'vocal-melody'].includes(screen);
+  }
+
+  return { isStoreBuild, isScreenAllowed };
 })();

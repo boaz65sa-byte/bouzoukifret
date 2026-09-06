@@ -218,6 +218,7 @@ const LearnHub = (() => {
   }
 
   function _loadVideo(videoId, title) {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     if (!videoId) return;
     _currentVideoId = videoId;
     _searchTitle = title || null;
@@ -326,6 +327,7 @@ const LearnHub = (() => {
   }
 
   async function _downloadForLearning(videoId, titleOverride) {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     const id = videoId || _currentVideoId || _extractYoutubeId(document.getElementById('learn-url-input')?.value);
     if (!id) {
       alert('בחרו סרטון מהחיפוש או מהרשימה');
@@ -372,6 +374,7 @@ const LearnHub = (() => {
   }
 
   async function _runVocalTeach(videoId) {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     const id = videoId || _currentVideoId;
     if (!id) {
       alert('בחרו שיר תחילה');
@@ -398,6 +401,7 @@ const LearnHub = (() => {
   }
 
   async function _analyzeOfflineTrack(videoId) {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     if (typeof LearnOffline === 'undefined' || typeof SongAnalyzer === 'undefined') return;
     const rec = await LearnOffline.get(videoId);
     if (!rec?.blob) {
@@ -783,6 +787,7 @@ const LearnHub = (() => {
   }
 
   async function _runYoutubeSearch(query, { append = false } = {}) {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     const grid = document.getElementById('learn-search-results');
     const status = document.getElementById('learn-search-status');
     if (!grid || typeof YoutubeSearch === 'undefined' || _searchLoading) return;
@@ -1246,6 +1251,7 @@ const LearnHub = (() => {
   }
 
   function init() {
+    if (typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed('learn')) return;
     _renderShell();
     _renderPathsTab();
     _renderResourcesTab();

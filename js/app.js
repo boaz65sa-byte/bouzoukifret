@@ -15,6 +15,14 @@ function svgEl(tag, attrs = {}, parent = null) {
 }
 
 /* ===================== ניווט ===================== */
+// Capture also blocks programmatic clicks before other navigation listeners run.
+document.addEventListener('click', (event) => {
+  const btn = event.target.closest?.('.nav-btn[data-screen]');
+  if (btn && typeof StoreMode !== 'undefined' && !StoreMode.isScreenAllowed(btn.dataset.screen)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+}, true);
 $$('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
