@@ -350,6 +350,8 @@ const BouzoukiNeck = (() => {
       }
     }
 
+    el('g', { class: 'bn-trail', 'pointer-events': 'none' }, svg);
+
     const dotId = opts.dotId || (uid + '-dot');
     const g = el('g', { id: dotId, class: 'bn-active', opacity: 0 }, svg);
     const pulse = el('circle', { r: 7, fill: 'none', stroke: '#ffe7a3', 'stroke-width': 2 }, g);
@@ -358,6 +360,9 @@ const BouzoukiNeck = (() => {
       const a2 = el('animate', { attributeName: 'opacity', values: '0.85;0', dur: '1.15s', repeatCount: 'indefinite' }, pulse);
       void a1; void a2;
     }
+    el('circle', {
+      class: 'bn-flash', r: 14, fill: 'none', stroke: '#5dff8a', 'stroke-width': 2.6, opacity: 0,
+    }, g);
     el('circle', { r: 6.2, fill: '#ffe7a3', stroke: '#fff6d8', 'stroke-width': 1.4, filter: 'url(#' + uid + '-glow)' }, g);
     const tag = el('g', { id: dotId + '-tag' }, g);
     const plate = el('rect', { id: dotId + '-plate', x: -90, y: -13, width: 78, height: 26, rx: 8, class: 'neck-dot-plate' }, tag);
@@ -365,12 +370,331 @@ const BouzoukiNeck = (() => {
       id: dotId + '-name', x: -12, y: 5, 'text-anchor': 'end', class: 'neck-dot-name',
     }, tag);
     name.setAttribute('style', 'direction:ltr');
-    if (opts.active) moveActive(svg, opts.active);
+    if (opts.active) moveActive(svg, opts.active, { seed: true });
+    svg.__bnPaintOpts = {
+      markers: opts.markers || [],
+      active: opts.active || null,
+      tab: opts.tab,
+    };
+    svg.__bnFrom = null;
+    scheduleTab(svg);
     void plate;
     return L;
   }
 
-  function moveActive(svg, active) {
+  const TRAIL_COLORS = ['#5dff8a', '#7af0ff', '#c9a6ff', '#ffe56a', '#ff8ad4', '#49ff6a'];
+  const TAB_COURSES = [
+    { he: 'רה', en: 'D' },
+    { he: 'לה', en: 'A' },
+    { he: 'פה', en: 'F' },
+    { he: 'דו', en: 'C' },
+  ];
+  const COL_W = 46;
+  const GLOW_KEY = 'bouzouki_neck_glow_v1';
+  let trailHue = 0;
+
+  function glowOn() {
+    try { return localStorage.getItem(GLOW_KEY) !== '0'; }
+    catch (e) { return true; }
+  }
+
+  function applyGlowClass() {
+    const on = glowOn();
+    document.documentElement.classList.toggle('bn-glow-on', on);
+    document.documentElement.classList.toggle('bn-glow-off', !on);
+    const btn = document.getElementById('bn-glow-toggle');
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('is-on', on);
+    }
+  }
+
+  function setEnabled(on) {
+    try { localStorage.setItem(GLOW_KEY, on ? '1' : '0'); }
+    catch (e) { /* מצב פרטי */ }
+    applyGlowClass();
+  }
+
+  function mountToggle() {
+    if (!document.body || document.getElementById('bn-glow-toggle')) {
+      applyGlowClass();
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'bn-glow-toggle';
+    btn.className = 'bn-glow-toggle';
+    btn.textContent = 'זוהר';
+    btn.title = 'הדלקה וכיבוי של שכבת הזוהר';
+    btn.setAttribute('aria-label', 'שכבת זוהר על הצוואר');
+    btn.addEventListener('click', () => setEnabled(!glowOn()));
+    document.body.appendChild(btn);
+    applyGlowClass();
+  }
+
+  function wantsTab(svg, opts) {
+    if (opts && opts.tab === false) return false;
+    if (!svg) return false;
+    if (svg.classList.contains('chord-svg') || svg.classList.contains('tl-chord-svg') || svg.classList.contains('ws-chord-svg') || svg.classList.contains('ws-fb-print-svg')) return false;
+    if (svg.closest && svg.closest('.chord-card, .tl-chord-dia, .tl-chord-card, .ws-fb-print, .ws-sheet, .chord-tooltip')) return false;
+    return true;
+  }
+
+  function tabAnchor(svg) {
+    const parent = svg.parentElement;
+    if (!parent) return { parent: null, before: svg };
+    let overflow = '';
+    try { overflow = getComputedStyle(parent).overflowX; } catch (e) { /* אין סגנון */ }
+    const scrollish = parent.classList.contains('fretboard-wrap')
+      || parent.classList.contains('neck-board-host')
+      || parent.classList.contains('fs-pos-board')
+      || overflow === 'auto' || overflow === 'scroll';
+    if (scrollish && parent.parentElement) return { parent: parent.parentElement, before: parent };
+    return { parent: parent, before: svg };
+  }
+
+  function tabKey(svg) {
+    if (svg.__bnKey) return svg.__bnKey;
+    const parent = svg.parentElement;
+    let key = svg.id || '';
+    if (parent && (
+      parent.classList.contains('fretboard-wrap')
+      || parent.classList.contains('neck-board-host')
+      || parent.classList.contains('fs-pos-board')
+    )) {
+      key = parent.id || svg.id || key;
+    }
+    if (!key) key = 'bn-tab-' + (++seq);
+    svg.__bnKey = key;
+    return key;
+  }
+
+  function buildTab(key) {
+    const tab = document.createElement('div');
+    tab.className = 'bn-tab';
+    tab.dataset.bnKey = key;
+    tab.setAttribute('role', 'group');
+    tab.setAttribute('aria-label', 'טאב נגינה, ארבעה קורסים רה לה פה דו');
+    const cap = document.createElement('div');
+    cap.className = 'bn-tab-cap';
+    cap.dir = 'rtl';
+    cap.textContent = 'טאב · נתיב הנגינה';
+    const body = document.createElement('div');
+    body.className = 'bn-tab-body';
+    body.dir = 'ltr';
+    const labs = document.createElement('div');
+    labs.className = 'bn-tab-labs';
+    labs.setAttribute('aria-hidden', 'true');
+    TAB_COURSES.forEach((c, i) => {
+      const s = document.createElement('span');
+      s.className = 'bn-tab-lab';
+      s.style.top = (8 + i * 16) + 'px';
+      const b = document.createElement('b');
+      b.textContent = c.he;
+      const em = document.createElement('i');
+      em.textContent = c.en;
+      s.append(b, em);
+      labs.appendChild(s);
+    });
+    const scroll = document.createElement('div');
+    scroll.className = 'bn-tab-scroll';
+    const track = document.createElement('div');
+    track.className = 'bn-tab-track';
+    const cols = document.createElement('div');
+    cols.className = 'bn-tab-cols';
+    const head = document.createElement('div');
+    head.className = 'bn-tab-head';
+    head.hidden = true;
+    head.setAttribute('aria-hidden', 'true');
+    track.append(cols, head);
+    scroll.appendChild(track);
+    body.append(labs, scroll);
+    tab.append(cap, body);
+    return tab;
+  }
+
+  function dropTab(svg) {
+    if (svg.__bnTab && svg.__bnTab.parentNode) svg.__bnTab.remove();
+    svg.__bnTab = null;
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && CSS.escape) return CSS.escape(value);
+    return String(value).replace(/"/g, '');
+  }
+
+  function mountAndSeed(svg, opts) {
+    if (!wantsTab(svg, opts)) {
+      dropTab(svg);
+      return;
+    }
+    const anchor = tabAnchor(svg);
+    if (!anchor.parent) return;
+    const key = tabKey(svg);
+    let tab = svg.__bnTab && svg.__bnTab.isConnected ? svg.__bnTab : null;
+    if (!tab) tab = anchor.parent.querySelector(':scope > .bn-tab[data-bn-key="' + cssEscape(key) + '"]');
+    if (!tab) {
+      tab = buildTab(key);
+      anchor.parent.insertBefore(tab, anchor.before && anchor.before.parentNode === anchor.parent ? anchor.before : null);
+    } else if (tab.parentNode !== anchor.parent) {
+      anchor.parent.insertBefore(tab, anchor.before || null);
+    }
+    svg.__bnTab = tab;
+    seedColumns(svg, opts);
+  }
+
+  function scheduleTab(svg) {
+    const opts = svg.__bnPaintOpts || {};
+    if (!wantsTab(svg, opts)) {
+      dropTab(svg);
+      return;
+    }
+    if (svg.parentElement) {
+      mountAndSeed(svg, opts);
+      return;
+    }
+    requestAnimationFrame(() => {
+      if (svg.isConnected) mountAndSeed(svg, svg.__bnPaintOpts || opts);
+    });
+  }
+
+  function isChordShape(markers) {
+    if (!markers || !markers.length || markers.length > 6) return false;
+    const seen = Object.create(null);
+    for (let i = 0; i < markers.length; i++) {
+      const m = markers[i];
+      if (m.ci == null || typeof m.fret !== 'number' || m.fret < 0) return false;
+      if (seen[m.ci]) return false;
+      seen[m.ci] = true;
+    }
+    return true;
+  }
+
+  function clearColumns(svg) {
+    const tab = svg.__bnTab;
+    if (!tab) return;
+    const cols = tab.querySelector('.bn-tab-cols');
+    if (cols) cols.textContent = '';
+    const head = tab.querySelector('.bn-tab-head');
+    if (head) head.hidden = true;
+  }
+
+  function placeHead(svg, idx) {
+    const tab = svg.__bnTab;
+    if (!tab) return;
+    const head = tab.querySelector('.bn-tab-head');
+    const cols = tab.querySelector('.bn-tab-cols');
+    const scroller = tab.querySelector('.bn-tab-scroll');
+    if (!head || !cols) return;
+    if (!cols.children.length || idx < 0) {
+      head.hidden = true;
+      return;
+    }
+    head.hidden = false;
+    const x = idx * COL_W + COL_W / 2;
+    head.style.left = x + 'px';
+    if (scroller) scroller.scrollLeft = Math.max(0, x - scroller.clientWidth * 0.55);
+  }
+
+  function pushColumn(svg, notes) {
+    const tab = svg.__bnTab;
+    if (!tab || !tab.isConnected || !notes || !notes.length) return;
+    const cols = tab.querySelector('.bn-tab-cols');
+    if (!cols) return;
+    const col = document.createElement('div');
+    col.className = 'bn-tab-col';
+    const names = [];
+    const titles = [];
+    notes.forEach((n) => {
+      const fret = Math.max(0, n.fret | 0);
+      const midi = n.midi != null ? n.midi : (typeof TUNING !== 'undefined' && TUNING[n.ci] ? TUNING[n.ci].midi + fret : null);
+      const name = midi != null ? noteName(midi) : { he: '', pill: '' };
+      const mark = document.createElement('span');
+      mark.className = 'bn-tab-fret';
+      mark.style.top = (8 + n.ci * 16) + 'px';
+      mark.textContent = String(fret);
+      col.appendChild(mark);
+      if (name.he) names.push(name.he);
+      if (name.pill) titles.push(name.pill);
+    });
+    const label = document.createElement('span');
+    label.className = 'bn-tab-name';
+    label.textContent = names.join(' · ');
+    if (titles.length) label.title = titles.join(' · ');
+    col.appendChild(label);
+    cols.appendChild(col);
+    while (cols.children.length > 48) cols.removeChild(cols.firstChild);
+    placeHead(svg, cols.children.length - 1);
+  }
+
+  function seedColumns(svg, opts) {
+    clearColumns(svg);
+    svg.__bnFrom = null;
+    const markers = (opts && opts.markers) || [];
+    const active = opts && opts.active;
+    if (isChordShape(markers)) pushColumn(svg, markers);
+    else if (active && active.ci != null && typeof active.fret === 'number') pushColumn(svg, [active]);
+    else placeHead(svg, -1);
+  }
+
+  function addTrail(svg, x1, y1, x2, y2) {
+    const g = svg.querySelector('.bn-trail');
+    if (!g) return;
+    if (reducedMotion()) {
+      while (g.firstChild) g.removeChild(g.firstChild);
+    }
+    const color = TRAIL_COLORS[trailHue % TRAIL_COLORS.length];
+    trailHue += 1;
+    const wide = el('line', {
+      x1: x1.toFixed(1), y1: y1.toFixed(1), x2: x2.toFixed(1), y2: y2.toFixed(1),
+      stroke: color, 'stroke-width': 10, 'stroke-linecap': 'round',
+      class: 'bn-trail-seg bn-trail-wide', 'pointer-events': 'none',
+    }, g);
+    const core = el('line', {
+      x1: x1.toFixed(1), y1: y1.toFixed(1), x2: x2.toFixed(1), y2: y2.toFixed(1),
+      stroke: '#f4fff8', 'stroke-width': 2.2, 'stroke-linecap': 'round',
+      class: 'bn-trail-seg bn-trail-core', 'pointer-events': 'none',
+    }, g);
+    const drop = (node) => node.addEventListener('animationend', () => node.remove());
+    if (!reducedMotion()) {
+      drop(wide);
+      drop(core);
+    }
+    while (g.childNodes.length > 24) g.removeChild(g.firstChild);
+  }
+
+  function pulse(svg) {
+    if (!glowOn()) return;
+    const flash = svg.querySelector('.bn-flash');
+    if (!flash) return;
+    flash.classList.remove('is-hit');
+    void flash.getBoundingClientRect();
+    flash.classList.add('is-hit');
+  }
+
+  function noteGlow(svg, note) {
+    if (!svg || !note || note.ci == null || note.fret == null) return;
+    const L = svg.__bnLayout;
+    if (!L) return;
+    const fret = Math.max(0, Math.min(L.maxFret, note.fret));
+    const ci = note.ci;
+    const now = performance.now();
+    const key = ci + ':' + fret;
+    const stamp = svg.__bnStamp;
+    if (stamp && stamp.key === key && now - stamp.t < 50) return;
+    if (stamp && stamp.key !== key && now - stamp.t < 40) return;
+    svg.__bnStamp = { key: key, t: now };
+    const x = L.spaceX(fret);
+    const y = L.courseY(ci);
+    const midi = note.midi != null ? note.midi : (typeof TUNING !== 'undefined' && TUNING[ci] ? TUNING[ci].midi + fret : null);
+    const prev = svg.__bnFrom;
+    if (prev && (Math.abs(prev.x - x) > 0.5 || Math.abs(prev.y - y) > 0.5)) addTrail(svg, prev.x, prev.y, x, y);
+    svg.__bnFrom = { x: x, y: y, ci: ci, fret: fret };
+    pushColumn(svg, [{ ci: ci, fret: fret, midi: midi }]);
+    pulse(svg);
+  }
+
+  function moveActive(svg, active, flags) {
     if (!svg) return;
     const g = svg.querySelector('.bn-active');
     const L = svg.__bnLayout;
@@ -384,12 +708,22 @@ const BouzoukiNeck = (() => {
     const y = L.courseY(active.ci);
     g.setAttribute('opacity', '1');
     g.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
-    const midi = active.midi != null ? active.midi : (typeof TUNING !== 'undefined' ? TUNING[active.ci].midi + fret : null);
+    const midi = active.midi != null ? active.midi : (typeof TUNING !== 'undefined' && TUNING[active.ci] ? TUNING[active.ci].midi + fret : null);
     const pill = active.pill || (midi != null ? noteName(midi).pill : '');
     const text = g.querySelector('.neck-dot-name');
     const plate = g.querySelector('.neck-dot-plate');
     if (text && plate) placePlate(text, plate, x, pill);
+    if (flags && flags.seed) return;
+    noteGlow(svg, { ci: active.ci, fret: fret, midi: midi });
   }
+
+  function played(svg, note) {
+    if (!svg || !note || note.rest) return;
+    noteGlow(svg, { ci: note.ci != null ? note.ci : note.string, fret: note.fret, midi: note.midi });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountToggle);
+  else mountToggle();
 
   function spaceX(fret) {
     const L = published || layout(15, { mirrorH: false, mirrorV: false });
@@ -406,5 +740,5 @@ const BouzoukiNeck = (() => {
 
   published = layout(15, { mirrorH: false, mirrorV: false });
 
-  return { W, H, SPELL, layout, paint, moveActive, noteName, spaceX, wireX, courseY };
+  return { W, H, SPELL, layout, paint, moveActive, played, setEnabled, glowOn, noteName, spaceX, wireX, courseY };
 })();
