@@ -3033,6 +3033,10 @@ select {
 .neck-coach.is-following {
   transition: left 0.42s ease, top 0.42s ease;
 }
+.neck-coach.is-dodge,
+.neck-coach.is-dodge.is-following {
+  transition: none;
+}
 .neck-coach > * { pointer-events: auto; }
 .neck-avatar {
   width: 68px;
@@ -3086,6 +3090,30 @@ select {
   border: 8px solid transparent;
   border-right-color: var(--neck-paper);
   border-left: 0;
+}
+.neck-coach.is-above .neck-coach-bubble::after,
+.neck-coach.is-below .neck-coach-bubble::after {
+  left: auto;
+  right: 36px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+.neck-coach.is-above .neck-coach-bubble::after {
+  top: auto;
+  bottom: -8px;
+  border-top: 8px solid var(--neck-paper);
+  border-bottom: 0;
+}
+.neck-coach.is-below .neck-coach-bubble::after {
+  top: -8px;
+  bottom: auto;
+  border-bottom: 8px solid var(--neck-paper);
+  border-top: 0;
+}
+.neck-coach.is-flip.is-above .neck-coach-bubble::after,
+.neck-coach.is-flip.is-below .neck-coach-bubble::after {
+  right: auto;
+  left: 36px;
 }
 @keyframes neckBob {
   0%, 100% { transform: translateY(0); }

@@ -405,6 +405,139 @@ const AppHelper = (() => {
 
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
+  /* כל בלוק הצוואר — טאב, שם התו, והלוח עם מספרי הסריגים — אסור למגע. */
+  function neckZones(vw, vh) {
+    const pad = 12;
+    const zones = [];
+    document.querySelectorAll('svg.bn-neck').forEach((svg) => {
+      const sv = svg.getBoundingClientRect();
+      if (sv.width < 2 || sv.height < 2) return;
+      if (sv.bottom < -30 || sv.top > vh + 30) return;
+      const parent = svg.parentElement;
+      let scroller = null;
+      if (parent) {
+        let ox = '';
+        try { ox = getComputedStyle(parent).overflowX; } catch (e) { /* אין סגנון */ }
+        if (parent.classList.contains('fretboard-wrap')
+          || parent.classList.contains('neck-board-host')
+          || parent.classList.contains('fs-pos-board')
+          || ox === 'auto' || ox === 'scroll') scroller = parent;
+      }
+      const host = (scroller || svg).getBoundingClientRect();
+      let top = host.top;
+      let bottom = Math.max(host.bottom, sv.bottom);
+      let left = host.left;
+      let right = host.right;
+      [svg.__bnTab, svg.__bnNamebar].forEach((el) => {
+        if (!el || el.hidden) return;
+        const b = el.getBoundingClientRect();
+        if (b.width < 2 || b.height < 2) return;
+        top = Math.min(top, b.top);
+        bottom = Math.max(bottom, b.bottom);
+        left = Math.min(left, b.left);
+        right = Math.max(right, b.right);
+      });
+      left = Math.max(left, -20);
+      right = Math.min(right, vw + 20);
+      if (right - left < 40 || bottom <= top) return;
+      if (bottom < 0 || top > vh) return;
+      zones.push({
+        svg: svg,
+        scroller: scroller,
+        tab: svg.__bnTab || null,
+        bar: svg.__bnNamebar || null,
+        top: top - pad,
+        bottom: bottom + pad,
+        left: left - pad,
+        right: right + pad,
+      });
+    });
+    return zones;
+  }
+
+  function zoneFor(el, zones) {
+    if (!el || !zones.length) return null;
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      if (el === z.svg || el === z.scroller || el === z.tab || el === z.bar) return z;
+      if (z.svg.contains && z.svg.contains(el)) return z;
+      if (z.scroller && z.scroller.contains && z.scroller.contains(el)) return z;
+      if (el.contains && (el.contains(z.svg) || (z.tab && el.contains(z.tab)))) return z;
+    }
+    return null;
+  }
+
+  function overlapArea(x, y, w, h, blocks) {
+    let area = 0;
+    const right = x + w;
+    const bottom = y + h;
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const iw = Math.min(right, b.right) - Math.max(x, b.left);
+      const ih = Math.min(bottom, b.bottom) - Math.max(y, b.top);
+      if (iw > 0 && ih > 0) area += iw * ih;
+    }
+    return area;
+  }
+
+  function settleClear(x, y, flip, cw, ch, zones) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = vw < 860 ? 16 : 12;
+    const topSafe = (vw < 860 ? 10 : 12) + cssPx('--safe-top');
+    const bottomSafe = (vw < 860 ? 108 : 16) + cssPx('--safe-bottom');
+    const maxX = Math.max(margin, vw - cw - margin);
+    const maxY = Math.max(topSafe, vh - ch - bottomSafe);
+    const blocks = zones.map((z) => ({ left: z.left, top: z.top, right: z.right, bottom: z.bottom }));
+    const fit = (px, py) => ({ x: clamp(px, margin, maxX), y: clamp(py, topSafe, maxY) });
+    const here = fit(x, y);
+    const hit0 = blocks.length ? overlapArea(here.x, here.y, cw, ch, blocks) : 0;
+    if (!hit0) return { x: here.x, y: here.y, flip: flip, dodged: false };
+
+    const candidates = [];
+    const consider = (px, py, fl) => {
+      const p = fit(px, py);
+      candidates.push({
+        x: p.x,
+        y: p.y,
+        flip: fl,
+        hit: overlapArea(p.x, p.y, cw, ch, blocks),
+        dist: Math.hypot(p.x - here.x, p.y - here.y),
+      });
+    };
+    const gap = 16;
+    zones.forEach((z) => {
+      consider(margin, z.top - ch - gap, false);
+      consider(maxX, z.top - ch - gap, true);
+      consider(x, z.top - ch - gap, flip);
+      consider(margin, z.bottom + gap, false);
+      consider(maxX, z.bottom + gap, true);
+      consider(x, z.bottom + gap, flip);
+    });
+    consider(margin, maxY, false);
+    consider(maxX, maxY, true);
+    consider(margin, topSafe, false);
+    consider(maxX, topSafe, true);
+    candidates.sort((a, b) => a.hit - b.hit || a.dist - b.dist);
+    const best = candidates[0] || { x: here.x, y: here.y, flip: flip, hit: hit0 };
+    return { x: best.x, y: best.y, flip: best.flip, dodged: true };
+  }
+
+  /* מעל הטאב או מתחת למספרי הסריגים — לא על העץ. */
+  function parkOutside(zone, cw, ch, margin, topSafe, maxX, maxY) {
+    const gap = 16;
+    const x = clamp(zone.left, margin, maxX);
+    const aboveY = zone.top - ch - gap;
+    const belowY = zone.bottom + gap;
+    if (aboveY >= topSafe) return { x: x, y: aboveY, flip: false };
+    if (belowY <= maxY) return { x: x, y: belowY, flip: false };
+    const cornerY = maxY;
+    const cornerHit = overlapArea(margin, cornerY, cw, ch, [zone]);
+    const topHit = overlapArea(margin, topSafe, cw, ch, [zone]);
+    if (topHit < cornerHit) return { x: margin, y: topSafe, flip: false };
+    return { x: margin, y: cornerY, flip: false };
+  }
+
   function cssPx(name) {
     const n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
     return Number.isFinite(n) ? n : 0;
@@ -425,20 +558,21 @@ const AppHelper = (() => {
     const cw = coach.offsetWidth || (collapsed ? 68 : 340);
     const ch = coach.offsetHeight || (collapsed ? 68 : 132);
     const target = targetEl();
+    const zones = neckZones(vw, vh);
+    const aimed = zoneFor(target, zones);
+    const zone = aimed || (collapsed && state.following && zones.length ? zones[0] : null);
+    const maxX = Math.max(margin, vw - cw - margin);
+    const maxY = Math.max(topSafe, vh - ch - bottomSafe);
     let x = margin;
     let y = vh - ch - bottomSafe;
     let flip = false;
     coach.classList.toggle('is-following', collapsed && !!state.following);
 
-    if (collapsed && state.following && target) {
-      const host = document.getElementById('neck-board-host') || target.closest('.fretboard-wrap, .neck-board-host');
-      const t = target.getBoundingClientRect();
-      const h = host ? host.getBoundingClientRect() : t;
-      const orb = 62;
-      let cx = t.width ? t.left + t.width / 2 : h.left + 40;
-      if (h.width) cx = clamp(cx, h.left + 28, h.right - 28);
-      x = cx - orb / 2;
-      y = (h.top || 80) - orb - 8;
+    if (zone && ((collapsed && state.following) || (!collapsed && aimed))) {
+      const parked = parkOutside(zone, cw, ch, margin, topSafe, maxX, maxY);
+      x = parked.x;
+      y = parked.y;
+      flip = parked.flip;
     } else if (!collapsed && target && target.getBoundingClientRect().width) {
       const t = target.getBoundingClientRect();
       const gap = 12;
@@ -461,8 +595,18 @@ const AppHelper = (() => {
       y = pick.y;
       flip = !!pick.flip;
     }
-    x = clamp(x, margin, Math.max(margin, vw - cw - margin));
-    y = clamp(y, topSafe, Math.max(topSafe, vh - ch - bottomSafe));
+    const settled = settleClear(x, y, flip, cw, ch, zones);
+    x = settled.x;
+    y = settled.y;
+    flip = settled.flip;
+    let vAnchor = '';
+    zones.forEach((z) => {
+      if (y + ch <= z.top + 1) vAnchor = vAnchor || 'above';
+      else if (y >= z.bottom - 1) vAnchor = vAnchor || 'below';
+    });
+    coach.classList.toggle('is-dodge', !!settled.dodged);
+    coach.classList.toggle('is-above', !collapsed && vAnchor === 'above');
+    coach.classList.toggle('is-below', !collapsed && vAnchor === 'below');
     coach.classList.toggle('is-flip', flip && !collapsed);
     coach.style.left = Math.round(x) + 'px';
     coach.style.top = Math.round(y) + 'px';
