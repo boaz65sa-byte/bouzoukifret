@@ -408,7 +408,13 @@ const MelodyGenerator = (() => {
         const n = evMap.get(st);
         if (n && !n.rest) AudioEngine.pluckCourse(n.c, n.f, t, n.d === 'D' ? 0.55 : 0.4);
       },
-      () => {}
+      (st) => {
+        const n = evMap.get(st);
+        const neck = document.getElementById('mg-fretboard');
+        if (n && !n.rest && neck && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(neck, { ci: n.c, fret: n.f, midi: n.midi });
+        }
+      }
     );
     scheduler.stepDur = stepDur;
     scheduler.numSteps = total;
@@ -1569,8 +1575,14 @@ const MaqamGuide = (() => {
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
     const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
+    const svg = _mqPanel?.getSvg?.();
     AudioEngine.playModeScale(d.intervals, 2, {
       gapMs: 350, gain: 0.48, posBase: st.posBase, stringMode: st.stringMode, dromosId: d.id,
+      onStep(fret, i, p) {
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(svg, p || { ci: 0, fret: fret, midi: TUNING[0].midi + fret });
+        }
+      },
     });
   }
 
@@ -1659,9 +1671,15 @@ const MaqamGuide = (() => {
     const d = DROMOI.find(x => x.id === id);
     if (!d) return;
     const st = _mqPanel?.getState?.() || { posBase: 0, stringMode: 4 };
+    const svg = _mqPanel?.getSvg?.();
     AudioEngine.playModeScale(d.intervals, 2, {
       gapMs: 350, gain: 0.48, descending: false,
       posBase: st.posBase, stringMode: st.stringMode, dromosId: d.id,
+      onStep(fret, i, p) {
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(svg, p || { ci: 0, fret: fret, midi: TUNING[0].midi + fret });
+        }
+      },
     });
   }
 

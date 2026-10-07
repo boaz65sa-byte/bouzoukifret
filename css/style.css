@@ -345,7 +345,12 @@ select {
 .fretboard { min-width: 1080px; width: 100%; height: auto; display: block; }
 .fretboard-scroll-hint { display: none; text-align: center; font-size: 11px; color: var(--text-dim); opacity: 0.6; padding: 4px 0; }
 
-.fb-dot { cursor: pointer; transition: r 0.12s; }
+.fb-dot { cursor: pointer; transition: opacity 0.15s; }
+svg.bn-neck.bn-playing .fb-dot { opacity: 0.34; }
+svg.bn-neck.bn-playing .fb-dot.tl-neck-active,
+svg.bn-neck.bn-playing .fb-dot.st-active,
+svg.bn-neck.bn-playing .fb-dot.mm-target,
+svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
 .fb-dot:hover { filter: brightness(1.3); }
 .fb-dot:active { filter: brightness(1.3); }
 .fb-note-label { pointer-events: none; user-select: none; }

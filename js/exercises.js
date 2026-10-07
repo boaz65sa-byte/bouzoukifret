@@ -312,12 +312,14 @@ function toggleExercise() {
         const el = isTab ? $(`#ex-tab .tab-note[data-idx="${hit.idx}"]`) : $(`#ex-strum .strum-cell[data-idx="${hit.idx}"]`);
         if (el) el.classList.add('lit');
         const neck = document.getElementById('fb-exercise');
-        if (neck && typeof BouzoukiNeck !== 'undefined' && isTab && hit.ev && !hit.ev.rest) {
-          BouzoukiNeck.moveActive(neck, {
+        if (neck && isTab && hit.ev && !hit.ev.rest) {
+          const stepNote = {
             ci: hit.ev.c,
             fret: hit.ev.f,
             midi: TUNING[hit.ev.c].midi + hit.ev.f,
-          });
+          };
+          if (typeof FretboardScale !== 'undefined' && FretboardScale.playhead) FretboardScale.playhead(neck, stepNote);
+          else if (typeof BouzoukiNeck !== 'undefined') BouzoukiNeck.moveActive(neck, stepNote);
         }
       }
     }

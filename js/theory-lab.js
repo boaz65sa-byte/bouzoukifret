@@ -696,6 +696,11 @@ const TheoryLab = (() => {
       if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(p.ci, p.fret, 0, 0.55);
       const g = dotByKey && dotByKey[p.ci + '-' + p.fret];
       if (g) g.classList.add('tl-neck-active');
+      const neck = g && g.ownerSVGElement;
+      if (neck && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+        const midi = (typeof TUNING !== 'undefined' && TUNING[p.ci]) ? TUNING[p.ci].midi + p.fret : null;
+        FretboardScale.playhead(neck, { ci: p.ci, fret: p.fret, midi: midi });
+      }
       i++;
       if (i >= path.length) {                 // מעבר אחד עולה ואז עצירה
         clearInterval(_seqTimer); _seqTimer = null;
@@ -905,6 +910,11 @@ const TheoryLab = (() => {
       if (AudioEngine.playModeScale) {
         AudioEngine.playModeScale(dromos.intervals, ROOT_PC, {
           gain: 0.5, posBase: _posBase, stringMode: _neckMode, dromosId: dromos.id,
+          onStep(fret, i, p) {
+            if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+              FretboardScale.playhead(svg, p || { ci: 0, fret: fret });
+            }
+          },
         });
       }
     });

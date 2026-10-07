@@ -63,7 +63,7 @@ const ModePositions = (() => {
     function step() {
       const n = seq[i];
       AudioEngine.pluckCourse(n.ci, n.fret, 0, 0.55);
-      if (svg && FretboardScale.flashMidi) FretboardScale.flashMidi(svg, n.midi);
+      if (svg && FretboardScale.playhead) FretboardScale.playhead(svg, n);
       i++;
       if (i < seq.length) playTimer = setTimeout(step, 260);
       else playTimer = null;

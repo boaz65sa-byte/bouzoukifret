@@ -428,9 +428,10 @@ const DromosVisuals = (() => {
         posBase,
         stringMode,
         onStep(fret, i, p) {
-          const svg = container?.querySelector('svg');
-          if (p && svg && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
-          else if (svg && typeof flashDot === 'function') flashDot(svg, 0, fret);
+          const svg = container?.querySelector('svg.bn-neck, svg.fretboard, svg');
+          const note = p && p.ci != null ? p : { ci: 0, fret: fret, midi: D_OPEN + fret };
+          if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) FretboardScale.playhead(svg, note);
+          else if (svg && typeof flashDot === 'function') flashDot(svg, note.ci || 0, fret);
         },
       });
       return;
@@ -438,19 +439,18 @@ const DromosVisuals = (() => {
 
     const fallbackGap = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(gap) : gap;
     const seq = [...frets, ...[...frets].reverse().slice(1)];
+    const svg = mountFretboard(container, frets);
     seq.forEach((f, i) => {
       setTimeout(() => {
         if (typeof AudioEngine !== 'undefined') {
           AudioEngine.ensureCtx();
-          AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.52);
+          AudioEngine.pluckCourse(0, f, AudioEngine.ctx.currentTime + 0.02, 0.52);
         }
-        const svg = mountFretboard(container, frets, { activeFret: f });
-        if (svg && typeof FretboardScale !== 'undefined') {
-          FretboardScale.flashMidi(svg, D_OPEN + f);
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(svg, { ci: 0, fret: f, midi: D_OPEN + f });
         } else if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
       }, i * fallbackGap);
     });
-    setTimeout(() => mountFretboard(container, frets), seq.length * fallbackGap + 100);
   }
 
   function playPhraseAnimated(container, frets, scaleFrets, gap = 320) {
@@ -459,19 +459,18 @@ const DromosVisuals = (() => {
       scaleFrets = undefined;
     }
     const g = typeof PlaybackSpeed !== 'undefined' ? PlaybackSpeed.scaleGap(gap) : gap;
+    const svg = mountFretboard(container, frets, { numbered: true, scaleFrets });
     frets.forEach((f, i) => {
       setTimeout(() => {
         if (typeof AudioEngine !== 'undefined') {
           AudioEngine.ensureCtx();
-          AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.52);
+          AudioEngine.pluckCourse(0, f, AudioEngine.ctx.currentTime + 0.02, 0.52);
         }
-        const svg = mountFretboard(container, frets, { numbered: true, activeFret: f, scaleFrets });
-        if (svg && typeof FretboardScale !== 'undefined') {
-          FretboardScale.flashMidi(svg, D_OPEN + f);
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(svg, { ci: 0, fret: f, midi: D_OPEN + f });
         } else if (svg && typeof flashDot === 'function') flashDot(svg, 0, f);
       }, i * g);
     });
-    setTimeout(() => mountFretboard(container, frets, { numbered: true, scaleFrets }), frets.length * g + 100);
   }
 
   function mountIllustration(container, kind, color = '#e3b341') {

@@ -206,12 +206,19 @@ function flashDot(svg, ci, fret) {
   }
 }
 
-/* הילה לכל המופעים של גובה צליל מסוים (pitch class + octave) */
+/* נקודה אחת בלבד — לא כל המופעים של אותו גובה על הלוח. */
 function flashMidiOnBoard(svg, midi) {
-  TUNING.forEach((c, ci) => {
-    const f = midi - c.midi;
-    if (f >= 0 && f <= NUM_FRETS) flashDot(svg, ci, f);
-  });
+  if (typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+    FretboardScale.playhead(svg, { midi: midi });
+    return;
+  }
+  for (let ci = 0; ci < TUNING.length; ci++) {
+    const f = midi - TUNING[ci].midi;
+    if (f >= 0 && f <= NUM_FRETS) {
+      flashDot(svg, ci, f);
+      return;
+    }
+  }
 }
 
 /* ===================== מסך הבית ===================== */
@@ -838,9 +845,11 @@ function playScale(msPerNote) {
     posBase: _dromoiPosBase,
     stringMode: _dromoiStringMode,
     onStep(fret, i, p) {
-      if (p && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
-      else if (typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, TUNING[0].midi + fret);
-      else flashDot(svg, p?.ci ?? 0, fret);
+      const note = p && p.ci != null
+        ? p
+        : { ci: 0, fret: fret, midi: TUNING[0].midi + fret };
+      if (typeof FretboardScale !== 'undefined' && FretboardScale.playhead) FretboardScale.playhead(svg, note);
+      else flashDot(svg, note.ci, note.fret);
     },
   });
 }
@@ -857,6 +866,10 @@ function playSingleString() {
     if (i >= seq.length) return;
     AudioEngine.pluckCourse(0, seq[i], 0, 0.55);
     cells[i].classList.add('lit');
+    const neck = $('#fb-dromos');
+    if (neck && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+      FretboardScale.playhead(neck, { ci: 0, fret: seq[i], midi: TUNING[0].midi + seq[i] });
+    }
     i++;
     scaleTimer = setTimeout(step, 380);
   }

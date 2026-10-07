@@ -381,19 +381,24 @@ const SongAcademy = (() => {
     if (typeof AudioEngine === 'undefined') return;
     AudioEngine.ensureCtx();
     let i = 0;
+    let phraseSvg = null;
     const step = () => {
       if (i >= frets.length) {
-        drawPhraseBoard('sa-fb-phrase', frets, scaleFrets, -1);
         if (_phraseAnim) { clearInterval(_phraseAnim.timer); _phraseAnim = null; }
         return;
       }
-      drawPhraseBoard('sa-fb-phrase', frets, scaleFrets, i);
-      const f = frets[i];
-      AudioEngine.pluckMidi(D_OPEN + f, AudioEngine.ctx.currentTime + 0.02, 0.55);
-      if (typeof flashDot === 'function') {
-        const svg = document.getElementById('sa-fb-phrase');
-        if (svg) flashDot(svg, 0, f);
+      if (i === 0) {
+        drawPhraseBoard('sa-fb-phrase', frets, scaleFrets, -1);
+        const wraps = document.querySelectorAll('#sa-dromos-detail .sa-fb-wrap');
+        const wrap = wraps[1] || wraps[0];
+        phraseSvg = wrap ? wrap.querySelector('svg') : null;
       }
+      const f = frets[i];
+      AudioEngine.pluckCourse(0, f, AudioEngine.ctx.currentTime + 0.02, 0.55);
+      if (phraseSvg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+        const midi = (typeof TUNING !== 'undefined' ? TUNING[0].midi : 62) + f;
+        FretboardScale.playhead(phraseSvg, { ci: 0, fret: f, midi: midi });
+      } else if (typeof flashDot === 'function' && phraseSvg) flashDot(phraseSvg, 0, f);
       i++;
     };
     step();
@@ -736,9 +741,15 @@ const SongAcademy = (() => {
       const ivs = mainDr?.intervals
         || (typeof FretboardScale !== 'undefined' ? FretboardScale.fretsOnDToIntervals(dr.frets) : []);
       if (typeof AudioEngine !== 'undefined' && AudioEngine.playModeScale && ivs.length) {
+        const svg = _saScalePanel?.getSvg?.() || d.querySelector('.sa-fb-wrap svg.bn-neck');
         AudioEngine.playModeScale(ivs, 2, {
           gapMs: 300, gain: 0.5, descending: true, dromosId: mainDr?.id,
           posBase: st.posBase, stringMode: st.stringMode,
+          onStep(fret, i, p) {
+            if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+              FretboardScale.playhead(svg, p || { ci: 0, fret: fret, midi: (typeof TUNING !== 'undefined' ? TUNING[0].midi : 62) + fret });
+            }
+          },
         });
       }
     });

@@ -85,7 +85,7 @@ C: . . . . . . . .`;
         const note = path[i];
         if (!note) return;
         AudioEngine.pluckCourse(note.course, note.fret, 0, 0.55);
-        if (svgs[vi] && FretboardScale.flashMidi) FretboardScale.flashMidi(svgs[vi], note.midi);
+        if (svgs[vi] && FretboardScale.playhead) FretboardScale.playhead(svgs[vi], { ci: note.course, fret: note.fret, midi: note.midi });
         setChipActive(listHosts[vi], i, true);
         maxDur = Math.max(maxDur, note.duration || 0.3);
       });

@@ -261,7 +261,7 @@ C: . . . . . . . .`;
       if (i > 0) setChipActive(listHost, i - 1, false);
       const n = _notes[i];
       AudioEngine.pluckCourse(n.course, n.fret, 0, 0.55);
-      if (_svg && FretboardScale.flashMidi) FretboardScale.flashMidi(_svg, n.midi);
+      if (_svg && FretboardScale.playhead) FretboardScale.playhead(_svg, { ci: n.course, fret: n.fret, midi: n.midi });
       setChipActive(listHost, i, true);
       const durMs = (n.beats * (60 / bpm)) * 1000;
       i++;
