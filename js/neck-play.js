@@ -35,10 +35,11 @@ const NeckPlay = (() => {
   };
 
   const TOUR = [
-    { spot: '#neck-board-host', text: 'הנקודה הזהובה מראה בדיוק איפה ללחוץ על המיתר. המספר הזהוב למעלה הוא האצבע.' },
-    { spot: '#neck-staff-wrap', text: 'מתחת לכל תו: השם בעברית ובלטינית, וחץ הרישה — למטה או למעלה.' },
-    { spot: '#neck-timeline', text: 'הציר מחולק לתיבות ולקטעים. בחרו קטע וחזרו עליו עד שזה יושב.' },
-    { spot: '#neck-tempo', text: 'כאן בוחרים קצב, מטרונום וספירה. תתחילו לאט, ואז תעלו.' },
+    { spot: '#neck-board-host', look: '#neck-dot', text: 'הנקודה הזהובה מראה איפה ללחוץ, ולידה כתוב שם התו. המספר הזהוב למעלה הוא האצבע.' },
+    { spot: '#neck-staff-wrap', look: '#neck-staff-wrap', text: 'מתחת לכל תו: השם בעברית ובלטינית, וחץ הרישה — למטה או למעלה.' },
+    { spot: '#neck-timeline', look: '#neck-timeline', text: 'הציר מחולק לתיבות ולקטעים. בחרו קטע וחזרו עליו עד שזה יושב.' },
+    { spot: '#neck-tempo', look: '#neck-bpm', text: 'כאן בוחרים קצב, מטרונום וספירה. תתחילו לאט, ואז תעלו.' },
+    { spot: '#neck-upload', look: '#neck-upload-btn', text: 'מכאן מעלים תווים — MusicXML, MIDI או ABC — והמנגינה עולה על הצוואר.' },
   ];
 
   const state = {
@@ -76,6 +77,9 @@ const NeckPlay = (() => {
     peekWasCollapsed: false,
     taps: [],
     layout: null,
+    uploads: [],
+    uploadToken: 0,
+    coachOnLeft: null,
   };
 
   function esc(s) {
@@ -169,7 +173,8 @@ const NeckPlay = (() => {
     const totalBeats = beat;
     const measureCount = Math.max(1, Math.round(totalBeats / beatsPerMeasure));
     const frets = notes.filter((n) => !n.rest).map((n) => n.fret);
-    const maxFret = Math.max(7, Math.min(12, Math.max(0, ...frets)));
+    const fretCap = typeof NUM_FRETS !== 'undefined' ? NUM_FRETS : 15;
+    const maxFret = Math.max(7, Math.min(fretCap, Math.max(0, ...(frets.length ? frets : [0]))));
     return {
       song, notes, totalBeats, beatsPerMeasure, measureCount, maxFret,
       fingerHomes: fingerHomes(notes),
@@ -376,6 +381,7 @@ const NeckPlay = (() => {
     }
     renderPosition(v);
     expireTip();
+    if (coachShouldTrack()) placeCoach();
     state.raf = requestAnimationFrame(frame);
   }
 
@@ -512,24 +518,32 @@ const NeckPlay = (() => {
 
   /* ---------- ציור ---------- */
 
+  const NECK_W = 1320;
+  const NECK_H = 220;
+
   function layoutNeck(maxFret) {
-    const nutX = 748;
-    const boardLeft = 132;
-    const boardTop = 54;
-    const boardBot = 228;
-    const span = nutX - boardLeft;
-    const full = 1 - Math.pow(2, -maxFret / 12);
+    const shown = Math.max(12, Math.min(15, maxFret || 12));
+    const nutX = 1044;
+    const boardLeft = 148;
+    const boardTop = 64;
+    const boardBot = 156;
+    const boardLen = nutX - boardLeft;
+    const full = 1 - Math.pow(2, -shown / 12);
     function wireX(fret) {
       if (fret <= 0) return nutX;
-      const pos = (1 - Math.pow(2, -fret / 12)) / full;
-      return nutX - pos * span;
+      const pos = (1 - Math.pow(2, -Math.min(fret, shown) / 12)) / full;
+      return nutX - pos * boardLen;
     }
     function spaceX(fret) {
-      if (fret <= 0) return nutX + 30;
-      return (wireX(fret - 1) + wireX(fret)) / 2;
+      if (fret <= 0) return nutX + 26;
+      const wire = wireX(fret);
+      const prev = wireX(fret - 1);
+      return wire + (prev - wire) * 0.2;
     }
-    function courseY(i) { return 74 + i * 44; }
-    return { nutX, boardLeft, boardTop, boardBot, maxFret, wireX, spaceX, courseY };
+    function courseY(i) {
+      return boardTop + 12 + i * ((boardBot - boardTop - 24) / 3);
+    }
+    return { nutX, boardLeft, boardTop, boardBot, maxFret: shown, wireX, spaceX, courseY };
   }
 
   function renderNeck() {
@@ -540,87 +554,126 @@ const NeckPlay = (() => {
       { he: 'פה', en: 'F' },
       { he: 'דו', en: 'C' },
     ];
+    const shaftTop = L.boardTop - 8;
+    const shaftBot = L.boardBot + 8;
+    const headLeft = L.nutX + 16;
+    const headRight = 1292;
+    const headTop = shaftTop - 6;
+    const headBot = shaftBot + 6;
+
     let frets = '';
+    let fretNums = '';
     for (let f = 1; f <= L.maxFret; f++) {
-      const x = L.wireX(f).toFixed(1);
-      frets += '<line x1="' + x + '" y1="' + L.boardTop + '" x2="' + x + '" y2="' + L.boardBot + '" stroke="url(#neckFret)" stroke-width="2.4"/>';
+      const x = L.wireX(f);
+      frets += '<line x1="' + x.toFixed(1) + '" y1="' + L.boardTop + '" x2="' + x.toFixed(1) + '" y2="' + L.boardBot + '" stroke="#140e0a" stroke-width="4.2" stroke-linecap="butt"/>';
+      frets += '<line x1="' + (x + 1.1).toFixed(1) + '" y1="' + L.boardTop + '" x2="' + (x + 1.1).toFixed(1) + '" y2="' + L.boardBot + '" stroke="#f7f4ee" stroke-width="2.15"/>';
+      const mid = (L.wireX(f - 1) + x) / 2;
+      fretNums += '<text x="' + mid.toFixed(1) + '" y="' + (shaftBot + 22) + '" text-anchor="middle" class="neck-fretnum">' + f + '</text>';
     }
+
     let inlays = '';
+    const pearl = '#f6edd4';
     [3, 5, 7, 9, 12, 15].forEach((f) => {
       if (f > L.maxFret) return;
-      const x = L.spaceX(f);
+      const x = (L.wireX(f - 1) + L.wireX(f)) / 2;
       const mid = (L.courseY(1) + L.courseY(2)) / 2;
       if (f === 12) {
-        inlays += '<circle cx="' + x + '" cy="' + (mid - 28) + '" r="5" fill="#f4e6c4" opacity="0.9"/>';
-        inlays += '<circle cx="' + x + '" cy="' + (mid + 28) + '" r="5" fill="#f4e6c4" opacity="0.9"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid - 12) + '" r="4.2" fill="' + pearl + '"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid + 12) + '" r="4.2" fill="' + pearl + '"/>';
       } else {
-        inlays += '<circle cx="' + x + '" cy="' + mid + '" r="5.5" fill="#f4e6c4" opacity="0.92"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + mid.toFixed(1) + '" r="4.6" fill="' + pearl + '"/>';
       }
     });
+
+    const posts = [0, 1, 2, 3].map((i) => headLeft + 46 + i * 52);
     let strings = '';
     for (let i = 0; i < 4; i++) {
       const y = L.courseY(i);
-      const octave = typeof TUNING !== 'undefined' && TUNING[i].pair === 'octave';
-      const x1 = 28;
-      const x2 = 820;
-      strings += '<line x1="' + x1 + '" y1="' + (y - 3.4) + '" x2="' + x2 + '" y2="' + (y - 3.4) + '" stroke="#f0e2c0" stroke-width="' + (octave ? 1.15 : 1.7) + '" opacity="0.95"/>';
-      strings += '<line x1="' + x1 + '" y1="' + (y + 3.4) + '" x2="' + x2 + '" y2="' + (y + 3.4) + '" stroke="#d9c49a" stroke-width="' + (octave ? 2.1 : 1.7) + '" opacity="0.9"/>';
+      const octave = typeof TUNING !== 'undefined' && TUNING[i] && TUNING[i].pair === 'octave';
+      const up = octave ? 1.15 : 1.55;
+      const dn = octave ? 2.15 : 1.55;
+      const y1 = y - 2.6;
+      const y2 = y + 2.6;
+      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y1 + '" x2="' + L.nutX + '" y2="' + y1 + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
+      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y2 + '" x2="' + L.nutX + '" y2="' + y2 + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
+      strings += '<line x1="' + L.nutX + '" y1="' + y1 + '" x2="' + posts[i] + '" y2="' + (headTop + 2) + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
+      strings += '<line x1="' + L.nutX + '" y1="' + y2 + '" x2="' + posts[i] + '" y2="' + (headBot - 2) + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
     }
-    let pill = '<rect x="46" y="58" width="78" height="164" rx="39" fill="#1a110c" stroke="#e8c56b" stroke-width="1.4" opacity="0.92"/>';
+
+    let names = '';
     labels.forEach((lb, i) => {
       const y = L.courseY(i);
-      pill += '<text x="85" y="' + (y - 2) + '" text-anchor="middle" class="neck-course-he">' + lb.he + '</text>';
-      pill += '<text x="85" y="' + (y + 14) + '" text-anchor="middle" class="neck-course-en">' + lb.en + '</text>';
+      names += '<text x="18" y="' + (y - 1) + '" class="neck-course-he">' + lb.he + '</text>';
+      names += '<text x="52" y="' + (y + 1) + '" class="neck-course-en">' + lb.en + '</text>';
     });
-    let fingers = '<text x="148" y="28" class="neck-finger-label">האצבעות</text>';
+
+    let fingers = '<text x="' + (L.boardLeft + 8) + '" y="28" class="neck-finger-label">אצבע</text>';
     for (let f = 1; f <= 4; f++) {
       const home = state.model.fingerHomes[f];
       const x = L.spaceX(clamp(home, 1, L.maxFret));
-      fingers += '<text id="neck-finger-' + f + '" x="' + x + '" y="30" text-anchor="middle" class="neck-finger">' + f + '</text>';
+      fingers += '<text id="neck-finger-' + f + '" x="' + x.toFixed(1) + '" y="46" text-anchor="middle" class="neck-finger">' + f + '</text>';
     }
-    const pegs = [0, 1, 2, 3].map((i) => {
-      const x = 868 + i * 28;
-      return '<line x1="' + x + '" y1="78" x2="' + x + '" y2="58" stroke="#4a301c" stroke-width="3"/>'
-        + '<circle cx="' + x + '" cy="54" r="7" fill="#2a1a10" stroke="#e8c56b" stroke-width="1.4"/>'
-        + '<line x1="' + x + '" y1="196" x2="' + x + '" y2="214" stroke="#4a301c" stroke-width="3"/>'
-        + '<circle cx="' + x + '" cy="218" r="7" fill="#2a1a10" stroke="#e8c56b" stroke-width="1.4"/>';
-    }).join('');
 
-    const svg = '<svg class="neck-svg" viewBox="0 0 1000 250" role="img" aria-label="צוואר בוזוקי טטראחורדו">'
+    const tuners = posts.map((x) => (
+      '<g>'
+      + '<rect x="' + (x - 8) + '" y="' + (headTop - 11) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
+      + '<circle cx="' + x + '" cy="' + headTop + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
+      + '<line x1="' + x + '" y1="' + headTop + '" x2="' + x + '" y2="' + (headTop - 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
+      + '<ellipse cx="' + x + '" cy="' + (headTop - 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
+      + '<rect x="' + (x - 8) + '" y="' + (headBot - 1) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
+      + '<circle cx="' + x + '" cy="' + headBot + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
+      + '<line x1="' + x + '" y1="' + headBot + '" x2="' + x + '" y2="' + (headBot + 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
+      + '<ellipse cx="' + x + '" cy="' + (headBot + 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
+      + '</g>'
+    )).join('');
+
+    const svg = '<svg class="neck-svg" viewBox="0 0 ' + NECK_W + ' ' + NECK_H + '" role="img" aria-label="צוואר בוזוקי טטראחורדו עם סריגי מתכת">'
       + '<defs>'
-      + '<linearGradient id="neckWood" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#8d5a34"/><stop offset="0.45" stop-color="#c4894e"/>'
-      + '<stop offset="0.55" stop-color="#a56b3a"/><stop offset="1" stop-color="#4e301c"/>'
+      + '<linearGradient id="neckShaft" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#a56b3c"/><stop offset="0.5" stop-color="#c4894e"/><stop offset="1" stop-color="#6a4124"/>'
       + '</linearGradient>'
-      + '<linearGradient id="neckHead" x1="0" y1="0" x2="1" y2="1">'
-      + '<stop offset="0" stop-color="#6b4124"/><stop offset="1" stop-color="#3a2416"/>'
+      + '<linearGradient id="neckBoard" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#3d261c"/><stop offset="0.48" stop-color="#6a4330"/><stop offset="1" stop-color="#2a1812"/>'
       + '</linearGradient>'
-      + '<linearGradient id="neckFret" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#f7f3ea"/><stop offset="0.5" stop-color="#b7b0a4"/><stop offset="1" stop-color="#f3efe6"/>'
+      + '<linearGradient id="neckHead" x1="0" y1="0" x2="1" y2="0">'
+      + '<stop offset="0" stop-color="#7a4e2e"/><stop offset="1" stop-color="#4a2e1c"/>'
       + '</linearGradient>'
       + '<filter id="neckGlow" x="-80%" y="-80%" width="260%" height="260%">'
       + '<feGaussianBlur stdDeviation="3.2" result="b"/>'
       + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
       + '</filter>'
       + '</defs>'
-      + '<ellipse cx="36" cy="140" rx="78" ry="108" fill="url(#neckWood)"/>'
-      + '<ellipse cx="18" cy="140" rx="16" ry="22" fill="none" stroke="#3a2414" stroke-width="3"/>'
-      + '<ellipse cx="18" cy="140" rx="6" ry="8" fill="#2a1a10"/>'
-      + '<rect x="' + L.boardLeft + '" y="' + L.boardTop + '" width="' + (L.nutX - L.boardLeft) + '" height="' + (L.boardBot - L.boardTop) + '" rx="8" fill="url(#neckWood)"/>'
-      + '<ellipse cx="' + ((L.boardLeft + L.nutX) / 2) + '" cy="' + (L.boardTop + 10) + '" rx="200" ry="8" fill="#fff" opacity="0.1"/>'
-      + inlays + frets
-      + '<rect x="' + L.nutX + '" y="' + (L.boardTop - 3) + '" width="8" height="' + (L.boardBot - L.boardTop + 6) + '" rx="1.5" fill="#f6f1e6"/>'
-      + '<rect x="' + (L.nutX + 14) + '" y="' + (L.boardTop + 6) + '" width="46" height="' + (L.boardBot - L.boardTop - 12) + '" rx="4" fill="#5c3b24" opacity="0.45"/>'
-      + '<path d="M820 62 C 900 48, 980 70, 986 108 C 992 150, 960 196, 820 188 Z" fill="url(#neckHead)"/>'
-      + pegs + strings + pill
-      + '<text x="792" y="40" text-anchor="middle" class="neck-open-label">פתוח</text>'
+      + '<path d="M' + (L.boardLeft - 36) + ' ' + (shaftTop + 6) + ' L' + L.boardLeft + ' ' + shaftTop
+      + ' L' + L.nutX + ' ' + shaftTop + ' L' + (L.nutX + 10) + ' ' + headTop
+      + ' L' + headRight + ' ' + headTop + ' Q' + (headRight + 16) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
+      + ' L' + (L.nutX + 10) + ' ' + headBot + ' L' + L.nutX + ' ' + shaftBot
+      + ' L' + L.boardLeft + ' ' + shaftBot + ' L' + (L.boardLeft - 36) + ' ' + (shaftBot - 6) + ' Z" fill="url(#neckShaft)"/>'
+      + '<path d="M' + headLeft + ' ' + headTop + ' L' + headRight + ' ' + headTop
+      + ' Q' + (headRight + 14) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
+      + ' L' + headLeft + ' ' + headBot + ' Z" fill="url(#neckHead)" stroke="#2a1a12" stroke-width="1.2"/>'
+      + '<rect x="' + L.boardLeft + '" y="' + L.boardTop + '" width="' + (L.nutX - L.boardLeft) + '" height="' + (L.boardBot - L.boardTop) + '" fill="url(#neckBoard)"/>'
+      + '<line x1="' + L.boardLeft + '" y1="' + L.boardTop + '" x2="' + L.nutX + '" y2="' + L.boardTop + '" stroke="#e7d7b4" stroke-width="1.4"/>'
+      + '<line x1="' + L.boardLeft + '" y1="' + L.boardBot + '" x2="' + L.nutX + '" y2="' + L.boardBot + '" stroke="#1a100c" stroke-width="1.6"/>'
+      + inlays
+      + '<rect x="' + (L.nutX - 1) + '" y="' + (L.boardTop - 5) + '" width="9" height="' + (L.boardBot - L.boardTop + 10) + '" rx="1.2" fill="#f7f3ea" stroke="#c9bfae" stroke-width="0.6"/>'
+      + strings
+      + frets
+      + tuners
+      + names
+      + '<text x="' + (L.nutX + 28) + '" y="46" text-anchor="middle" class="neck-open-label">פתוח</text>'
+      + '<text x="18" y="' + (shaftBot + 22) + '" class="neck-fret-label">סריג</text>'
+      + fretNums
       + fingers
-      + '<g id="neck-dot" transform="translate(792 74)" opacity="0">'
-      + '<circle r="8" fill="none" stroke="#ffe7a3" stroke-width="2">'
-      + '<animate attributeName="r" values="8;22" dur="1.15s" repeatCount="indefinite"/>'
-      + '<animate attributeName="opacity" values="0.8;0" dur="1.15s" repeatCount="indefinite"/>'
+      + '<g id="neck-dot" transform="translate(' + (L.nutX + 26) + ' ' + L.courseY(0) + ')" opacity="0">'
+      + '<circle r="7" fill="none" stroke="#ffe7a3" stroke-width="2">'
+      + '<animate attributeName="r" values="7;16" dur="1.15s" repeatCount="indefinite"/>'
+      + '<animate attributeName="opacity" values="0.85;0" dur="1.15s" repeatCount="indefinite"/>'
       + '</circle>'
-      + '<circle r="7.5" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.5" filter="url(#neckGlow)"/>'
+      + '<circle r="6.2" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.4" filter="url(#neckGlow)"/>'
+      + '<g id="neck-dot-tag">'
+      + '<rect id="neck-dot-plate" x="-90" y="-13" width="78" height="26" rx="8" class="neck-dot-plate"/>'
+      + '<text id="neck-dot-name" x="-12" y="5" text-anchor="end" class="neck-dot-name" style="direction:ltr"></text>'
+      + '</g>'
       + '</g>'
       + '</svg>';
     document.getElementById('neck-board-host').innerHTML = svg + '<div id="neck-count" class="neck-count" hidden></div>';
@@ -745,12 +798,27 @@ const NeckPlay = (() => {
     const y = state.layout.courseY(note.string);
     g.setAttribute('opacity', '1');
     g.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+    placeDotName(note);
     const host = document.getElementById('neck-board-host');
     const svg = host.querySelector('svg');
     if (!svg) return;
-    const scale = svg.getBoundingClientRect().width / 1000 || 1;
+    const scale = svg.getBoundingClientRect().width / NECK_W || 1;
     const left = x * scale - host.clientWidth * 0.58;
     host.scrollLeft = Math.max(0, left);
+  }
+
+  function placeDotName(note) {
+    const text = document.getElementById('neck-dot-name');
+    const plate = document.getElementById('neck-dot-plate');
+    if (!text || !plate || !note || !note.name) return;
+    text.textContent = note.name.pill;
+    let width = Math.max(78, note.name.pill.length * 8.4 + 16);
+    try {
+      const box = text.getBBox();
+      if (box.width > 8) width = box.width + 16;
+    } catch (e) { /* המסך עדיין מוסתר */ }
+    plate.setAttribute('width', width.toFixed(1));
+    plate.setAttribute('x', (-12 - width).toFixed(1));
   }
 
   function updateFingers(note) {
@@ -873,12 +941,19 @@ const NeckPlay = (() => {
   function fillHeader() {
     const song = state.model.song;
     document.getElementById('neck-title').textContent = song.titleHe;
-    document.getElementById('neck-sub').textContent = song.titleGr + ' · ' + song.subtitle;
+    document.getElementById('neck-sub').textContent = [song.titleGr, song.subtitle].filter(Boolean).join(' · ');
     const rhythm = rhythmChoices().find((r) => r.id === song.rhythmId);
     document.getElementById('neck-meta').textContent = song.meter + ' · ' + song.dromos + ' · ' + (rhythm ? rhythm.nameHe : song.dromos);
-    document.getElementById('neck-songs').innerHTML = (window.NECK_SONGS || []).map((s) => (
-      '<button type="button" class="neck-song-chip' + (s.id === song.id ? ' active' : '') + '" data-song="' + esc(s.id) + '">' + esc(s.titleHe) + '</button>'
-    )).join('');
+    document.getElementById('neck-songs').innerHTML = allSongs().map((s) => {
+      const chip = '<button type="button" class="neck-song-chip' + (s.id === song.id ? ' active' : '') + '" data-song="' + esc(s.id) + '">' + esc(s.titleHe) + '</button>';
+      if (!s.uploaded) return chip;
+      return '<span class="neck-song-chip-wrap">' + chip
+        + '<button type="button" class="neck-chip-x" data-delete="' + esc(s.id) + '" aria-label="מחק">×</button></span>';
+    }).join('');
+  }
+
+  function allSongs() {
+    return (window.NECK_SONGS || []).concat(state.uploads || []);
   }
 
   function fillSelects() {
@@ -901,8 +976,47 @@ const NeckPlay = (() => {
     setBpm(state.bpm);
   }
 
+  function setUploadMsg(text) {
+    const msg = document.getElementById('neck-upload-msg');
+    if (!msg) return;
+    msg.hidden = !text;
+    msg.textContent = text || '';
+  }
+
+  async function importUpload(file) {
+    state.uploadToken += 1;
+    setUploadMsg('קוראים את הקובץ…');
+    try {
+      if (typeof NeckImport === 'undefined') {
+        const err = new Error('ההעלאה לא זמינה.');
+        err.he = err.message;
+        throw err;
+      }
+      const song = await NeckImport.parseFile(file);
+      await NeckImport.save(song);
+      state.uploads = (state.uploads || []).filter((s) => s.id !== song.id);
+      state.uploads.push(song);
+      loadSong(song.id);
+      setUploadMsg('התווים עלו. עקבו אחרי הנקודה ושם התו על הצוואר.');
+      peek('התווים עלו. עקבו אחרי הנקודה ושם התו על הצוואר.', '#neck-dot');
+    } catch (err) {
+      const he = (err && err.he) || 'לא הצלחנו לקרוא את הקובץ. העלו MusicXML, MIDI או ABC.';
+      setUploadMsg(he);
+      peek(he, '#neck-upload-btn');
+    }
+  }
+
+  function deleteUpload(id) {
+    state.uploadToken += 1;
+    if (typeof NeckImport !== 'undefined') NeckImport.remove(id);
+    state.uploads = (state.uploads || []).filter((s) => s.id !== id);
+    if (state.model && state.model.song.id === id) loadSong(window.NECK_SONGS[0].id);
+    else fillHeader();
+    setUploadMsg('');
+  }
+
   function loadSong(id) {
-    const song = (window.NECK_SONGS || []).find((s) => s.id === id) || window.NECK_SONGS[0];
+    const song = allSongs().find((s) => s.id === id) || window.NECK_SONGS[0];
     halt();
     state.model = buildModel(song);
     state.layout = layoutNeck(state.model.maxFret);
@@ -937,7 +1051,7 @@ const NeckPlay = (() => {
     }
   }
 
-  /* ---------- המורה ---------- */
+  /* ---------- העוזר ---------- */
 
   function storageGet(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -982,13 +1096,29 @@ const NeckPlay = (() => {
     return el;
   }
 
-  function pointCoach(sel) {
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  function coachTargetEl() {
+    const sel = (state.coach && state.coach.look) || '#neck-dot';
+    return document.querySelector(sel) || document.getElementById('neck-dot');
+  }
+
+  function coachShouldTrack() {
+    if (!state.playing || state.tourStep >= 0) return false;
+    if (state.collapsed) return true;
+    return state.coach && state.coach.look === '#neck-dot';
+  }
+
+  function pointEyes(target) {
     const avatar = document.getElementById('neck-avatar');
-    const look = document.getElementById('neck-look');
+    const coach = document.getElementById('neck-coach');
     if (!avatar) return;
-    const target = (sel && document.querySelector(sel)) || document.getElementById('neck-dot');
-    if (!target) {
-      if (look) look.hidden = true;
+    const pupils = avatar.querySelectorAll('.neck-pupil-g');
+    const idle = coach && coach.classList.contains('is-idle');
+    if (!target || idle || !target.getBoundingClientRect().width) {
+      pupils.forEach((g) => g.removeAttribute('transform'));
       return;
     }
     const a = avatar.getBoundingClientRect();
@@ -997,14 +1127,77 @@ const NeckPlay = (() => {
     const dx = (t.left + t.width / 2) - (a.left + a.width / 2);
     const dy = (t.top + t.height / 2) - (a.top + a.height / 2);
     const len = Math.hypot(dx, dy) || 1;
-    const mag = 3.6;
-    avatar.querySelectorAll('.neck-pupil-g').forEach((g) => {
-      g.setAttribute('transform', 'translate(' + (dx / len * mag).toFixed(2) + ' ' + (dy / len * mag).toFixed(2) + ')');
-    });
-    if (look) {
-      look.hidden = false;
-      look.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad) translate(34px)';
+    const mag = 3.4;
+    const tr = 'translate(' + (dx / len * mag).toFixed(2) + ' ' + (dy / len * mag).toFixed(2) + ')';
+    pupils.forEach((g) => g.setAttribute('transform', tr));
+  }
+
+  function glideEyes() {
+    if (reducedMotion()) return;
+    const until = performance.now() + 820;
+    const tick = () => {
+      if (!document.getElementById('neck-avatar')) return;
+      pointEyes(coachTargetEl());
+      if (performance.now() < until) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function placeCoach(opts) {
+    const coach = document.getElementById('neck-coach');
+    if (!coach) return;
+    const collapsed = state.collapsed && state.tourStep < 0;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = 10;
+    const bottomSafe = vw < 860 ? 84 : 14;
+    const cw = coach.offsetWidth || (collapsed ? 68 : 340);
+    const ch = coach.offsetHeight || (collapsed ? 68 : 132);
+    const target = coachTargetEl();
+    let x = margin;
+    let y = vh - ch - bottomSafe;
+    let flip = false;
+    coach.classList.toggle('is-following', collapsed && state.playing);
+    coach.classList.toggle('is-idle', collapsed && !state.playing);
+
+    if (collapsed && state.playing && target) {
+      const host = document.getElementById('neck-board-host');
+      const t = target.getBoundingClientRect();
+      const h = host ? host.getBoundingClientRect() : t;
+      const orb = 62;
+      let cx = t.width ? t.left + t.width / 2 : h.left + 40;
+      if (h.width) cx = clamp(cx, h.left + 28, h.right - 28);
+      x = cx - orb / 2;
+      y = (h.top || 80) - orb - 6;
+    } else if (!collapsed && target && target.getBoundingClientRect().width) {
+      const t = target.getBoundingClientRect();
+      const gap = 12;
+      const wide = t.width > Math.min(480, vw * 0.5);
+      const spaceLeft = t.left - margin;
+      const spaceRight = vw - t.right - margin;
+      let onLeft = spaceLeft >= spaceRight;
+      if (!wide && state.coachOnLeft === true && spaceLeft >= cw * 0.55) onLeft = true;
+      else if (!wide && state.coachOnLeft === false && spaceRight >= cw * 0.55) onLeft = false;
+      else if (wide) onLeft = true;
+      if (!wide) state.coachOnLeft = onLeft;
+      const side = [];
+      if (!wide && spaceLeft >= cw + gap) side.push({ x: t.left - cw - gap, y: t.top + t.height / 2 - 30, flip: false, onLeft: true });
+      if (!wide && spaceRight >= cw + gap) side.push({ x: t.right + gap, y: t.top + t.height / 2 - 30, flip: true, onLeft: false });
+      side.sort((a, b) => (a.onLeft === onLeft ? 0 : 1) - (b.onLeft === onLeft ? 0 : 1));
+      const above = { x: clamp(t.left + Math.min(t.width * 0.2, 80), margin, vw - cw - margin), y: t.top - ch - gap, flip: false };
+      const below = { x: clamp(t.left, margin, vw - cw - margin), y: t.bottom + gap, flip: false };
+      const pick = side[0] || (t.top > ch + 36 ? above : below);
+      x = pick.x;
+      y = pick.y;
+      flip = !!pick.flip;
     }
+    x = clamp(x, margin, Math.max(margin, vw - cw - margin));
+    y = clamp(y, 8, Math.max(8, vh - ch - bottomSafe));
+    coach.classList.toggle('is-flip', flip && !collapsed);
+    coach.style.left = Math.round(x) + 'px';
+    coach.style.top = Math.round(y) + 'px';
+    pointEyes(collapsed && !state.playing ? null : target);
+    if (opts && opts.glide) glideEyes();
   }
 
   function renderCoach() {
@@ -1026,18 +1219,21 @@ const NeckPlay = (() => {
           + '<button type="button" class="neck-btn tiny primary" data-tour="next">' + (last ? 'יאללה, ננגן' : 'הבא') + '</button>';
         const el = spotlight(c.spot);
         if (el) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+        const lookEl = c.look && document.querySelector(c.look);
+        if (lookEl && lookEl !== el) lookEl.scrollIntoView({ block: 'nearest', inline: 'center' });
       } else {
         spotlight(null);
         actions.innerHTML = '<button type="button" class="neck-btn tiny" data-tour="hide">הסתר</button>';
       }
     } else spotlight(null);
-    pointCoach(c.look);
+    placeCoach({ glide: true });
   }
 
   function showTourStep() {
     const step = TOUR[state.tourStep];
     state.collapsed = false;
-    state.coach = { text: step.text, look: step.spot, spot: step.spot };
+    state.coachOnLeft = null;
+    state.coach = { text: step.text, look: step.look || step.spot, spot: step.spot };
     renderCoach();
   }
 
@@ -1088,7 +1284,7 @@ const NeckPlay = (() => {
     if (!locked) state.coach = { ...(state.coach || {}), ...tip };
     else state.coach = { ...state.coach, look: state.coach.look };
     if (!state.collapsed && !locked) renderCoach();
-    else pointCoach((state.coach && state.coach.look) || tip.look);
+    else placeCoach();
   }
 
   function onFinished() {
@@ -1108,24 +1304,20 @@ const NeckPlay = (() => {
     renderCoach();
   }
 
-  function faceSvg() {
+  function mascotSvg() {
     return '<svg class="neck-face" viewBox="0 0 80 80" aria-hidden="true">'
-      + '<defs><radialGradient id="neckSkin" cx="38%" cy="32%"><stop offset="0" stop-color="#f8e0c8"/><stop offset="1" stop-color="#e0b08a"/></radialGradient></defs>'
-      + '<circle cx="40" cy="40" r="38" fill="url(#neckSkin)" stroke="#e8c56b" stroke-width="2.5"/>'
-      + '<path d="M14 38 C16 16 28 8 40 8 C54 8 66 16 66 38 C60 28 50 24 40 24 C28 24 18 30 14 38 Z" fill="#4a2c1c"/>'
-      + '<path d="M18 34 C24 26 32 24 40 26" fill="none" stroke="#3a2216" stroke-width="2" stroke-linecap="round"/>'
-      + '<ellipse cx="27" cy="42" rx="8" ry="9" fill="#fff"/>'
-      + '<ellipse cx="53" cy="42" rx="8" ry="9" fill="#fff"/>'
-      + '<g class="neck-pupil-g"><circle cx="27" cy="43" r="3.7" fill="#6b3a22"/><circle cx="27" cy="43" r="1.8" fill="#1a0d08"/><circle cx="25.6" cy="41.4" r="1.05" fill="#fff"/></g>'
-      + '<g class="neck-pupil-g"><circle cx="53" cy="43" r="3.7" fill="#6b3a22"/><circle cx="53" cy="43" r="1.8" fill="#1a0d08"/><circle cx="51.6" cy="41.4" r="1.05" fill="#fff"/></g>'
-      + '<path d="M20 33 Q28 29 35 33" fill="none" stroke="#5a3824" stroke-width="1.6" stroke-linecap="round"/>'
-      + '<path d="M45 33 Q52 29 60 33" fill="none" stroke="#5a3824" stroke-width="1.6" stroke-linecap="round"/>'
-      + '<path d="M40 44 v7" stroke="#d7a888" stroke-width="1.5" stroke-linecap="round"/>'
-      + '<path d="M29 56 Q40 66 51 56" fill="none" stroke="#a85a48" stroke-width="2.1" stroke-linecap="round"/>'
-      + '<ellipse cx="18" cy="52" rx="4" ry="2.2" fill="#e7a090" opacity="0.55"/>'
-      + '<ellipse cx="62" cy="52" rx="4" ry="2.2" fill="#e7a090" opacity="0.55"/>'
-      + '<path d="M22 70 Q40 78 58 70 L62 80 L18 80 Z" fill="#3a2418"/>'
-      + '<circle cx="40" cy="74" r="2" fill="#e8c56b"/>'
+      + '<defs>'
+      + '<radialGradient id="neckOrb" cx="36%" cy="32%"><stop offset="0" stop-color="#fff6d2"/><stop offset="0.42" stop-color="#e8c56b"/><stop offset="1" stop-color="#8a4e16"/></radialGradient>'
+      + '</defs>'
+      + '<circle cx="40" cy="40" r="30" fill="url(#neckOrb)" stroke="#fff1c9" stroke-width="2"/>'
+      + '<ellipse cx="31" cy="28" rx="10" ry="6" fill="#fff8e4" opacity="0.55"/>'
+      + '<ellipse cx="29" cy="40" rx="9.2" ry="10.4" fill="#fff"/>'
+      + '<ellipse cx="51" cy="40" rx="9.2" ry="10.4" fill="#fff"/>'
+      + '<g class="neck-pupil-g"><circle cx="29" cy="41" r="4.6" fill="#3a2414"/><circle cx="27.2" cy="39" r="1.5" fill="#fff"/></g>'
+      + '<g class="neck-pupil-g"><circle cx="51" cy="41" r="4.6" fill="#3a2414"/><circle cx="49.2" cy="39" r="1.5" fill="#fff"/></g>'
+      + '<ellipse class="neck-lid" cx="29" cy="40" rx="10" ry="11.2" fill="#e4bc62"/>'
+      + '<ellipse class="neck-lid" cx="51" cy="40" rx="10" ry="11.2" fill="#e4bc62"/>'
+      + '<path d="M32 54 Q40 60 48 54" fill="none" stroke="#6a3d16" stroke-width="1.8" stroke-linecap="round"/>'
       + '</svg>';
   }
 
@@ -1145,6 +1337,12 @@ const NeckPlay = (() => {
       + '<p class="neck-meta" id="neck-meta"></p>'
       + '</div></header>'
       + '<div class="neck-songs" id="neck-songs"></div>'
+      + '<div class="neck-upload">'
+      + '<button type="button" class="neck-btn" id="neck-upload-btn">העלאת תווים</button>'
+      + '<input id="neck-file" type="file" hidden accept=".musicxml,.xml,.mxl,.mid,.midi,.abc,.txt,.pdf,.png,.jpg,.jpeg,.webp,.gif">'
+      + '<p class="neck-upload-hint">MusicXML, MIDI או ABC. מצילום או PDF מייצאים MusicXML מ־MuseScore.</p>'
+      + '</div>'
+      + '<p class="neck-upload-msg" id="neck-upload-msg" hidden></p>'
       + '<div class="neck-board-host" id="neck-board-host"></div>'
       + '<p class="neck-sol-label">סולפג׳</p>'
       + '<div class="neck-pill-wrap"><div class="neck-pill" id="neck-pill" aria-live="polite"></div></div>'
@@ -1196,12 +1394,9 @@ const NeckPlay = (() => {
       + '</div>'
       + '</div>'
       + '<div class="neck-coach" id="neck-coach">'
-      + '<div class="neck-avatar-wrap">'
-      + '<span class="neck-look" id="neck-look" hidden></span>'
-      + '<button type="button" class="neck-avatar" id="neck-avatar" aria-label="המורה">' + faceSvg() + '</button>'
-      + '</div>'
+      + '<button type="button" class="neck-avatar" id="neck-avatar" aria-label="העוזר">' + mascotSvg() + '</button>'
       + '<div class="neck-coach-bubble" id="neck-coach-bubble">'
-      + '<p class="neck-coach-who">המורה</p>'
+      + '<p class="neck-coach-who">העוזר</p>'
       + '<p class="neck-coach-text" id="neck-coach-text" aria-live="polite"></p>'
       + '<div class="neck-coach-actions" id="neck-coach-actions"></div>'
       + '</div></div>';
@@ -1218,6 +1413,12 @@ const NeckPlay = (() => {
   function bind() {
     const root = document.getElementById('neck-root');
     root.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-delete]');
+      if (del) { deleteUpload(del.dataset.delete); return; }
+      if (e.target.closest('#neck-upload-btn')) {
+        document.getElementById('neck-file').click();
+        return;
+      }
       const song = e.target.closest('[data-song]');
       if (song) { loadSong(song.dataset.song); return; }
       const section = e.target.closest('[data-section]');
@@ -1316,6 +1517,11 @@ const NeckPlay = (() => {
           peek('חזרו על המקטע עד שזה יושב.', '#neck-timeline');
         }
       }
+      if (e.target.id === 'neck-file') {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (file) importUpload(file);
+      }
       if (e.target.id === 'neck-from' || e.target.id === 'neck-to') {
         let a = clamp(+document.getElementById('neck-from').value || 1, 1, state.model.measureCount);
         let b = clamp(+document.getElementById('neck-to').value || a, 1, state.model.measureCount);
@@ -1357,7 +1563,7 @@ const NeckPlay = (() => {
           return;
         }
         if (state.tourStep >= 0) showTourStep();
-        else if (state.coach) pointCoach(state.coach.look);
+        else if (state.coach) placeCoach({ glide: true });
       });
     });
 
@@ -1371,8 +1577,12 @@ const NeckPlay = (() => {
     });
 
     window.addEventListener('resize', () => {
-      if (state.coach) pointCoach(state.coach.look);
+      if (state.coach) placeCoach({ glide: true });
     });
+    document.addEventListener('scroll', () => {
+      if (!document.getElementById('screen-neck')?.classList.contains('active')) return;
+      if (state.coach) placeCoach();
+    }, true);
   }
 
   function init() {
@@ -1383,6 +1593,16 @@ const NeckPlay = (() => {
     root.innerHTML = shell();
     bind();
     loadSong(window.NECK_SONGS[0].id);
+    if (typeof NeckImport !== 'undefined') {
+      const token = state.uploadToken;
+      NeckImport.list().then((rows) => {
+        if (token !== state.uploadToken) return;
+        const byId = new Map((Array.isArray(rows) ? rows : []).map((s) => [s.id, s]));
+        (state.uploads || []).forEach((s) => byId.set(s.id, s));
+        state.uploads = [...byId.values()];
+        fillHeader();
+      }).catch(() => {});
+    }
     state.tourPending = !storageGet(TOUR_KEY);
     state.collapsed = true;
     state.coach = { text: 'לחצו נגן ועקבו אחרי הנקודה הזהובה על הצוואר.', look: '#neck-dot', spot: '#neck-board-host' };

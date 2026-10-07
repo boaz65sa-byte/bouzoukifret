@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v51';
+const CACHE_STATIC = 'bouzouki-static-v54';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -84,6 +84,7 @@ const PRECACHE = [
   './js/mode-positions.js',
   './js/composer.js',
   './js/neck-songs.js',
+  './js/neck-import.js',
   './js/neck-play.js',
 ];
 
