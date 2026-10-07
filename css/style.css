@@ -2581,18 +2581,25 @@ select {
 
 /* ===================== למד שיר על הצוואר ===================== */
 #screen-neck {
+  min-width: 0;
   --neck-gold: #e8c56b;
   --neck-gold-2: #f6e2a8;
   --neck-ink: #2c2118;
   --neck-paper: #f4e7c8;
+  /* בלי transform — אחרת בועת המורה (position:fixed) ננעלת לתוך המסך ולא לחלון */
+  animation: neckIn 0.35s ease;
   margin: -36px -42px -80px;
-  padding: 18px 18px 168px;
+  padding: 18px 18px 188px;
   min-height: calc(100vh - 20px);
   position: relative;
   color: #f6edd9;
   background:
     radial-gradient(900px 420px at 50% -8%, rgba(232, 197, 107, 0.16), transparent 58%),
     linear-gradient(180deg, #3c291b 0%, #24170f 32%, #140e0a 100%);
+}
+@keyframes neckIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 #screen-neck h1 {
   margin: 0;
@@ -2652,6 +2659,9 @@ select {
 .neck-board-host {
   position: relative;
   overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  min-width: 0;
   direction: ltr;
   border-radius: 16px;
   background: #1a100b;
@@ -2702,9 +2712,13 @@ select {
   background: var(--neck-paper);
   border-radius: 16px;
   overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  min-width: 0;
   direction: ltr;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
+.main:has(#screen-neck.active) { min-width: 0; }
 .neck-staff-svg { display: block; }
 .neck-meter, .neck-barnum, .neck-pname, .neck-latin, .neck-pick, .neck-acc {
   font-family: Heebo, sans-serif;
@@ -2957,7 +2971,7 @@ select {
 @media (max-width: 860px) {
   #screen-neck {
     margin: -18px -14px calc(-1 * (86px + env(safe-area-inset-bottom)));
-    padding: 12px 10px calc(200px + env(safe-area-inset-bottom));
+    padding: 12px 10px calc(210px + env(safe-area-inset-bottom));
     min-height: 70vh;
   }
   .neck-coach {

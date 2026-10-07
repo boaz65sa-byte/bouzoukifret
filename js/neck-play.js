@@ -12,6 +12,7 @@ const NeckPlay = (() => {
   const LINE_GAP = 12;
   const STAFF_BOTTOM = 80;
   const BOTTOM_STEP = 30; // מי של אוקטבה 4 — הקו התחתון
+  const CLEF_D = 'M314 801Q300 854 291.0 906.0Q282 958 282 1012Q282 1059 288.5 1100.5Q295 1142 307 1177Q320 1217 341.0 1252.5Q362 1288 385.5 1311.0Q409 1334 427 1334Q451 1334 493 1249Q514 1206 524.0 1156.0Q534 1106 534 1049Q534 978 515.0 907.5Q496 837 459.5 775.0Q423 713 372 666L407 498Q422 500 432.0 501.0Q442 502 447 502Q508 502 556.0 467.5Q604 433 632.5 377.0Q661 321 661 254Q661 177 621.5 115.5Q582 54 503 25Q508 8 532 -117Q538 -147 541.0 -164.5Q544 -182 545.0 -195.0Q546 -208 546 -225Q546 -275 521.5 -314.5Q497 -354 455.5 -376.0Q414 -398 363 -398Q311 -398 271.0 -378.5Q231 -359 208.0 -324.5Q185 -290 185 -245Q185 -197 211.5 -165.0Q238 -133 287 -133Q329 -133 355.5 -163.5Q382 -194 382 -236Q382 -272 357.0 -299.0Q332 -326 292 -326H282Q308 -365 364 -365Q433 -365 472.0 -320.0Q511 -275 511 -205Q511 -188 507.0 -159.5Q503 -131 493 -91Q483 -51 477.5 -25.0Q472 1 470 12Q436 2 390 2Q304 2 222 52Q142 102 96.0 184.0Q50 266 50 361Q50 451 91 530Q132 609 192.5 675.0Q253 741 314 801ZM341 826Q364 838 390.0 870.5Q416 903 440.0 945.0Q464 987 479.0 1029.5Q494 1072 494 1106Q494 1142 483.0 1163.0Q472 1184 445 1184Q421 1184 398.5 1162.0Q376 1140 358.5 1103.5Q341 1067 331.0 1022.0Q321 977 321 930Q321 898 327.5 872.0Q334 846 341 826ZM398 379Q371 373 347.0 353.5Q323 334 308.5 306.5Q294 279 294 248Q294 223 307.0 196.5Q320 170 339 154Q352 142 365 136Q380 129 380 123Q380 120 370 117Q332 126 301.5 151.0Q271 176 253.5 211.5Q236 247 236 287Q236 330 253.5 370.0Q271 410 302.5 442.0Q334 474 374 490L345 641Q229 547 174.5 456.5Q120 366 120 277Q120 212 154.0 156.0Q188 100 247.0 65.5Q306 31 380 31Q400 31 420.5 35.0Q441 39 464 45ZM495 55Q593 97 593 227Q593 270 571.0 305.5Q549 341 512.0 362.0Q475 383 429 383Z';
 
   const SPELL = [
     { he: 'דו', latin: 'Do', letter: 'C', acc: '', stepLetter: 'C' },
@@ -638,7 +639,7 @@ const NeckPlay = (() => {
       const y = STAFF_BOTTOM - i * LINE_GAP;
       body += '<line x1="8" y1="' + y + '" x2="' + (width - 10) + '" y2="' + y + '" stroke="#3d2c1c" stroke-width="1.15"/>';
     }
-    body += '<path d="M26 96 C26 78 40 70 44 60 C48 50 42 36 32 30 C22 24 20 10 34 6 C46 2 56 12 54 24 C52 32 44 36 38 34 C34 32 34 26 40 26 C42 34 36 46 32 56 C24 74 30 90 46 98 C56 104 62 96 58 86 C54 78 46 78 46 86" fill="none" stroke="#2c2118" stroke-width="2.4" stroke-linecap="round"/>';
+    body += clefMarkup();
     const meter = state.model.song.meter.split('/');
     body += '<text x="74" y="' + (topLine + 16) + '" text-anchor="middle" class="neck-meter">' + meter[0] + '</text>';
     body += '<text x="74" y="' + (STAFF_BOTTOM - 2) + '" text-anchor="middle" class="neck-meter">' + meter[1] + '</text>';
@@ -702,6 +703,15 @@ const NeckPlay = (() => {
     body += '<line x1="' + endX + '" y1="' + topLine + '" x2="' + endX + '" y2="' + STAFF_BOTTOM + '" stroke="#3d2c1c" stroke-width="3"/>';
     body += '<line x1="' + (endX + 6) + '" y1="' + topLine + '" x2="' + (endX + 6) + '" y2="' + STAFF_BOTTOM + '" stroke="#3d2c1c" stroke-width="1.2"/>';
     document.getElementById('neck-staff-wrap').innerHTML = '<svg id="neck-staff-svg" class="neck-staff-svg" viewBox="0 0 ' + width + ' ' + H + '" width="' + width + '" height="' + H + '">' + body + '</svg>';
+  }
+
+
+  function clefMarkup() {
+    const s = 0.052;
+    const tx = (2 - 50 * s).toFixed(1);
+    const ty = (STAFF_BOTTOM + 12 - 398 * s).toFixed(1);
+    return '<g transform="translate(' + tx + ' ' + ty + ') scale(' + s + ' -' + s + ')" aria-hidden="true">'
+      + '<path fill="#2c2118" d="' + CLEF_D + '"/></g>';
   }
 
   function ledger(x, y) {
@@ -987,7 +997,7 @@ const NeckPlay = (() => {
     const dx = (t.left + t.width / 2) - (a.left + a.width / 2);
     const dy = (t.top + t.height / 2) - (a.top + a.height / 2);
     const len = Math.hypot(dx, dy) || 1;
-    const mag = 2.4;
+    const mag = 3.6;
     avatar.querySelectorAll('.neck-pupil-g').forEach((g) => {
       g.setAttribute('transform', 'translate(' + (dx / len * mag).toFixed(2) + ' ' + (dy / len * mag).toFixed(2) + ')');
     });
