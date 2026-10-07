@@ -28,7 +28,13 @@ $$('.nav-btn').forEach(btn => {
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     $$('.screen').forEach(s => s.classList.remove('active'));
-    $('#screen-' + btn.dataset.screen).classList.add('active');
+    const screenEl = $('#screen-' + btn.dataset.screen);
+    screenEl.classList.add('active');
+    const heading = screenEl.querySelector('h1');
+    if (heading) {
+      if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    }
     if (btn.dataset.screen === 'songs' && typeof SongLibrary !== 'undefined' && SongLibrary.resetMobileView) {
       SongLibrary.resetMobileView();
     }

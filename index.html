@@ -1196,7 +1196,7 @@
 </div>
 
 <script src="config.example.js" defer></script>
-<script src="config.js" onerror="void 0" defer></script>
+<!-- config.js is gitignored and missing on the public site. It is not requested, so a deploy does not 404. -->
 <script src="js/device-utils.js" defer></script>
 <script src="js/store-mode.js" defer></script>
 <script src="js/fretboard-mirror.js" defer></script>
@@ -1275,6 +1275,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // ראשונה-אי-פעם אופליין (לפני שיש קאש בכלל) תמשיך לתמוך במצב offline בפעם הבאה
 // גם אם מודול כלשהו נכשל בטעינה/אתחול.
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  let swReload = false;
+  const hadWorker = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadWorker || swReload) return;
+    swReload = true;
+    window.location.reload();
+  });
   navigator.serviceWorker.register('sw.js').then(() => {
     const el = document.getElementById('offline-badge');
     if (!el) return;

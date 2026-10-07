@@ -19,6 +19,10 @@
   --ok: #5fc88f;
   --radius: 14px;
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,7 +36,9 @@ button, select, .tuner-course, .dromos-item, .routine-item, .chord-card,
 }
 
 body {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   font-family: 'Heebo', 'Segoe UI', Tahoma, sans-serif;
   background:
     radial-gradient(1200px 700px at 85% -10%, rgba(79, 179, 217, 0.10), transparent 60%),
@@ -55,8 +61,9 @@ body {
   flex-direction: column;
   gap: 26px;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--safe-top);
+  height: calc(100vh - var(--safe-top));
+  height: calc(100dvh - var(--safe-top));
   overflow: hidden;
 }
 
@@ -141,8 +148,14 @@ body {
 .main { flex: 1; padding: 36px 42px 80px; max-width: 1250px; min-width: 0; }
 .app { min-width: 0; }
 
-.screen { display: none; animation: fadeUp 0.35s ease; }
+.screen { display: none; animation: fadeUp 0.35s ease; min-width: 0; max-width: 100%; }
 .screen.active { display: block; }
+.screen h1:focus { outline: none; }
+.screen h1:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }
@@ -395,6 +408,7 @@ select {
 .fs-pos-chip { padding: 5px 10px !important; font-size: 0.8rem !important; }
 .fs-pos-chip.active { background: var(--gold) !important; color: #1a1208 !important; border-color: var(--gold) !important; }
 .fs-neck-board { width: 100%; }
+.fs-pos-board { overflow-x: auto; max-width: 100%; min-width: 0; }
 .mp-neck-host, .rc-neck-host { margin: 12px 0; overflow-x: auto; }
 .fb-mirror-bar, .pbs-speed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
 .fb-mirror-btn { font-size: 1rem !important; line-height: 1 !important; padding: 6px 12px !important; }
@@ -2519,12 +2533,13 @@ select {
 }
 
 /* ---------- TheoryLab: "הכביש" של הדרומוס ---------- */
-.tl-road { margin: 12px 0 4px; }
+.tl-road, .dr-road-strip { margin: 12px 0 4px; max-width: 100%; min-width: 0; }
 .tl-road-head { color: var(--text-dim); font-size: 13.5px; margin-bottom: 8px; }
 .tl-road-head b { color: var(--gold); }
 .tl-road-track {
   display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch;
   gap: 4px; overflow-x: auto; padding: 6px 2px;
+  width: 100%; max-width: 100%; min-width: 0;
 }
 .tl-road-stop {
   flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -3075,6 +3090,6 @@ select {
     padding: 12px 10px calc(340px + env(safe-area-inset-bottom));
     min-height: 70vh;
   }
-  .neck-coach { max-width: calc(100vw - 16px); }
+  .neck-coach { max-width: calc(100vw - 32px - var(--safe-left) - var(--safe-right)); }
   .neck-svg { min-width: 1080px; }
 }

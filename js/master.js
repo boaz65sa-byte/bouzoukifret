@@ -16,18 +16,20 @@ const MicEngine = (() => {
   async function start(callback) {
     onPitch = callback;
     if (stream) return true;
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (armed) await armed.resume;
+      ctx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       const src = ctx.createMediaStreamSource(stream);
       analyser = ctx.createAnalyser();
       analyser.fftSize = 2048;
       AudioEngine.micBoost(src).connect(analyser);
       timer = setInterval(poll, 25);
       return true;
-    } catch (e) { return false; }
+    } catch (e) { if (armed) armed.close(); return false; }
   }
 
   function stop() {

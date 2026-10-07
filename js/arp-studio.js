@@ -696,8 +696,17 @@ const ArpStudio = (() => {
   /* ---------- מיקרופון + זיהוי אונסט ---------- */
   async function startMic() {
     if (_mic) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } });
-    const ctx = (AudioEngine.ctx) || new (window.AudioContext || window.webkitAudioContext)();
+    const armed = AudioEngine.ctx ? null : (typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null);
+    if (AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') AudioEngine.ctx.resume();
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } });
+      if (armed) await armed.resume;
+    } catch (e) {
+      if (armed) armed.close();
+      throw e;
+    }
+    const ctx = AudioEngine.ctx || (armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)());
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;

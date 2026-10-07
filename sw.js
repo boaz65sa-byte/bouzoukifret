@@ -1,7 +1,7 @@
 /* Service worker — offline: קבצים מקומיים + Essentia/Meyda מה-CDN */
 'use strict';
 
-const CACHE_STATIC = 'bouzouki-static-v55';
+const CACHE_STATIC = 'bouzouki-static-v56';
 const CACHE_CDN = 'bouzouki-cdn-v1';
 
 const PRECACHE = [
@@ -133,6 +133,26 @@ function cacheableResponse(resp) {
   return resp && resp.status === 200 && (resp.type === 'basic' || resp.type === 'cors');
 }
 
+function isAppShell(req, url) {
+  const path = url.pathname;
+  return req.mode === 'navigate'
+    || path === '/'
+    || path.endsWith('/')
+    || path.endsWith('.html')
+    || path.endsWith('.css')
+    || path.endsWith('.js');
+}
+
+function networkFirst(req) {
+  return fetch(req).then((resp) => {
+    if (cacheableResponse(resp)) {
+      const copy = resp.clone();
+      caches.open(CACHE_STATIC).then((c) => c.put(req, copy));
+    }
+    return resp;
+  }).catch(() => caches.match(req));
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -140,22 +160,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    // network-first עבור HTML ו-CSS — כדי שעדכון/תיקון לא ייתקע במטמון ישן
-    const isDoc = req.mode === 'navigate' || url.pathname.endsWith('.html') ||
-                  url.pathname.endsWith('.css') || url.pathname === '/';
-    if (isDoc) {
-      event.respondWith(
-        fetch(req).then((resp) => {
-          if (cacheableResponse(resp)) {
-            const copy = resp.clone();
-            caches.open(CACHE_STATIC).then((c) => c.put(req, copy));
-          }
-          return resp;
-        }).catch(() => caches.match(req))
-      );
+    // network-first עבור HTML, CSS ו-JS — פריסה חדשה נטענת בביקור הראשון, והמטמון רק לאופליין
+    if (isAppShell(req, url)) {
+      event.respondWith(networkFirst(req));
       return;
     }
-    // stale-while-revalidate עבור שאר הקבצים (JS וכו׳)
+    // stale-while-revalidate עבור תמונות ושאר הקבצים המקומיים
     event.respondWith(
       caches.match(req).then((cached) => {
         const net = fetch(req).then((resp) => {

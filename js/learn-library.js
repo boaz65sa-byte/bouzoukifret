@@ -86,7 +86,8 @@ const LearnLibrary = (() => {
     }
     if (!blob && typeof StemAPI !== 'undefined') {
       const proxy = (window.BOUZOUKI_CONFIG?.stemProxyUrl || 'http://127.0.0.1:3456').replace(/\/$/, '');
-      try {
+      const blocked = typeof DeviceUtils !== 'undefined' && !DeviceUtils.proxyReachableFromPage(proxy);
+      if (!blocked) try {
         const r = await fetch(`${proxy}/api/learn-library/file/${videoId}`);
         if (r.ok) blob = await r.blob();
       } catch { /* noop */ }
@@ -105,6 +106,10 @@ const LearnLibrary = (() => {
 
   async function _importToApp(videoId) {
     const proxy = (window.BOUZOUKI_CONFIG?.stemProxyUrl || 'http://127.0.0.1:3456').replace(/\/$/, '');
+    if (typeof DeviceUtils !== 'undefined' && !DeviceUtils.proxyReachableFromPage(proxy)) {
+      alert(DeviceUtils.proxyHintMessage(proxy).replace(/<[^>]+>/g, ''));
+      return;
+    }
     const track = _tracks.find(t => t.videoId === videoId);
     try {
       const r = await fetch(`${proxy}/api/learn-library/file/${videoId}`);

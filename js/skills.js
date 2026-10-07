@@ -151,17 +151,20 @@ const SkillsCoach = (() => {
       setStatus('הדפדפן לא תומך במיקרופון. נסו ב-Chrome.', 'err');
       return false;
     }
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-      micCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (armed) await armed.resume;
+      micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       const src = micCtx.createMediaStreamSource(micStream);
       micAnalyser = micCtx.createAnalyser();
       micAnalyser.fftSize = 2048;
       AudioEngine.micBoost(src).connect(micAnalyser);
       return true;
     } catch(e) {
+      if (armed) armed.close();
       setStatus('אין גישה למיקרופון — אשרו את הבקשה בדפדפן.', 'err');
       return false;
     }

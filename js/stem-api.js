@@ -54,9 +54,14 @@ const StemAPI = (() => {
     return `${base || videoId}_${videoId}.${ext}`;
   }
 
+  function localProxyBlocked(url) {
+    return typeof DeviceUtils !== 'undefined' && !DeviceUtils.proxyReachableFromPage(url);
+  }
+
   async function checkHealth() {
     const url = proxyUrl();
     if (!url) return { ok: false, reason: 'no_proxy' };
+    if (localProxyBlocked(url)) return { ok: false, reason: 'public_local', localOnly: true };
     try {
       const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(4000) });
       return r.ok ? await r.json() : { ok: false };
@@ -434,7 +439,7 @@ const StemAPI = (() => {
 
   async function listDiskLibrary() {
     const proxy = proxyUrl();
-    if (!proxy) return null;
+    if (!proxy || localProxyBlocked(proxy)) return null;
     try {
       const r = await fetch(`${proxy}/api/learn-library`, { signal: AbortSignal.timeout(5000) });
       if (!r.ok) return null;

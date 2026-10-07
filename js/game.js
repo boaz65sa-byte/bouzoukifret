@@ -103,11 +103,13 @@ const Game = (() => {
       st.style.display = 'none';
       return;
     }
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       mic.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-      mic.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (armed) await armed.resume;
+      mic.ctx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       const src = mic.ctx.createMediaStreamSource(mic.stream);
       mic.analyser = mic.ctx.createAnalyser();
       mic.analyser.fftSize = 2048;
@@ -131,6 +133,7 @@ const Game = (() => {
       st.style.display = 'inline';
       st.textContent = 'ממתין...';
     } catch(e) {
+      if (armed) armed.close();
       alert('לא ניתן לגשת למיקרופון — אשרו את הבקשה בדפדפן.');
     }
   }

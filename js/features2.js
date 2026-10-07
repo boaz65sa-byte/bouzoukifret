@@ -486,13 +486,15 @@ const MelodyRecorder = (() => {
   async function startRec() {
     events = [];
     lastNote = null;
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-    } catch { $('#rec-status').textContent = 'לא ניתן לגשת למיקרופון'; return; }
+      if (armed) await armed.resume;
+    } catch { if (armed) armed.close(); $('#rec-status').textContent = 'לא ניתן לגשת למיקרופון'; return; }
 
-    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
@@ -754,13 +756,15 @@ const SightReading = (() => {
   async function start() {
     score = 0; total = 0; streak = 0; level = 1;
     updateStats();
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-    } catch { $('#sr-feedback').textContent = 'לא ניתן לגשת למיקרופון'; return; }
+      if (armed) await armed.resume;
+    } catch { if (armed) armed.close(); $('#sr-feedback').textContent = 'לא ניתן לגשת למיקרופון'; return; }
 
-    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
@@ -1200,13 +1204,15 @@ const LiveAnalyzer = (() => {
     if (recording) return;
     recordedPitches = [];
 
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-    } catch { $('#la-status').textContent = 'לא ניתן לגשת למיקרופון'; return; }
+      if (armed) await armed.resume;
+    } catch { if (armed) armed.close(); $('#la-status').textContent = 'לא ניתן לגשת למיקרופון'; return; }
 
-    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
     const src = micCtx.createMediaStreamSource(micStream);
     analyser = micCtx.createAnalyser();
     analyser.fftSize = 2048;
