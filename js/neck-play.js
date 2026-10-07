@@ -668,14 +668,18 @@ const NeckPlay = (() => {
   function updateDot(note) {
     const g = document.getElementById('neck-dot');
     if (!g || !state.layout) return;
-    if (!note || note.rest) { g.setAttribute('opacity', '0'); return; }
+    const host = document.getElementById('neck-board-host');
+    const svg = host ? host.querySelector('svg') : null;
+    if (!note || note.rest) {
+      g.setAttribute('opacity', '0');
+      if (svg && typeof BouzoukiNeck !== 'undefined' && BouzoukiNeck.placeLabel) BouzoukiNeck.placeLabel(svg, '');
+      return;
+    }
     const x = state.layout.spaceX(note.fret);
     const y = state.layout.courseY(note.string);
     g.setAttribute('opacity', '1');
     g.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
     placeDotName(note);
-    const host = document.getElementById('neck-board-host');
-    const svg = host.querySelector('svg');
     if (!svg) return;
     if (typeof BouzoukiNeck !== 'undefined' && BouzoukiNeck.played) {
       BouzoukiNeck.played(svg, { ci: note.string, fret: note.fret, midi: note.midi });
