@@ -207,6 +207,31 @@ function renderExList() {
   });
 }
 
+function paintExerciseNeck(item) {
+  const svg = document.getElementById('fb-exercise');
+  if (!svg || typeof BouzoukiNeck === 'undefined' || !item) return;
+  const markers = [];
+  const add = (ci, fret, type) => {
+    if (ci == null || fret == null || fret < 0) return;
+    if (markers.some((m) => m.ci === ci && m.fret === fret)) return;
+    const midi = TUNING[ci].midi + fret;
+    markers.push({ ci, fret, midi, type, label: NOTE_NAMES[midi % 12] });
+  };
+  if (item.type === 'tab') {
+    (item.notes || []).forEach((n) => { if (!n.rest) add(n.c, n.f, 'note'); });
+  } else {
+    (item.chords || []).forEach((name) => {
+      const chord = typeof CHORDS !== 'undefined' ? CHORDS[name] : null;
+      if (!chord || !chord.shape) return;
+      [3, 2, 1, 0].forEach((ci, i) => {
+        const fret = chord.shape[i];
+        if (typeof fret === 'number') add(ci, fret, 'chord');
+      });
+    });
+  }
+  BouzoukiNeck.paint(svg, { maxFret: NUM_FRETS, markers, active: markers[0] || null });
+}
+
 function selectExercise(item) {
   dailyChallengeActive = false;
   exItem = item;
@@ -219,6 +244,7 @@ function selectExercise(item) {
   $('#ex-num').textContent = `תרגיל ${catIdx}.${itemIdx}`;
   setExBpm(item.bpm);
 
+  paintExerciseNeck(item);
   const chordsWrap = $('#ex-chords');
   chordsWrap.innerHTML = '';
   const tabWrap = $('#ex-tab-wrap');
@@ -285,6 +311,14 @@ function toggleExercise() {
         noteEls.forEach(el => el.classList.remove('lit'));
         const el = isTab ? $(`#ex-tab .tab-note[data-idx="${hit.idx}"]`) : $(`#ex-strum .strum-cell[data-idx="${hit.idx}"]`);
         if (el) el.classList.add('lit');
+        const neck = document.getElementById('fb-exercise');
+        if (neck && typeof BouzoukiNeck !== 'undefined' && isTab && hit.ev && !hit.ev.rest) {
+          BouzoukiNeck.moveActive(neck, {
+            ci: hit.ev.c,
+            fret: hit.ev.f,
+            midi: TUNING[hit.ev.c].midi + hit.ev.f,
+          });
+        }
       }
     }
   );

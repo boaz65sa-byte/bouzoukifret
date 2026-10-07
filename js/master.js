@@ -856,7 +856,11 @@ const MasterChords = (() => {
     });
     $('#mc-start').addEventListener('click', () => running ? stopGame() : startGame());
     $('#mc-play-chord').addEventListener('click', playChord);
-    drawFretboard($('#fb-master-chords'), () => null);
+    const preview = (typeof ChordLibrary !== 'undefined' && ChordLibrary.getAll) ? ChordLibrary.getAll()[0] : null;
+    drawFretboard($('#fb-master-chords'), preview ? (ci, f, midi) => {
+      if (preview.frets[ci] !== f) return null;
+      return { type: 'chord', label: NOTE_NAMES[midi % 12] };
+    } : () => null);
     if (typeof FretboardMirror !== 'undefined') {
       const svgInit = $('#fb-master-chords');
       const wrapInit = svgInit.closest('.fretboard-wrap');

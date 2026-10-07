@@ -522,161 +522,36 @@ const NeckPlay = (() => {
   const NECK_H = 220;
 
   function layoutNeck(maxFret) {
-    const shown = Math.max(12, Math.min(15, maxFret || 12));
-    const nutX = 1044;
-    const boardLeft = 148;
-    const boardTop = 64;
-    const boardBot = 156;
-    const boardLen = nutX - boardLeft;
-    const full = 1 - Math.pow(2, -shown / 12);
-    function wireX(fret) {
-      if (fret <= 0) return nutX;
-      const pos = (1 - Math.pow(2, -Math.min(fret, shown) / 12)) / full;
-      return nutX - pos * boardLen;
+    if (typeof BouzoukiNeck !== 'undefined') {
+      return BouzoukiNeck.layout(maxFret, { mirrorH: false, mirrorV: false });
     }
-    function spaceX(fret) {
-      if (fret <= 0) return nutX + 26;
-      const wire = wireX(fret);
-      const prev = wireX(fret - 1);
-      return wire + (prev - wire) * 0.2;
-    }
-    function courseY(i) {
-      return boardTop + 12 + i * ((boardBot - boardTop - 24) / 3);
-    }
-    return { nutX, boardLeft, boardTop, boardBot, maxFret: shown, wireX, spaceX, courseY };
+    return null;
   }
 
   function renderNeck() {
-    const L = state.layout;
-    const labels = [
-      { he: 'רה', en: 'D' },
-      { he: 'לה', en: 'A' },
-      { he: 'פה', en: 'F' },
-      { he: 'דו', en: 'C' },
-    ];
-    const shaftTop = L.boardTop - 8;
-    const shaftBot = L.boardBot + 8;
-    const headLeft = L.nutX + 16;
-    const headRight = 1292;
-    const headTop = shaftTop - 6;
-    const headBot = shaftBot + 6;
-
-    let frets = '';
-    let fretNums = '';
-    for (let f = 1; f <= L.maxFret; f++) {
-      const x = L.wireX(f);
-      frets += '<line x1="' + x.toFixed(1) + '" y1="' + L.boardTop + '" x2="' + x.toFixed(1) + '" y2="' + L.boardBot + '" stroke="#140e0a" stroke-width="4.2" stroke-linecap="butt"/>';
-      frets += '<line x1="' + (x + 1.1).toFixed(1) + '" y1="' + L.boardTop + '" x2="' + (x + 1.1).toFixed(1) + '" y2="' + L.boardBot + '" stroke="#f7f4ee" stroke-width="2.15"/>';
-      const mid = (L.wireX(f - 1) + x) / 2;
-      fretNums += '<text x="' + mid.toFixed(1) + '" y="' + (shaftBot + 22) + '" text-anchor="middle" class="neck-fretnum">' + f + '</text>';
-    }
-
-    let inlays = '';
-    const pearl = '#f6edd4';
-    [3, 5, 7, 9, 12, 15].forEach((f) => {
-      if (f > L.maxFret) return;
-      const x = (L.wireX(f - 1) + L.wireX(f)) / 2;
-      const mid = (L.courseY(1) + L.courseY(2)) / 2;
-      if (f === 12) {
-        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid - 12) + '" r="4.2" fill="' + pearl + '"/>';
-        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid + 12) + '" r="4.2" fill="' + pearl + '"/>';
-      } else {
-        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + mid.toFixed(1) + '" r="4.6" fill="' + pearl + '"/>';
-      }
+    const host = document.getElementById('neck-board-host');
+    host.innerHTML = '';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'neck-svg');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'צוואר בוזוקי טטראחורדו עם סריגי מתכת');
+    host.appendChild(svg);
+    const count = document.createElement('div');
+    count.id = 'neck-count';
+    count.className = 'neck-count';
+    count.hidden = true;
+    host.appendChild(count);
+    if (typeof BouzoukiNeck === 'undefined') return;
+    state.layout = BouzoukiNeck.paint(svg, {
+      maxFret: state.model.maxFret,
+      mirror: false,
+      publish: false,
+      fingers: true,
+      fingerHomes: state.model.fingerHomes,
+      dotId: 'neck-dot',
+      active: null,
     });
-
-    const posts = [0, 1, 2, 3].map((i) => headLeft + 46 + i * 52);
-    let strings = '';
-    for (let i = 0; i < 4; i++) {
-      const y = L.courseY(i);
-      const octave = typeof TUNING !== 'undefined' && TUNING[i] && TUNING[i].pair === 'octave';
-      const up = octave ? 1.15 : 1.55;
-      const dn = octave ? 2.15 : 1.55;
-      const y1 = y - 2.6;
-      const y2 = y + 2.6;
-      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y1 + '" x2="' + L.nutX + '" y2="' + y1 + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
-      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y2 + '" x2="' + L.nutX + '" y2="' + y2 + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
-      strings += '<line x1="' + L.nutX + '" y1="' + y1 + '" x2="' + posts[i] + '" y2="' + (headTop + 2) + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
-      strings += '<line x1="' + L.nutX + '" y1="' + y2 + '" x2="' + posts[i] + '" y2="' + (headBot - 2) + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
-    }
-
-    let names = '';
-    labels.forEach((lb, i) => {
-      const y = L.courseY(i);
-      names += '<text x="18" y="' + (y - 1) + '" class="neck-course-he">' + lb.he + '</text>';
-      names += '<text x="52" y="' + (y + 1) + '" class="neck-course-en">' + lb.en + '</text>';
-    });
-
-    let fingers = '<text x="' + (L.boardLeft + 8) + '" y="28" class="neck-finger-label">אצבע</text>';
-    for (let f = 1; f <= 4; f++) {
-      const home = state.model.fingerHomes[f];
-      const x = L.spaceX(clamp(home, 1, L.maxFret));
-      fingers += '<text id="neck-finger-' + f + '" x="' + x.toFixed(1) + '" y="46" text-anchor="middle" class="neck-finger">' + f + '</text>';
-    }
-
-    const tuners = posts.map((x) => (
-      '<g>'
-      + '<rect x="' + (x - 8) + '" y="' + (headTop - 11) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
-      + '<circle cx="' + x + '" cy="' + headTop + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
-      + '<line x1="' + x + '" y1="' + headTop + '" x2="' + x + '" y2="' + (headTop - 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
-      + '<ellipse cx="' + x + '" cy="' + (headTop - 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
-      + '<rect x="' + (x - 8) + '" y="' + (headBot - 1) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
-      + '<circle cx="' + x + '" cy="' + headBot + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
-      + '<line x1="' + x + '" y1="' + headBot + '" x2="' + x + '" y2="' + (headBot + 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
-      + '<ellipse cx="' + x + '" cy="' + (headBot + 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
-      + '</g>'
-    )).join('');
-
-    const svg = '<svg class="neck-svg" viewBox="0 0 ' + NECK_W + ' ' + NECK_H + '" role="img" aria-label="צוואר בוזוקי טטראחורדו עם סריגי מתכת">'
-      + '<defs>'
-      + '<linearGradient id="neckShaft" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#a56b3c"/><stop offset="0.5" stop-color="#c4894e"/><stop offset="1" stop-color="#6a4124"/>'
-      + '</linearGradient>'
-      + '<linearGradient id="neckBoard" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#3d261c"/><stop offset="0.48" stop-color="#6a4330"/><stop offset="1" stop-color="#2a1812"/>'
-      + '</linearGradient>'
-      + '<linearGradient id="neckHead" x1="0" y1="0" x2="1" y2="0">'
-      + '<stop offset="0" stop-color="#7a4e2e"/><stop offset="1" stop-color="#4a2e1c"/>'
-      + '</linearGradient>'
-      + '<filter id="neckGlow" x="-80%" y="-80%" width="260%" height="260%">'
-      + '<feGaussianBlur stdDeviation="3.2" result="b"/>'
-      + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
-      + '</filter>'
-      + '</defs>'
-      + '<path d="M' + (L.boardLeft - 36) + ' ' + (shaftTop + 6) + ' L' + L.boardLeft + ' ' + shaftTop
-      + ' L' + L.nutX + ' ' + shaftTop + ' L' + (L.nutX + 10) + ' ' + headTop
-      + ' L' + headRight + ' ' + headTop + ' Q' + (headRight + 16) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
-      + ' L' + (L.nutX + 10) + ' ' + headBot + ' L' + L.nutX + ' ' + shaftBot
-      + ' L' + L.boardLeft + ' ' + shaftBot + ' L' + (L.boardLeft - 36) + ' ' + (shaftBot - 6) + ' Z" fill="url(#neckShaft)"/>'
-      + '<path d="M' + headLeft + ' ' + headTop + ' L' + headRight + ' ' + headTop
-      + ' Q' + (headRight + 14) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
-      + ' L' + headLeft + ' ' + headBot + ' Z" fill="url(#neckHead)" stroke="#2a1a12" stroke-width="1.2"/>'
-      + '<rect x="' + L.boardLeft + '" y="' + L.boardTop + '" width="' + (L.nutX - L.boardLeft) + '" height="' + (L.boardBot - L.boardTop) + '" fill="url(#neckBoard)"/>'
-      + '<line x1="' + L.boardLeft + '" y1="' + L.boardTop + '" x2="' + L.nutX + '" y2="' + L.boardTop + '" stroke="#e7d7b4" stroke-width="1.4"/>'
-      + '<line x1="' + L.boardLeft + '" y1="' + L.boardBot + '" x2="' + L.nutX + '" y2="' + L.boardBot + '" stroke="#1a100c" stroke-width="1.6"/>'
-      + inlays
-      + '<rect x="' + (L.nutX - 1) + '" y="' + (L.boardTop - 5) + '" width="9" height="' + (L.boardBot - L.boardTop + 10) + '" rx="1.2" fill="#f7f3ea" stroke="#c9bfae" stroke-width="0.6"/>'
-      + strings
-      + frets
-      + tuners
-      + names
-      + '<text x="' + (L.nutX + 28) + '" y="46" text-anchor="middle" class="neck-open-label">פתוח</text>'
-      + '<text x="18" y="' + (shaftBot + 22) + '" class="neck-fret-label">סריג</text>'
-      + fretNums
-      + fingers
-      + '<g id="neck-dot" transform="translate(' + (L.nutX + 26) + ' ' + L.courseY(0) + ')" opacity="0">'
-      + '<circle r="7" fill="none" stroke="#ffe7a3" stroke-width="2">'
-      + '<animate attributeName="r" values="7;16" dur="1.15s" repeatCount="indefinite"/>'
-      + '<animate attributeName="opacity" values="0.85;0" dur="1.15s" repeatCount="indefinite"/>'
-      + '</circle>'
-      + '<circle r="6.2" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.4" filter="url(#neckGlow)"/>'
-      + '<g id="neck-dot-tag">'
-      + '<rect id="neck-dot-plate" x="-90" y="-13" width="78" height="26" rx="8" class="neck-dot-plate"/>'
-      + '<text id="neck-dot-name" x="-12" y="5" text-anchor="end" class="neck-dot-name" style="direction:ltr"></text>'
-      + '</g>'
-      + '</g>'
-      + '</svg>';
-    document.getElementById('neck-board-host').innerHTML = svg + '<div id="neck-count" class="neck-count" hidden></div>';
+    return;
   }
 
   function renderStaff() {
@@ -1144,6 +1019,10 @@ const NeckPlay = (() => {
   }
 
   function placeCoach(opts) {
+    if (typeof AppHelper !== 'undefined') {
+      AppHelper.place(opts);
+      return;
+    }
     const coach = document.getElementById('neck-coach');
     if (!coach) return;
     const collapsed = state.collapsed && state.tourStep < 0;
@@ -1201,6 +1080,21 @@ const NeckPlay = (() => {
   }
 
   function renderCoach() {
+    if (typeof isScreenActive === 'function' && !isScreenActive('neck')) return;
+    if (typeof AppHelper !== 'undefined') {
+      const c = state.coach || { text: '', look: '#neck-dot' };
+      const collapsed = state.collapsed && state.tourStep < 0;
+      AppHelper.show({
+        text: c.text || '',
+        look: c.look || '#neck-dot',
+        spot: c.spot || c.look,
+        collapsed: collapsed,
+        following: !!(state.collapsed && state.playing && state.tourStep < 0),
+        idle: !!(collapsed && !state.playing),
+        tour: state.tourStep >= 0 ? { index: state.tourStep, total: TOUR.length } : null,
+      });
+      return;
+    }
     const coach = document.getElementById('neck-coach');
     const bubble = document.getElementById('neck-coach-bubble');
     const text = document.getElementById('neck-coach-text');
@@ -1322,8 +1216,7 @@ const NeckPlay = (() => {
   }
 
   function shell() {
-    return '<button type="button" class="neck-help" id="neck-help" aria-label="עזרה">?</button>'
-      + '<header class="neck-hero">'
+    return '<header class="neck-hero">'
       + '<svg class="neck-emblem" viewBox="0 0 86 86" aria-hidden="true">'
       + '<ellipse cx="30" cy="52" rx="20" ry="24" fill="none" stroke="#e8c56b" stroke-width="2.2"/>'
       + '<circle cx="30" cy="52" r="7" fill="none" stroke="#e8c56b" stroke-width="1.6"/>'
@@ -1392,14 +1285,7 @@ const NeckPlay = (() => {
       + '<input id="neck-to" type="number" min="1" max="16" step="1" value="4" aria-label="עד תיבה">'
       + '</span>'
       + '</div>'
-      + '</div>'
-      + '<div class="neck-coach" id="neck-coach">'
-      + '<button type="button" class="neck-avatar" id="neck-avatar" aria-label="העוזר">' + mascotSvg() + '</button>'
-      + '<div class="neck-coach-bubble" id="neck-coach-bubble">'
-      + '<p class="neck-coach-who">העוזר</p>'
-      + '<p class="neck-coach-text" id="neck-coach-text" aria-live="polite"></p>'
-      + '<div class="neck-coach-actions" id="neck-coach-actions"></div>'
-      + '</div></div>';
+      + '</div>';
   }
 
   function beatFromClient(clientX) {
@@ -1444,11 +1330,13 @@ const NeckPlay = (() => {
       } else if (e.target.closest('#neck-bpm-dec')) setBpm(state.bpm - 1, { tip: true });
       else if (e.target.closest('#neck-bpm-inc')) setBpm(state.bpm + 1, { tip: true });
       else if (e.target.closest('#neck-tap')) tapTempo();
-      else if (e.target.closest('#neck-help')) startTour();
-      else if (e.target.closest('#neck-avatar')) toggleCoach();
-      else if (e.target.closest('[data-tour="next"]')) nextTour();
-      else if (e.target.closest('[data-tour="skip"]')) finishTour();
-      else if (e.target.closest('[data-tour="hide"]')) {
+    });
+    document.addEventListener('app-helper-action', (ev) => {
+      if (typeof isScreenActive === 'function' && !isScreenActive('neck')) return;
+      if (ev.detail === 'next') nextTour();
+      else if (ev.detail === 'skip') finishTour();
+      else if (ev.detail === 'toggle') toggleCoach();
+      else if (ev.detail === 'hide') {
         state.collapsed = true;
         state.userPinned = false;
         state.tipLock = null;
@@ -1563,7 +1451,7 @@ const NeckPlay = (() => {
           return;
         }
         if (state.tourStep >= 0) showTourStep();
-        else if (state.coach) placeCoach({ glide: true });
+        else if (state.coach) renderCoach();
       });
     });
 

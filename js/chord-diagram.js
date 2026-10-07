@@ -29,7 +29,48 @@ const ChordDiagram = (() => {
     },
   };
 
+  function drawOnNeck(svg, { name, shape, rootPc = null, editable = false, onFretEdit = null }) {
+    svg.innerHTML = '';
+    svg.classList.add('bn-neck');
+    const courseOf = [3, 2, 1, 0];
+    const markers = [];
+    let active = null;
+    shape.forEach((fret, shapeIdx) => {
+      if (typeof fret !== 'number') return;
+      const ci = courseOf[shapeIdx];
+      const midi = (typeof TUNING !== 'undefined' ? TUNING[ci].midi : 48) + fret;
+      const isRoot = rootPc != null && (((midi % 12) + 12) % 12) === (((rootPc % 12) + 12) % 12);
+      markers.push({
+        ci, fret, midi,
+        type: isRoot ? 'root' : 'chord',
+        label: fret === 0 ? '○' : String(fret),
+      });
+      if (isRoot && !active) active = { ci, fret, midi };
+    });
+    if (!active && markers[0]) active = { ci: markers[0].ci, fret: markers[0].fret, midi: markers[0].midi };
+    const highest = shape.filter(f => typeof f === 'number').reduce((m, f) => Math.max(m, f), 0);
+    BouzoukiNeck.paint(svg, {
+      maxFret: Math.max(12, Math.min(15, highest || 12)),
+      markers,
+      active,
+      onDotClick: (ci, fret) => {
+        if (typeof AudioEngine !== 'undefined') AudioEngine.pluckCourse(ci, fret, 0, 0.5);
+      },
+      onFret: editable ? (ci, fret) => {
+        const shapeIdx = courseOf.indexOf(ci);
+        if (shapeIdx >= 0) onFretEdit?.(shapeIdx, fret);
+      } : null,
+    });
+    if (name) {
+      svg.setAttribute('aria-label', name);
+    }
+    return svg;
+  }
+
   function draw(svg, { name, shape, numFrets = 5, compact = false, showFretNumbers = true, theme = 'dark', rootPc = null, editable = false, onFretEdit = null }) {
+    if (theme !== 'print' && !compact && typeof BouzoukiNeck !== 'undefined') {
+      return drawOnNeck(svg, { name, shape, rootPc, editable, onFretEdit });
+    }
     svg.innerHTML = '';
     const C = THEMES[theme] || THEMES.dark;
     const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();

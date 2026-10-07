@@ -122,7 +122,7 @@ const Listen = (() => {
       const seq = [...frets, ...[...frets].reverse().slice(1)];
       return seq.map(f => {
         const midi = TUNING[0].midi + f;
-        return { label: NOTE_NAMES[midi % 12], midi, hint: 'סריג ' + f };
+        return { label: NOTE_NAMES[midi % 12], midi, hint: 'סריג ' + f, ci: 0, fret: f };
       });
     }
     for (const cat of EXERCISES) {
@@ -130,7 +130,7 @@ const Listen = (() => {
       if (it) {
         return it.notes.filter(n => !n.rest).map(n => {
           const midi = TUNING[n.c].midi + n.f;
-          return { label: NOTE_NAMES[midi % 12], midi, hint: COURSE_LABELS[n.c] + (n.f > 0 ? '·' + n.f : ' פתוח') };
+          return { label: NOTE_NAMES[midi % 12], midi, hint: COURSE_LABELS[n.c] + (n.f > 0 ? '·' + n.f : ' פתוח'), ci: n.c, fret: n.f };
         });
       }
     }
@@ -149,6 +149,24 @@ const Listen = (() => {
       strip.appendChild(chip);
     });
     updateProgress();
+    paintListenNeck();
+  }
+
+  function paintListenNeck() {
+    const svg = document.getElementById('fb-listen');
+    if (!svg || typeof BouzoukiNeck === 'undefined') return;
+    const markers = [];
+    targets.forEach((t) => {
+      if (t.ci == null || t.fret == null) return;
+      if (markers.some((m) => m.ci === t.ci && m.fret === t.fret)) return;
+      markers.push({
+        ci: t.ci, fret: t.fret, midi: t.midi,
+        type: 'note', label: t.label,
+      });
+    });
+    const cur = started ? targets[idx] : targets[0];
+    const active = cur && cur.ci != null ? { ci: cur.ci, fret: cur.fret, midi: cur.midi } : (markers[0] || null);
+    BouzoukiNeck.paint(svg, { maxFret: 12, markers, active });
   }
 
   function chipEl(i) { return $(`#ls-chips .ls-chip[data-i="${i}"]`); }
@@ -218,6 +236,7 @@ const Listen = (() => {
         hitTimes.push(now);
         idx++;
         updateProgress();
+        paintListenNeck();
         if (idx >= targets.length) { finish(); return; }
         const next = chipEl(idx);
         next.classList.add('current');
