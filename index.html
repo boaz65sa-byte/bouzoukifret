@@ -1282,7 +1282,28 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     swReload = true;
     window.location.reload();
   });
-  navigator.serviceWorker.register('sw.js').then(() => {
+  function nudgeWorker(reg) {
+    if (!reg) return;
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    reg.update().catch(() => {});
+  }
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    nudgeWorker(reg);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') nudgeWorker(reg);
+    });
+    window.addEventListener('pageshow', () => nudgeWorker(reg));
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
     const el = document.getElementById('offline-badge');
     if (!el) return;
     const upd = () => {

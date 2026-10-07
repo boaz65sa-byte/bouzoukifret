@@ -100,37 +100,188 @@ const BouzoukiNeck = (() => {
 
   const PILL_H = 24;
   const PILL_TOP = 3;
+  let placingLabel = false;
 
-  /* השם יושב מעל שפת הצוואר, מיושר לנקודה, עם קו דק.
-     הלוחית לא נכנסת לתחום הסריגים, והקו האנכי נשאר בתוך התא. */
-  function placePlate(text, plate, leader, dotX, dotY, label, L) {
-    text.textContent = label || '';
-    text.setAttribute('text-anchor', 'middle');
-    let width = Math.max(72, (label || '').length * 8.2 + 18);
+  /* סימון קצר מעל שפת הלוח, באותו x של הנקודה. לא חוצה סריגים ולא נקודות. */
+  function setTick(leader, dotY, L) {
+    if (!leader || !L) return;
+    const top = (L.boardTop - 12) - dotY;
+    const bot = (L.boardTop - 6) - dotY;
+    leader.setAttribute('points', '0,' + top.toFixed(1) + ' 0,' + bot.toFixed(1));
+  }
+
+  function visibleSvgRange(svg) {
+    if (!svg || !svg.getBoundingClientRect) return null;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width < 8) return null;
+    let left = Math.max(rect.left, 0);
+    let right = Math.min(rect.right, window.innerWidth || rect.right);
+    const scroller = svg.parentElement;
+    if (scroller && scroller.getBoundingClientRect) {
+      const box = scroller.getBoundingClientRect();
+      left = Math.max(left, box.left);
+      right = Math.min(right, box.right);
+    }
+    if (right - left < 48) return null;
+    const scale = rect.width / W;
+    return { left: (left - rect.left) / scale, right: (right - rect.left) / scale };
+  }
+
+  function dropNamebar(svg) {
+    if (!svg) return;
+    if (svg.__bnNamebar && svg.__bnNamebar.parentNode) svg.__bnNamebar.remove();
+    svg.__bnNamebar = null;
+    svg.classList.remove('bn-has-float');
+  }
+
+  function placeFloatPill(bar, svg, dotX, label) {
+    const pill = bar.querySelector('.bn-namebar-pill');
+    if (!pill) return;
+    const name = label || '';
+    pill.textContent = name;
+    if (!name) {
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+    const barRect = bar.getBoundingClientRect();
+    const svgRect = svg.getBoundingClientRect();
+    const viewW = window.innerWidth || barRect.width || 320;
+    const room = Math.max(72, Math.min(barRect.width || viewW, viewW) - 8);
+    pill.style.maxWidth = room + 'px';
+    if (svgRect.width < 8 || barRect.width < 8) {
+      pill.style.left = '4px';
+      return;
+    }
+    const pw = Math.min(pill.offsetWidth || room, room);
+    const scale = svgRect.width / W;
+    const dotScreen = svgRect.left + dotX * scale;
+    const minLeft = Math.max(barRect.left + 4, 4);
+    const maxLeft = Math.min(barRect.right - pw - 4, viewW - pw - 4);
+    let left = dotScreen - pw / 2;
+    if (!(maxLeft >= minLeft)) left = minLeft;
+    else left = Math.max(minLeft, Math.min(left, maxLeft));
+    pill.style.left = (left - barRect.left) + 'px';
+  }
+
+  function pinNamebar(svg) {
+    const bar = svg && svg.__bnNamebar;
+    if (!bar) return;
+    const anchor = tabAnchor(svg);
+    if (!anchor.parent) return;
+    const before = anchor.before && anchor.before.parentNode === anchor.parent ? anchor.before : null;
+    anchor.parent.insertBefore(bar, before);
+  }
+
+  function bindLabelFollow(svg) {
+    if (!svg || svg.__bnFollow) return;
+    svg.__bnFollow = true;
+    const parent = svg.parentElement;
+    if (parent && !parent.__bnScrollBound) {
+      parent.__bnScrollBound = true;
+      parent.addEventListener('scroll', () => {
+        parent.querySelectorAll('svg.bn-neck').forEach((node) => refreshLabel(node));
+      }, { passive: true });
+    }
+    if (!window.__bnLabelResize) {
+      window.__bnLabelResize = true;
+      window.addEventListener('resize', () => {
+        document.querySelectorAll('svg.bn-neck').forEach((node) => refreshLabel(node));
+      }, { passive: true });
+    }
+    if (typeof IntersectionObserver !== 'undefined') {
+      const io = new IntersectionObserver(() => refreshLabel(svg));
+      io.observe(svg);
+    }
+  }
+
+  function refreshLabel(svg) {
+    if (!svg || !svg.isConnected || placingLabel) return;
+    const g = svg.querySelector('.bn-active');
+    const L = svg.__bnLayout;
+    if (!g || !L) return;
+    if (g.getAttribute('opacity') === '0') {
+      if (svg.__bnNamebar) svg.__bnNamebar.hidden = true;
+      return;
+    }
+    const text = g.querySelector('.neck-dot-name');
+    const plate = g.querySelector('.neck-dot-plate');
+    const leader = g.querySelector('.bn-leader');
+    if (!text || !plate) return;
+    const match = /translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/.exec(g.getAttribute('transform') || '');
+    const dotX = match ? parseFloat(match[1]) : 0;
+    const dotY = match ? parseFloat(match[2]) : 0;
+    placePlate(svg, text, plate, leader, dotX, dotY, text.textContent || '', L);
+  }
+
+  /* בלוחות המלאים השם יושב בשורה מעל הצוואר, מחוץ לגלילה, ונשאר בתוך המסך.
+     בדיאגרמות קטנות הלוחית נשארת ב-SVG מעל השפה, ומהודקת לחלון הגלוי. */
+  function mountNamebar(svg, label, dotX) {
+    if (!wantsTab(svg, svg.__bnPaintOpts)) {
+      dropNamebar(svg);
+      return false;
+    }
+    const anchor = tabAnchor(svg);
+    if (!anchor.parent) return false;
+    svg.classList.add('bn-has-float');
+    const key = tabKey(svg);
+    let bar = svg.__bnNamebar && svg.__bnNamebar.isConnected ? svg.__bnNamebar : null;
+    if (!bar) bar = anchor.parent.querySelector(':scope > .bn-namebar[data-bn-key="' + cssEscape(key) + '"]');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'bn-namebar';
+      bar.dataset.bnKey = key;
+      bar.setAttribute('aria-live', 'polite');
+      const pill = document.createElement('div');
+      pill.className = 'bn-namebar-pill';
+      pill.dir = 'ltr';
+      bar.appendChild(pill);
+    }
+    const before = anchor.before && anchor.before.parentNode === anchor.parent ? anchor.before : null;
+    if (bar.parentNode !== anchor.parent) anchor.parent.insertBefore(bar, before);
+    svg.__bnNamebar = bar;
+    placeFloatPill(bar, svg, dotX, label);
+    bindLabelFollow(svg);
+    return true;
+  }
+
+  function placePlate(svg, text, plate, leader, dotX, dotY, label, L) {
+    if (placingLabel) return;
+    placingLabel = true;
     try {
-      const box = text.getBBox();
-      if (box.width > 8) width = box.width + 18;
-    } catch (e) { /* המסך עדיין מוסתר */ }
-    let plateX = dotX - width / 2;
-    plateX = Math.max(8, Math.min(W - 8 - width, plateX));
-    const localX = plateX - dotX;
-    const localY = PILL_TOP - dotY;
-    plate.setAttribute('x', localX.toFixed(1));
-    plate.setAttribute('y', localY.toFixed(1));
-    plate.setAttribute('width', width.toFixed(1));
-    plate.setAttribute('height', String(PILL_H));
-    text.setAttribute('x', (localX + width / 2).toFixed(1));
-    text.setAttribute('y', (localY + 16.5).toFixed(1));
-    if (!leader) return;
-    const gutter = (L.boardTop - 6) - dotY;
-    const pillBottom = localY + PILL_H;
-    let attach = 0;
-    if (attach < localX) attach = localX;
-    if (attach > localX + width) attach = localX + width;
-    const pts = ['0,-8', '0,' + gutter.toFixed(1)];
-    if (Math.abs(attach) > 0.5) pts.push(attach.toFixed(1) + ',' + gutter.toFixed(1));
-    pts.push(attach.toFixed(1) + ',' + pillBottom.toFixed(1));
-    leader.setAttribute('points', pts.join(' '));
+      const name = label || '';
+      text.textContent = name;
+      text.setAttribute('text-anchor', 'middle');
+      setTick(leader, dotY, L);
+      if (mountNamebar(svg, name, dotX)) {
+        plate.setAttribute('width', '0');
+        plate.setAttribute('height', '0');
+        return;
+      }
+      let width = Math.max(72, name.length * 8.2 + 18);
+      try {
+        const box = text.getBBox();
+        if (box.width > 8) width = box.width + 18;
+      } catch (e) { /* המסך עדיין מוסתר */ }
+      let plateX = dotX - width / 2;
+      plateX = Math.max(8, Math.min(W - 8 - width, plateX));
+      const vis = visibleSvgRange(svg);
+      if (vis) {
+        const lo = vis.left + 4;
+        const hi = vis.right - 4 - width;
+        plateX = hi >= lo ? Math.max(lo, Math.min(hi, plateX)) : lo;
+      }
+      const localX = plateX - dotX;
+      const localY = PILL_TOP - dotY;
+      plate.setAttribute('x', localX.toFixed(1));
+      plate.setAttribute('y', localY.toFixed(1));
+      plate.setAttribute('width', width.toFixed(1));
+      plate.setAttribute('height', String(PILL_H));
+      text.setAttribute('x', (localX + width / 2).toFixed(1));
+      text.setAttribute('y', (localY + 16.5).toFixed(1));
+    } finally {
+      placingLabel = false;
+    }
   }
 
   function paint(svg, opts) {
@@ -388,12 +539,12 @@ const BouzoukiNeck = (() => {
       id: dotId + '-name', x: -12, y: 5, 'text-anchor': 'end', class: 'neck-dot-name',
     }, tag);
     name.setAttribute('style', 'direction:ltr');
-    if (opts.active) moveActive(svg, opts.active, { seed: true });
     svg.__bnPaintOpts = {
       markers: opts.markers || [],
       active: opts.active || null,
       tab: opts.tab,
     };
+    if (opts.active) moveActive(svg, opts.active, { seed: true });
     svg.__bnFrom = null;
     scheduleTab(svg);
     void plate;
@@ -565,14 +716,21 @@ const BouzoukiNeck = (() => {
     const opts = svg.__bnPaintOpts || {};
     if (!wantsTab(svg, opts)) {
       dropTab(svg);
+      dropNamebar(svg);
       return;
     }
     if (svg.parentElement) {
       mountAndSeed(svg, opts);
+      pinNamebar(svg);
+      bindLabelFollow(svg);
       return;
     }
     requestAnimationFrame(() => {
-      if (svg.isConnected) mountAndSeed(svg, svg.__bnPaintOpts || opts);
+      if (!svg.isConnected) return;
+      mountAndSeed(svg, svg.__bnPaintOpts || opts);
+      pinNamebar(svg);
+      bindLabelFollow(svg);
+      refreshLabel(svg);
     });
   }
 
@@ -719,6 +877,7 @@ const BouzoukiNeck = (() => {
     if (!g || !L) return;
     if (!active || active.fret == null || active.ci == null) {
       g.setAttribute('opacity', '0');
+      if (svg.__bnNamebar) svg.__bnNamebar.hidden = true;
       return;
     }
     const fret = Math.max(0, Math.min(L.maxFret, active.fret));
@@ -731,7 +890,7 @@ const BouzoukiNeck = (() => {
     const text = g.querySelector('.neck-dot-name');
     const plate = g.querySelector('.neck-dot-plate');
     const leader = g.querySelector('.bn-leader');
-    if (text && plate) placePlate(text, plate, leader, x, y, pill, L);
+    if (text && plate) placePlate(svg, text, plate, leader, x, y, pill, L);
     if (flags && flags.seed) return;
     noteGlow(svg, { ci: active.ci, fret: fret, midi: midi });
   }
@@ -748,7 +907,7 @@ const BouzoukiNeck = (() => {
     const match = /translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/.exec(g.getAttribute('transform') || '');
     const dotX = match ? parseFloat(match[1]) : 0;
     const dotY = match ? parseFloat(match[2]) : 0;
-    placePlate(text, plate, leader, dotX, dotY, label || '', L);
+    placePlate(svg, text, plate, leader, dotX, dotY, label || '', L);
   }
 
   function played(svg, note) {
