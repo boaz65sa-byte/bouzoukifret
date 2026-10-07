@@ -2656,6 +2656,42 @@ select {
   cursor: pointer;
 }
 .neck-song-chip.active { background: var(--neck-gold); color: #2a1c12; font-weight: 800; border-color: var(--neck-gold); }
+.neck-song-chip-wrap { display: inline-flex; align-items: center; gap: 2px; }
+.neck-chip-x {
+  font: inherit;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 197, 107, 0.45);
+  background: transparent;
+  color: #f6e2a8;
+  cursor: pointer;
+  line-height: 1;
+}
+.neck-upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 10px;
+}
+.neck-upload-hint {
+  margin: 0;
+  flex: 1 1 220px;
+  color: rgba(246, 237, 217, 0.72);
+  font-size: 13px;
+  text-align: center;
+}
+.neck-upload-msg {
+  color: #f6e2a8;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 10px;
+}
+.neck-dot-name { font-family: Heebo, sans-serif; font-size: 18px; font-weight: 800; fill: #2a1c12; }
+.neck-dot-plate { fill: #f6e2a8; stroke: #8a5e14; stroke-width: 1; }
 .neck-board-host {
   position: relative;
   overflow-x: auto;

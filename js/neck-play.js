@@ -35,7 +35,7 @@ const NeckPlay = (() => {
   };
 
   const TOUR = [
-    { spot: '#neck-board-host', text: 'הנקודה הזהובה מראה בדיוק איפה ללחוץ על המיתר. המספר הזהוב למעלה הוא האצבע.' },
+    { spot: '#neck-board-host', text: 'הנקודה הזהובה מראה איפה ללחוץ, ולידה כתוב שם התו. המספר הזהוב למעלה הוא האצבע.' },
     { spot: '#neck-staff-wrap', text: 'מתחת לכל תו: השם בעברית ובלטינית, וחץ הרישה — למטה או למעלה.' },
     { spot: '#neck-timeline', text: 'הציר מחולק לתיבות ולקטעים. בחרו קטע וחזרו עליו עד שזה יושב.' },
     { spot: '#neck-tempo', text: 'כאן בוחרים קצב, מטרונום וספירה. תתחילו לאט, ואז תעלו.' },
@@ -76,6 +76,8 @@ const NeckPlay = (() => {
     peekWasCollapsed: false,
     taps: [],
     layout: null,
+    uploads: [],
+    uploadToken: 0,
   };
 
   function esc(s) {
@@ -169,7 +171,8 @@ const NeckPlay = (() => {
     const totalBeats = beat;
     const measureCount = Math.max(1, Math.round(totalBeats / beatsPerMeasure));
     const frets = notes.filter((n) => !n.rest).map((n) => n.fret);
-    const maxFret = Math.max(7, Math.min(12, Math.max(0, ...frets)));
+    const fretCap = typeof NUM_FRETS !== 'undefined' ? NUM_FRETS : 15;
+    const maxFret = Math.max(7, Math.min(fretCap, Math.max(0, ...(frets.length ? frets : [0]))));
     return {
       song, notes, totalBeats, beatsPerMeasure, measureCount, maxFret,
       fingerHomes: fingerHomes(notes),
@@ -664,6 +667,10 @@ const NeckPlay = (() => {
       + '<animate attributeName="opacity" values="0.85;0" dur="1.15s" repeatCount="indefinite"/>'
       + '</circle>'
       + '<circle r="6.2" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.4" filter="url(#neckGlow)"/>'
+      + '<g id="neck-dot-tag">'
+      + '<rect id="neck-dot-plate" x="-90" y="-13" width="78" height="26" rx="8" class="neck-dot-plate"/>'
+      + '<text id="neck-dot-name" x="-12" y="5" text-anchor="end" class="neck-dot-name" style="direction:ltr"></text>'
+      + '</g>'
       + '</g>'
       + '</svg>';
     document.getElementById('neck-board-host').innerHTML = svg + '<div id="neck-count" class="neck-count" hidden></div>';
@@ -788,12 +795,27 @@ const NeckPlay = (() => {
     const y = state.layout.courseY(note.string);
     g.setAttribute('opacity', '1');
     g.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+    placeDotName(note);
     const host = document.getElementById('neck-board-host');
     const svg = host.querySelector('svg');
     if (!svg) return;
     const scale = svg.getBoundingClientRect().width / NECK_W || 1;
     const left = x * scale - host.clientWidth * 0.58;
     host.scrollLeft = Math.max(0, left);
+  }
+
+  function placeDotName(note) {
+    const text = document.getElementById('neck-dot-name');
+    const plate = document.getElementById('neck-dot-plate');
+    if (!text || !plate || !note || !note.name) return;
+    text.textContent = note.name.pill;
+    let width = Math.max(78, note.name.pill.length * 8.4 + 16);
+    try {
+      const box = text.getBBox();
+      if (box.width > 8) width = box.width + 16;
+    } catch (e) { /* המסך עדיין מוסתר */ }
+    plate.setAttribute('width', width.toFixed(1));
+    plate.setAttribute('x', (-12 - width).toFixed(1));
   }
 
   function updateFingers(note) {
@@ -916,12 +938,19 @@ const NeckPlay = (() => {
   function fillHeader() {
     const song = state.model.song;
     document.getElementById('neck-title').textContent = song.titleHe;
-    document.getElementById('neck-sub').textContent = song.titleGr + ' · ' + song.subtitle;
+    document.getElementById('neck-sub').textContent = [song.titleGr, song.subtitle].filter(Boolean).join(' · ');
     const rhythm = rhythmChoices().find((r) => r.id === song.rhythmId);
     document.getElementById('neck-meta').textContent = song.meter + ' · ' + song.dromos + ' · ' + (rhythm ? rhythm.nameHe : song.dromos);
-    document.getElementById('neck-songs').innerHTML = (window.NECK_SONGS || []).map((s) => (
-      '<button type="button" class="neck-song-chip' + (s.id === song.id ? ' active' : '') + '" data-song="' + esc(s.id) + '">' + esc(s.titleHe) + '</button>'
-    )).join('');
+    document.getElementById('neck-songs').innerHTML = allSongs().map((s) => {
+      const chip = '<button type="button" class="neck-song-chip' + (s.id === song.id ? ' active' : '') + '" data-song="' + esc(s.id) + '">' + esc(s.titleHe) + '</button>';
+      if (!s.uploaded) return chip;
+      return '<span class="neck-song-chip-wrap">' + chip
+        + '<button type="button" class="neck-chip-x" data-delete="' + esc(s.id) + '" aria-label="מחק">×</button></span>';
+    }).join('');
+  }
+
+  function allSongs() {
+    return (window.NECK_SONGS || []).concat(state.uploads || []);
   }
 
   function fillSelects() {
@@ -944,8 +973,47 @@ const NeckPlay = (() => {
     setBpm(state.bpm);
   }
 
+  function setUploadMsg(text) {
+    const msg = document.getElementById('neck-upload-msg');
+    if (!msg) return;
+    msg.hidden = !text;
+    msg.textContent = text || '';
+  }
+
+  async function importUpload(file) {
+    state.uploadToken += 1;
+    setUploadMsg('קוראים את הקובץ…');
+    try {
+      if (typeof NeckImport === 'undefined') {
+        const err = new Error('ההעלאה לא זמינה.');
+        err.he = err.message;
+        throw err;
+      }
+      const song = await NeckImport.parseFile(file);
+      await NeckImport.save(song);
+      state.uploads = (state.uploads || []).filter((s) => s.id !== song.id);
+      state.uploads.push(song);
+      loadSong(song.id);
+      setUploadMsg('התווים עלו. עקבו אחרי הנקודה ושם התו על הצוואר.');
+      peek('התווים עלו. עקבו אחרי הנקודה ושם התו על הצוואר.', '#neck-dot');
+    } catch (err) {
+      const he = (err && err.he) || 'לא הצלחנו לקרוא את הקובץ. העלו MusicXML, MIDI או ABC.';
+      setUploadMsg(he);
+      peek(he, '#neck-upload-btn');
+    }
+  }
+
+  function deleteUpload(id) {
+    state.uploadToken += 1;
+    if (typeof NeckImport !== 'undefined') NeckImport.remove(id);
+    state.uploads = (state.uploads || []).filter((s) => s.id !== id);
+    if (state.model && state.model.song.id === id) loadSong(window.NECK_SONGS[0].id);
+    else fillHeader();
+    setUploadMsg('');
+  }
+
   function loadSong(id) {
-    const song = (window.NECK_SONGS || []).find((s) => s.id === id) || window.NECK_SONGS[0];
+    const song = allSongs().find((s) => s.id === id) || window.NECK_SONGS[0];
     halt();
     state.model = buildModel(song);
     state.layout = layoutNeck(state.model.maxFret);
@@ -1188,6 +1256,12 @@ const NeckPlay = (() => {
       + '<p class="neck-meta" id="neck-meta"></p>'
       + '</div></header>'
       + '<div class="neck-songs" id="neck-songs"></div>'
+      + '<div class="neck-upload">'
+      + '<button type="button" class="neck-btn" id="neck-upload-btn">העלאת תווים</button>'
+      + '<input id="neck-file" type="file" hidden accept=".musicxml,.xml,.mxl,.mid,.midi,.abc,.txt,.pdf,.png,.jpg,.jpeg,.webp,.gif">'
+      + '<p class="neck-upload-hint">MusicXML, MIDI או ABC. מצילום או PDF מייצאים MusicXML מ־MuseScore.</p>'
+      + '</div>'
+      + '<p class="neck-upload-msg" id="neck-upload-msg" hidden></p>'
       + '<div class="neck-board-host" id="neck-board-host"></div>'
       + '<p class="neck-sol-label">סולפג׳</p>'
       + '<div class="neck-pill-wrap"><div class="neck-pill" id="neck-pill" aria-live="polite"></div></div>'
@@ -1261,6 +1335,12 @@ const NeckPlay = (() => {
   function bind() {
     const root = document.getElementById('neck-root');
     root.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-delete]');
+      if (del) { deleteUpload(del.dataset.delete); return; }
+      if (e.target.closest('#neck-upload-btn')) {
+        document.getElementById('neck-file').click();
+        return;
+      }
       const song = e.target.closest('[data-song]');
       if (song) { loadSong(song.dataset.song); return; }
       const section = e.target.closest('[data-section]');
@@ -1359,6 +1439,11 @@ const NeckPlay = (() => {
           peek('חזרו על המקטע עד שזה יושב.', '#neck-timeline');
         }
       }
+      if (e.target.id === 'neck-file') {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (file) importUpload(file);
+      }
       if (e.target.id === 'neck-from' || e.target.id === 'neck-to') {
         let a = clamp(+document.getElementById('neck-from').value || 1, 1, state.model.measureCount);
         let b = clamp(+document.getElementById('neck-to').value || a, 1, state.model.measureCount);
@@ -1426,6 +1511,16 @@ const NeckPlay = (() => {
     root.innerHTML = shell();
     bind();
     loadSong(window.NECK_SONGS[0].id);
+    if (typeof NeckImport !== 'undefined') {
+      const token = state.uploadToken;
+      NeckImport.list().then((rows) => {
+        if (token !== state.uploadToken) return;
+        const byId = new Map((Array.isArray(rows) ? rows : []).map((s) => [s.id, s]));
+        (state.uploads || []).forEach((s) => byId.set(s.id, s));
+        state.uploads = [...byId.values()];
+        fillHeader();
+      }).catch(() => {});
+    }
     state.tourPending = !storageGet(TOUR_KEY);
     state.collapsed = true;
     state.coach = { text: 'לחצו נגן ועקבו אחרי הנקודה הזהובה על הצוואר.', look: '#neck-dot', spot: '#neck-board-host' };
