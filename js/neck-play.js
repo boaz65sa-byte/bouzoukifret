@@ -35,10 +35,11 @@ const NeckPlay = (() => {
   };
 
   const TOUR = [
-    { spot: '#neck-board-host', text: 'הנקודה הזהובה מראה איפה ללחוץ, ולידה כתוב שם התו. המספר הזהוב למעלה הוא האצבע.' },
-    { spot: '#neck-staff-wrap', text: 'מתחת לכל תו: השם בעברית ובלטינית, וחץ הרישה — למטה או למעלה.' },
-    { spot: '#neck-timeline', text: 'הציר מחולק לתיבות ולקטעים. בחרו קטע וחזרו עליו עד שזה יושב.' },
-    { spot: '#neck-tempo', text: 'כאן בוחרים קצב, מטרונום וספירה. תתחילו לאט, ואז תעלו.' },
+    { spot: '#neck-board-host', look: '#neck-dot', text: 'הנקודה הזהובה מראה איפה ללחוץ, ולידה כתוב שם התו. המספר הזהוב למעלה הוא האצבע.' },
+    { spot: '#neck-staff-wrap', look: '#neck-staff-wrap', text: 'מתחת לכל תו: השם בעברית ובלטינית, וחץ הרישה — למטה או למעלה.' },
+    { spot: '#neck-timeline', look: '#neck-timeline', text: 'הציר מחולק לתיבות ולקטעים. בחרו קטע וחזרו עליו עד שזה יושב.' },
+    { spot: '#neck-tempo', look: '#neck-bpm', text: 'כאן בוחרים קצב, מטרונום וספירה. תתחילו לאט, ואז תעלו.' },
+    { spot: '#neck-upload', look: '#neck-upload-btn', text: 'מכאן מעלים תווים — MusicXML, MIDI או ABC — והמנגינה עולה על הצוואר.' },
   ];
 
   const state = {
@@ -78,6 +79,7 @@ const NeckPlay = (() => {
     layout: null,
     uploads: [],
     uploadToken: 0,
+    coachOnLeft: null,
   };
 
   function esc(s) {
@@ -379,6 +381,7 @@ const NeckPlay = (() => {
     }
     renderPosition(v);
     expireTip();
+    if (coachShouldTrack()) placeCoach();
     state.raf = requestAnimationFrame(frame);
   }
 
@@ -1048,7 +1051,7 @@ const NeckPlay = (() => {
     }
   }
 
-  /* ---------- המורה ---------- */
+  /* ---------- העוזר ---------- */
 
   function storageGet(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -1093,13 +1096,29 @@ const NeckPlay = (() => {
     return el;
   }
 
-  function pointCoach(sel) {
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  function coachTargetEl() {
+    const sel = (state.coach && state.coach.look) || '#neck-dot';
+    return document.querySelector(sel) || document.getElementById('neck-dot');
+  }
+
+  function coachShouldTrack() {
+    if (!state.playing || state.tourStep >= 0) return false;
+    if (state.collapsed) return true;
+    return state.coach && state.coach.look === '#neck-dot';
+  }
+
+  function pointEyes(target) {
     const avatar = document.getElementById('neck-avatar');
-    const look = document.getElementById('neck-look');
+    const coach = document.getElementById('neck-coach');
     if (!avatar) return;
-    const target = (sel && document.querySelector(sel)) || document.getElementById('neck-dot');
-    if (!target) {
-      if (look) look.hidden = true;
+    const pupils = avatar.querySelectorAll('.neck-pupil-g');
+    const idle = coach && coach.classList.contains('is-idle');
+    if (!target || idle || !target.getBoundingClientRect().width) {
+      pupils.forEach((g) => g.removeAttribute('transform'));
       return;
     }
     const a = avatar.getBoundingClientRect();
@@ -1108,14 +1127,77 @@ const NeckPlay = (() => {
     const dx = (t.left + t.width / 2) - (a.left + a.width / 2);
     const dy = (t.top + t.height / 2) - (a.top + a.height / 2);
     const len = Math.hypot(dx, dy) || 1;
-    const mag = 3.6;
-    avatar.querySelectorAll('.neck-pupil-g').forEach((g) => {
-      g.setAttribute('transform', 'translate(' + (dx / len * mag).toFixed(2) + ' ' + (dy / len * mag).toFixed(2) + ')');
-    });
-    if (look) {
-      look.hidden = false;
-      look.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad) translate(34px)';
+    const mag = 3.4;
+    const tr = 'translate(' + (dx / len * mag).toFixed(2) + ' ' + (dy / len * mag).toFixed(2) + ')';
+    pupils.forEach((g) => g.setAttribute('transform', tr));
+  }
+
+  function glideEyes() {
+    if (reducedMotion()) return;
+    const until = performance.now() + 820;
+    const tick = () => {
+      if (!document.getElementById('neck-avatar')) return;
+      pointEyes(coachTargetEl());
+      if (performance.now() < until) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function placeCoach(opts) {
+    const coach = document.getElementById('neck-coach');
+    if (!coach) return;
+    const collapsed = state.collapsed && state.tourStep < 0;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = 10;
+    const bottomSafe = vw < 860 ? 84 : 14;
+    const cw = coach.offsetWidth || (collapsed ? 68 : 340);
+    const ch = coach.offsetHeight || (collapsed ? 68 : 132);
+    const target = coachTargetEl();
+    let x = margin;
+    let y = vh - ch - bottomSafe;
+    let flip = false;
+    coach.classList.toggle('is-following', collapsed && state.playing);
+    coach.classList.toggle('is-idle', collapsed && !state.playing);
+
+    if (collapsed && state.playing && target) {
+      const host = document.getElementById('neck-board-host');
+      const t = target.getBoundingClientRect();
+      const h = host ? host.getBoundingClientRect() : t;
+      const orb = 62;
+      let cx = t.width ? t.left + t.width / 2 : h.left + 40;
+      if (h.width) cx = clamp(cx, h.left + 28, h.right - 28);
+      x = cx - orb / 2;
+      y = (h.top || 80) - orb - 6;
+    } else if (!collapsed && target && target.getBoundingClientRect().width) {
+      const t = target.getBoundingClientRect();
+      const gap = 12;
+      const wide = t.width > Math.min(480, vw * 0.5);
+      const spaceLeft = t.left - margin;
+      const spaceRight = vw - t.right - margin;
+      let onLeft = spaceLeft >= spaceRight;
+      if (!wide && state.coachOnLeft === true && spaceLeft >= cw * 0.55) onLeft = true;
+      else if (!wide && state.coachOnLeft === false && spaceRight >= cw * 0.55) onLeft = false;
+      else if (wide) onLeft = true;
+      if (!wide) state.coachOnLeft = onLeft;
+      const side = [];
+      if (!wide && spaceLeft >= cw + gap) side.push({ x: t.left - cw - gap, y: t.top + t.height / 2 - 30, flip: false, onLeft: true });
+      if (!wide && spaceRight >= cw + gap) side.push({ x: t.right + gap, y: t.top + t.height / 2 - 30, flip: true, onLeft: false });
+      side.sort((a, b) => (a.onLeft === onLeft ? 0 : 1) - (b.onLeft === onLeft ? 0 : 1));
+      const above = { x: clamp(t.left + Math.min(t.width * 0.2, 80), margin, vw - cw - margin), y: t.top - ch - gap, flip: false };
+      const below = { x: clamp(t.left, margin, vw - cw - margin), y: t.bottom + gap, flip: false };
+      const pick = side[0] || (t.top > ch + 36 ? above : below);
+      x = pick.x;
+      y = pick.y;
+      flip = !!pick.flip;
     }
+    x = clamp(x, margin, Math.max(margin, vw - cw - margin));
+    y = clamp(y, 8, Math.max(8, vh - ch - bottomSafe));
+    coach.classList.toggle('is-flip', flip && !collapsed);
+    coach.style.left = Math.round(x) + 'px';
+    coach.style.top = Math.round(y) + 'px';
+    pointEyes(collapsed && !state.playing ? null : target);
+    if (opts && opts.glide) glideEyes();
   }
 
   function renderCoach() {
@@ -1137,18 +1219,21 @@ const NeckPlay = (() => {
           + '<button type="button" class="neck-btn tiny primary" data-tour="next">' + (last ? 'יאללה, ננגן' : 'הבא') + '</button>';
         const el = spotlight(c.spot);
         if (el) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+        const lookEl = c.look && document.querySelector(c.look);
+        if (lookEl && lookEl !== el) lookEl.scrollIntoView({ block: 'nearest', inline: 'center' });
       } else {
         spotlight(null);
         actions.innerHTML = '<button type="button" class="neck-btn tiny" data-tour="hide">הסתר</button>';
       }
     } else spotlight(null);
-    pointCoach(c.look);
+    placeCoach({ glide: true });
   }
 
   function showTourStep() {
     const step = TOUR[state.tourStep];
     state.collapsed = false;
-    state.coach = { text: step.text, look: step.spot, spot: step.spot };
+    state.coachOnLeft = null;
+    state.coach = { text: step.text, look: step.look || step.spot, spot: step.spot };
     renderCoach();
   }
 
@@ -1199,7 +1284,7 @@ const NeckPlay = (() => {
     if (!locked) state.coach = { ...(state.coach || {}), ...tip };
     else state.coach = { ...state.coach, look: state.coach.look };
     if (!state.collapsed && !locked) renderCoach();
-    else pointCoach((state.coach && state.coach.look) || tip.look);
+    else placeCoach();
   }
 
   function onFinished() {
@@ -1219,24 +1304,20 @@ const NeckPlay = (() => {
     renderCoach();
   }
 
-  function faceSvg() {
+  function mascotSvg() {
     return '<svg class="neck-face" viewBox="0 0 80 80" aria-hidden="true">'
-      + '<defs><radialGradient id="neckSkin" cx="38%" cy="32%"><stop offset="0" stop-color="#f8e0c8"/><stop offset="1" stop-color="#e0b08a"/></radialGradient></defs>'
-      + '<circle cx="40" cy="40" r="38" fill="url(#neckSkin)" stroke="#e8c56b" stroke-width="2.5"/>'
-      + '<path d="M14 38 C16 16 28 8 40 8 C54 8 66 16 66 38 C60 28 50 24 40 24 C28 24 18 30 14 38 Z" fill="#4a2c1c"/>'
-      + '<path d="M18 34 C24 26 32 24 40 26" fill="none" stroke="#3a2216" stroke-width="2" stroke-linecap="round"/>'
-      + '<ellipse cx="27" cy="42" rx="8" ry="9" fill="#fff"/>'
-      + '<ellipse cx="53" cy="42" rx="8" ry="9" fill="#fff"/>'
-      + '<g class="neck-pupil-g"><circle cx="27" cy="43" r="3.7" fill="#6b3a22"/><circle cx="27" cy="43" r="1.8" fill="#1a0d08"/><circle cx="25.6" cy="41.4" r="1.05" fill="#fff"/></g>'
-      + '<g class="neck-pupil-g"><circle cx="53" cy="43" r="3.7" fill="#6b3a22"/><circle cx="53" cy="43" r="1.8" fill="#1a0d08"/><circle cx="51.6" cy="41.4" r="1.05" fill="#fff"/></g>'
-      + '<path d="M20 33 Q28 29 35 33" fill="none" stroke="#5a3824" stroke-width="1.6" stroke-linecap="round"/>'
-      + '<path d="M45 33 Q52 29 60 33" fill="none" stroke="#5a3824" stroke-width="1.6" stroke-linecap="round"/>'
-      + '<path d="M40 44 v7" stroke="#d7a888" stroke-width="1.5" stroke-linecap="round"/>'
-      + '<path d="M29 56 Q40 66 51 56" fill="none" stroke="#a85a48" stroke-width="2.1" stroke-linecap="round"/>'
-      + '<ellipse cx="18" cy="52" rx="4" ry="2.2" fill="#e7a090" opacity="0.55"/>'
-      + '<ellipse cx="62" cy="52" rx="4" ry="2.2" fill="#e7a090" opacity="0.55"/>'
-      + '<path d="M22 70 Q40 78 58 70 L62 80 L18 80 Z" fill="#3a2418"/>'
-      + '<circle cx="40" cy="74" r="2" fill="#e8c56b"/>'
+      + '<defs>'
+      + '<radialGradient id="neckOrb" cx="36%" cy="32%"><stop offset="0" stop-color="#fff6d2"/><stop offset="0.42" stop-color="#e8c56b"/><stop offset="1" stop-color="#8a4e16"/></radialGradient>'
+      + '</defs>'
+      + '<circle cx="40" cy="40" r="30" fill="url(#neckOrb)" stroke="#fff1c9" stroke-width="2"/>'
+      + '<ellipse cx="31" cy="28" rx="10" ry="6" fill="#fff8e4" opacity="0.55"/>'
+      + '<ellipse cx="29" cy="40" rx="9.2" ry="10.4" fill="#fff"/>'
+      + '<ellipse cx="51" cy="40" rx="9.2" ry="10.4" fill="#fff"/>'
+      + '<g class="neck-pupil-g"><circle cx="29" cy="41" r="4.6" fill="#3a2414"/><circle cx="27.2" cy="39" r="1.5" fill="#fff"/></g>'
+      + '<g class="neck-pupil-g"><circle cx="51" cy="41" r="4.6" fill="#3a2414"/><circle cx="49.2" cy="39" r="1.5" fill="#fff"/></g>'
+      + '<ellipse class="neck-lid" cx="29" cy="40" rx="10" ry="11.2" fill="#e4bc62"/>'
+      + '<ellipse class="neck-lid" cx="51" cy="40" rx="10" ry="11.2" fill="#e4bc62"/>'
+      + '<path d="M32 54 Q40 60 48 54" fill="none" stroke="#6a3d16" stroke-width="1.8" stroke-linecap="round"/>'
       + '</svg>';
   }
 
@@ -1313,12 +1394,9 @@ const NeckPlay = (() => {
       + '</div>'
       + '</div>'
       + '<div class="neck-coach" id="neck-coach">'
-      + '<div class="neck-avatar-wrap">'
-      + '<span class="neck-look" id="neck-look" hidden></span>'
-      + '<button type="button" class="neck-avatar" id="neck-avatar" aria-label="המורה">' + faceSvg() + '</button>'
-      + '</div>'
+      + '<button type="button" class="neck-avatar" id="neck-avatar" aria-label="העוזר">' + mascotSvg() + '</button>'
       + '<div class="neck-coach-bubble" id="neck-coach-bubble">'
-      + '<p class="neck-coach-who">המורה</p>'
+      + '<p class="neck-coach-who">העוזר</p>'
       + '<p class="neck-coach-text" id="neck-coach-text" aria-live="polite"></p>'
       + '<div class="neck-coach-actions" id="neck-coach-actions"></div>'
       + '</div></div>';
@@ -1485,7 +1563,7 @@ const NeckPlay = (() => {
           return;
         }
         if (state.tourStep >= 0) showTourStep();
-        else if (state.coach) pointCoach(state.coach.look);
+        else if (state.coach) placeCoach({ glide: true });
       });
     });
 
@@ -1499,8 +1577,12 @@ const NeckPlay = (() => {
     });
 
     window.addEventListener('resize', () => {
-      if (state.coach) pointCoach(state.coach.look);
+      if (state.coach) placeCoach({ glide: true });
     });
+    document.addEventListener('scroll', () => {
+      if (!document.getElementById('screen-neck')?.classList.contains('active')) return;
+      if (state.coach) placeCoach();
+    }, true);
   }
 
   function init() {

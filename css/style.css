@@ -2586,7 +2586,7 @@ select {
   --neck-gold-2: #f6e2a8;
   --neck-ink: #2c2118;
   --neck-paper: #f4e7c8;
-  /* בלי transform — אחרת בועת המורה (position:fixed) ננעלת לתוך המסך ולא לחלון */
+  /* בלי transform — אחרת העוזר (position:fixed) ננעל לתוך המסך ולא לחלון */
   animation: neckIn 0.35s ease;
   margin: -36px -42px -80px;
   padding: 18px 18px 188px;
@@ -2942,18 +2942,22 @@ select {
 }
 .neck-coach {
   position: fixed;
-  z-index: 90;
-  bottom: 18px;
-  left: 18px;
+  z-index: 80;
+  left: 16px;
+  top: calc(100vh - 96px);
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  max-width: min(440px, calc(100vw - 32px));
+  width: max-content;
+  max-width: min(420px, calc(100vw - 20px));
   direction: rtl;
   pointer-events: none;
+  transition: left 0.72s cubic-bezier(0.22, 0.82, 0.24, 1), top 0.72s cubic-bezier(0.22, 0.82, 0.24, 1);
+}
+.neck-coach.is-following {
+  transition: left 0.42s ease, top 0.42s ease;
 }
 .neck-coach > * { pointer-events: auto; }
-.neck-avatar-wrap { position: relative; width: 68px; height: 68px; flex: 0 0 auto; }
 .neck-avatar {
   width: 68px;
   height: 68px;
@@ -2962,25 +2966,28 @@ select {
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+  box-shadow:
+    0 0 0 6px rgba(232, 197, 107, 0.2),
+    0 0 22px 4px rgba(232, 197, 107, 0.55),
+    0 10px 18px rgba(20, 10, 4, 0.35);
+  animation: neckBob 3.1s ease-in-out infinite, neckPulse 2.7s ease-in-out infinite;
 }
-.neck-face { width: 68px; height: 68px; display: block; }
-.neck-look {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  border-radius: 50%;
-  background: var(--neck-gold);
-  box-shadow: 0 0 0 3px rgba(232, 197, 107, 0.28);
-  pointer-events: none;
-  z-index: 2;
+.neck-face { width: 68px; height: 68px; display: block; overflow: visible; }
+.neck-pupil-g, .neck-lid {
+  transform-box: fill-box;
+  transform-origin: center;
 }
+.neck-lid {
+  transform-origin: center top;
+  animation: neckBlink 5.4s ease-in-out infinite;
+}
+.neck-coach.is-idle .neck-pupil-g { animation: neckGlance 4.8s ease-in-out infinite; }
 .neck-coach-bubble {
   position: relative;
-  flex: 1;
+  direction: rtl;
+  flex: 1 1 auto;
+  min-width: 210px;
   background: var(--neck-paper);
   color: var(--neck-ink);
   border-radius: 16px;
@@ -2996,12 +3003,43 @@ select {
   border-left-color: var(--neck-paper);
   border-right: 0;
 }
+.neck-coach.is-flip { direction: ltr; }
+.neck-coach.is-flip .neck-coach-bubble::after {
+  right: auto;
+  left: -7px;
+  border: 8px solid transparent;
+  border-right-color: var(--neck-paper);
+  border-left: 0;
+}
+@keyframes neckBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes neckPulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(232, 197, 107, 0.16), 0 0 16px 2px rgba(232, 197, 107, 0.4), 0 10px 18px rgba(20, 10, 4, 0.35); }
+  50% { box-shadow: 0 0 0 9px rgba(246, 226, 168, 0.28), 0 0 28px 6px rgba(232, 197, 107, 0.72), 0 10px 18px rgba(20, 10, 4, 0.35); }
+}
+@keyframes neckBlink {
+  0%, 86%, 100% { transform: scaleY(0.04); }
+  90%, 94% { transform: scaleY(1); }
+}
+@keyframes neckGlance {
+  0%, 100% { transform: translate(0, 0); }
+  28% { transform: translate(2.4px, 0.4px); }
+  52% { transform: translate(-2px, 1px); }
+  74% { transform: translate(1.2px, -0.6px); }
+}
 .neck-coach-who { margin: 0 0 2px; font-size: 12px; font-weight: 800; color: #8a5e14; }
 .neck-coach-text { margin: 0; font-size: 14.5px; line-height: 1.45; font-weight: 600; }
 .neck-coach-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .neck-coach-step { font-size: 12px; font-weight: 700; color: #6d5438; margin-inline-end: auto; }
 .neck-coach.is-collapsed .neck-coach-bubble { display: none; }
 .neck-coach-bubble[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .neck-coach, .neck-coach.is-following { transition: none; }
+  .neck-avatar, .neck-lid, .neck-coach.is-idle .neck-pupil-g { animation: none; }
+  .neck-lid { transform: scaleY(0.04); }
+}
 @media (min-width: 900px) {
   .neck-hero { flex-direction: row; text-align: right; align-items: center; gap: 16px; justify-content: center; }
   .neck-emblem { width: 84px; height: 84px; }
@@ -3012,11 +3050,6 @@ select {
     padding: 12px 10px calc(210px + env(safe-area-inset-bottom));
     min-height: 70vh;
   }
-  .neck-coach {
-    left: 10px;
-    right: 10px;
-    bottom: calc(74px + env(safe-area-inset-bottom));
-    max-width: none;
-  }
+  .neck-coach { max-width: calc(100vw - 16px); }
   .neck-svg { min-width: 1080px; }
 }
