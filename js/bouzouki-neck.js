@@ -98,24 +98,39 @@ const BouzoukiNeck = (() => {
     return { mirrorH, mirrorV };
   }
 
-  function placePlate(text, plate, dotX, label) {
+  const PILL_H = 24;
+  const PILL_TOP = 3;
+
+  /* השם יושב מעל שפת הצוואר, מיושר לנקודה, עם קו דק.
+     הלוחית לא נכנסת לתחום הסריגים, והקו האנכי נשאר בתוך התא. */
+  function placePlate(text, plate, leader, dotX, dotY, label, L) {
     text.textContent = label || '';
-    let width = Math.max(78, (label || '').length * 8.4 + 16);
+    text.setAttribute('text-anchor', 'middle');
+    let width = Math.max(72, (label || '').length * 8.2 + 18);
     try {
       const box = text.getBBox();
-      if (box.width > 8) width = box.width + 16;
+      if (box.width > 8) width = box.width + 18;
     } catch (e) { /* המסך עדיין מוסתר */ }
-    const flip = dotX < 300;
-    if (flip) {
-      plate.setAttribute('x', '12');
-      text.setAttribute('x', '20');
-      text.setAttribute('text-anchor', 'start');
-    } else {
-      plate.setAttribute('x', (-12 - width).toFixed(1));
-      text.setAttribute('x', '-12');
-      text.setAttribute('text-anchor', 'end');
-    }
+    let plateX = dotX - width / 2;
+    plateX = Math.max(8, Math.min(W - 8 - width, plateX));
+    const localX = plateX - dotX;
+    const localY = PILL_TOP - dotY;
+    plate.setAttribute('x', localX.toFixed(1));
+    plate.setAttribute('y', localY.toFixed(1));
     plate.setAttribute('width', width.toFixed(1));
+    plate.setAttribute('height', String(PILL_H));
+    text.setAttribute('x', (localX + width / 2).toFixed(1));
+    text.setAttribute('y', (localY + 16.5).toFixed(1));
+    if (!leader) return;
+    const gutter = (L.boardTop - 6) - dotY;
+    const pillBottom = localY + PILL_H;
+    let attach = 0;
+    if (attach < localX) attach = localX;
+    if (attach > localX + width) attach = localX + width;
+    const pts = ['0,-8', '0,' + gutter.toFixed(1)];
+    if (Math.abs(attach) > 0.5) pts.push(attach.toFixed(1) + ',' + gutter.toFixed(1));
+    pts.push(attach.toFixed(1) + ',' + pillBottom.toFixed(1));
+    leader.setAttribute('points', pts.join(' '));
   }
 
   function paint(svg, opts) {
@@ -364,8 +379,11 @@ const BouzoukiNeck = (() => {
       class: 'bn-flash', r: 14, fill: 'none', stroke: '#5dff8a', 'stroke-width': 2.6, opacity: 0,
     }, g);
     el('circle', { r: 6.2, fill: '#ffe7a3', stroke: '#fff6d8', 'stroke-width': 1.4, filter: 'url(#' + uid + '-glow)' }, g);
-    const tag = el('g', { id: dotId + '-tag' }, g);
-    const plate = el('rect', { id: dotId + '-plate', x: -90, y: -13, width: 78, height: 26, rx: 8, class: 'neck-dot-plate' }, tag);
+    const tag = el('g', { id: dotId + '-tag', 'pointer-events': 'none' }, g);
+    el('polyline', {
+      id: dotId + '-leader', class: 'bn-leader', fill: 'none', points: '',
+    }, tag);
+    const plate = el('rect', { id: dotId + '-plate', x: -90, y: 3, width: 78, height: 24, rx: 8, class: 'neck-dot-plate' }, tag);
     const name = el('text', {
       id: dotId + '-name', x: -12, y: 5, 'text-anchor': 'end', class: 'neck-dot-name',
     }, tag);
@@ -712,9 +730,25 @@ const BouzoukiNeck = (() => {
     const pill = active.pill || (midi != null ? noteName(midi).pill : '');
     const text = g.querySelector('.neck-dot-name');
     const plate = g.querySelector('.neck-dot-plate');
-    if (text && plate) placePlate(text, plate, x, pill);
+    const leader = g.querySelector('.bn-leader');
+    if (text && plate) placePlate(text, plate, leader, x, y, pill, L);
     if (flags && flags.seed) return;
     noteGlow(svg, { ci: active.ci, fret: fret, midi: midi });
+  }
+
+  function placeLabel(svg, label) {
+    if (!svg) return;
+    const g = svg.querySelector('.bn-active');
+    const L = svg.__bnLayout;
+    if (!g || !L) return;
+    const text = g.querySelector('.neck-dot-name');
+    const plate = g.querySelector('.neck-dot-plate');
+    const leader = g.querySelector('.bn-leader');
+    if (!text || !plate) return;
+    const match = /translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/.exec(g.getAttribute('transform') || '');
+    const dotX = match ? parseFloat(match[1]) : 0;
+    const dotY = match ? parseFloat(match[2]) : 0;
+    placePlate(text, plate, leader, dotX, dotY, label || '', L);
   }
 
   function played(svg, note) {
@@ -740,5 +774,5 @@ const BouzoukiNeck = (() => {
 
   published = layout(15, { mirrorH: false, mirrorV: false });
 
-  return { W, H, SPELL, layout, paint, moveActive, played, setEnabled, glowOn, noteName, spaceX, wireX, courseY };
+  return { W, H, SPELL, layout, paint, moveActive, played, placeLabel, setEnabled, glowOn, noteName, spaceX, wireX, courseY };
 })();

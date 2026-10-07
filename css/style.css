@@ -2730,8 +2730,9 @@ select {
   text-align: center;
   margin: 0 0 10px;
 }
-.neck-dot-name { font-family: Heebo, sans-serif; font-size: 18px; font-weight: 800; fill: #2a1c12; }
+.neck-dot-name { font-family: Heebo, sans-serif; font-size: 16px; font-weight: 800; fill: #2a1c12; }
 .neck-dot-plate { fill: #f6e2a8; stroke: #8a5e14; stroke-width: 1; }
+.bn-leader { fill: none; stroke: #e6c27a; stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
 .neck-board-host {
   position: relative;
   overflow-x: auto;
@@ -3121,6 +3122,7 @@ html.bn-glow-on .bn-active .neck-dot-plate {
   stroke: #7dffb0;
   stroke-width: 1.6px;
 }
+html.bn-glow-on .bn-leader { stroke: #9dffc0; }
 html.bn-glow-off .bn-tab,
 html.bn-glow-off .bn-trail,
 html.bn-glow-off .bn-flash { display: none !important; }

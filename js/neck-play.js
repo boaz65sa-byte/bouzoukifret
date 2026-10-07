@@ -686,17 +686,9 @@ const NeckPlay = (() => {
   }
 
   function placeDotName(note) {
-    const text = document.getElementById('neck-dot-name');
-    const plate = document.getElementById('neck-dot-plate');
-    if (!text || !plate || !note || !note.name) return;
-    text.textContent = note.name.pill;
-    let width = Math.max(78, note.name.pill.length * 8.4 + 16);
-    try {
-      const box = text.getBBox();
-      if (box.width > 8) width = box.width + 16;
-    } catch (e) { /* המסך עדיין מוסתר */ }
-    plate.setAttribute('width', width.toFixed(1));
-    plate.setAttribute('x', (-12 - width).toFixed(1));
+    const svg = document.querySelector('#neck-board-host svg');
+    if (!svg || !note || !note.name || typeof BouzoukiNeck === 'undefined' || !BouzoukiNeck.placeLabel) return;
+    BouzoukiNeck.placeLabel(svg, note.name.pill);
   }
 
   function updateFingers(note) {
