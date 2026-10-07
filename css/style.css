@@ -2667,10 +2667,12 @@ select {
   background: #1a100b;
   box-shadow: inset 0 0 0 1px rgba(232, 197, 107, 0.16);
 }
-.neck-svg { width: 100%; min-width: 640px; height: auto; display: block; }
-.neck-course-he, .neck-finger, .neck-finger-label, .neck-open-label, .neck-course-en {
+.neck-svg { width: 100%; min-width: 1080px; height: auto; display: block; }
+.neck-course-he, .neck-finger, .neck-finger-label, .neck-open-label, .neck-course-en, .neck-fretnum, .neck-fret-label {
   font-family: Heebo, sans-serif;
 }
+.neck-fretnum { fill: #f6e2a8; font-size: 15px; font-weight: 800; }
+.neck-fret-label { fill: var(--neck-gold); font-size: 13px; font-weight: 700; }
 .neck-course-he { fill: #f6edd9; font-size: 15px; font-weight: 800; }
 .neck-course-en { fill: rgba(232, 197, 107, 0.8); font-size: 10px; font-weight: 700; }
 .neck-finger { fill: rgba(246, 226, 168, 0.45); font-size: 16px; font-weight: 800; }
@@ -2980,5 +2982,5 @@ select {
     bottom: calc(74px + env(safe-area-inset-bottom));
     max-width: none;
   }
-  .neck-svg { min-width: 620px; }
+  .neck-svg { min-width: 1080px; }
 }

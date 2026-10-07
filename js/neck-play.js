@@ -512,24 +512,32 @@ const NeckPlay = (() => {
 
   /* ---------- ציור ---------- */
 
+  const NECK_W = 1320;
+  const NECK_H = 220;
+
   function layoutNeck(maxFret) {
-    const nutX = 748;
-    const boardLeft = 132;
-    const boardTop = 54;
-    const boardBot = 228;
-    const span = nutX - boardLeft;
-    const full = 1 - Math.pow(2, -maxFret / 12);
+    const shown = Math.max(12, Math.min(15, maxFret || 12));
+    const nutX = 1044;
+    const boardLeft = 148;
+    const boardTop = 64;
+    const boardBot = 156;
+    const boardLen = nutX - boardLeft;
+    const full = 1 - Math.pow(2, -shown / 12);
     function wireX(fret) {
       if (fret <= 0) return nutX;
-      const pos = (1 - Math.pow(2, -fret / 12)) / full;
-      return nutX - pos * span;
+      const pos = (1 - Math.pow(2, -Math.min(fret, shown) / 12)) / full;
+      return nutX - pos * boardLen;
     }
     function spaceX(fret) {
-      if (fret <= 0) return nutX + 30;
-      return (wireX(fret - 1) + wireX(fret)) / 2;
+      if (fret <= 0) return nutX + 26;
+      const wire = wireX(fret);
+      const prev = wireX(fret - 1);
+      return wire + (prev - wire) * 0.2;
     }
-    function courseY(i) { return 74 + i * 44; }
-    return { nutX, boardLeft, boardTop, boardBot, maxFret, wireX, spaceX, courseY };
+    function courseY(i) {
+      return boardTop + 12 + i * ((boardBot - boardTop - 24) / 3);
+    }
+    return { nutX, boardLeft, boardTop, boardBot, maxFret: shown, wireX, spaceX, courseY };
   }
 
   function renderNeck() {
@@ -540,87 +548,122 @@ const NeckPlay = (() => {
       { he: 'פה', en: 'F' },
       { he: 'דו', en: 'C' },
     ];
+    const shaftTop = L.boardTop - 8;
+    const shaftBot = L.boardBot + 8;
+    const headLeft = L.nutX + 16;
+    const headRight = 1292;
+    const headTop = shaftTop - 6;
+    const headBot = shaftBot + 6;
+
     let frets = '';
+    let fretNums = '';
     for (let f = 1; f <= L.maxFret; f++) {
-      const x = L.wireX(f).toFixed(1);
-      frets += '<line x1="' + x + '" y1="' + L.boardTop + '" x2="' + x + '" y2="' + L.boardBot + '" stroke="url(#neckFret)" stroke-width="2.4"/>';
+      const x = L.wireX(f);
+      frets += '<line x1="' + x.toFixed(1) + '" y1="' + L.boardTop + '" x2="' + x.toFixed(1) + '" y2="' + L.boardBot + '" stroke="#140e0a" stroke-width="4.2" stroke-linecap="butt"/>';
+      frets += '<line x1="' + (x + 1.1).toFixed(1) + '" y1="' + L.boardTop + '" x2="' + (x + 1.1).toFixed(1) + '" y2="' + L.boardBot + '" stroke="#f7f4ee" stroke-width="2.15"/>';
+      const mid = (L.wireX(f - 1) + x) / 2;
+      fretNums += '<text x="' + mid.toFixed(1) + '" y="' + (shaftBot + 22) + '" text-anchor="middle" class="neck-fretnum">' + f + '</text>';
     }
+
     let inlays = '';
+    const pearl = '#f6edd4';
     [3, 5, 7, 9, 12, 15].forEach((f) => {
       if (f > L.maxFret) return;
-      const x = L.spaceX(f);
+      const x = (L.wireX(f - 1) + L.wireX(f)) / 2;
       const mid = (L.courseY(1) + L.courseY(2)) / 2;
       if (f === 12) {
-        inlays += '<circle cx="' + x + '" cy="' + (mid - 28) + '" r="5" fill="#f4e6c4" opacity="0.9"/>';
-        inlays += '<circle cx="' + x + '" cy="' + (mid + 28) + '" r="5" fill="#f4e6c4" opacity="0.9"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid - 12) + '" r="4.2" fill="' + pearl + '"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + (mid + 12) + '" r="4.2" fill="' + pearl + '"/>';
       } else {
-        inlays += '<circle cx="' + x + '" cy="' + mid + '" r="5.5" fill="#f4e6c4" opacity="0.92"/>';
+        inlays += '<circle cx="' + x.toFixed(1) + '" cy="' + mid.toFixed(1) + '" r="4.6" fill="' + pearl + '"/>';
       }
     });
+
+    const posts = [0, 1, 2, 3].map((i) => headLeft + 46 + i * 52);
     let strings = '';
     for (let i = 0; i < 4; i++) {
       const y = L.courseY(i);
-      const octave = typeof TUNING !== 'undefined' && TUNING[i].pair === 'octave';
-      const x1 = 28;
-      const x2 = 820;
-      strings += '<line x1="' + x1 + '" y1="' + (y - 3.4) + '" x2="' + x2 + '" y2="' + (y - 3.4) + '" stroke="#f0e2c0" stroke-width="' + (octave ? 1.15 : 1.7) + '" opacity="0.95"/>';
-      strings += '<line x1="' + x1 + '" y1="' + (y + 3.4) + '" x2="' + x2 + '" y2="' + (y + 3.4) + '" stroke="#d9c49a" stroke-width="' + (octave ? 2.1 : 1.7) + '" opacity="0.9"/>';
+      const octave = typeof TUNING !== 'undefined' && TUNING[i] && TUNING[i].pair === 'octave';
+      const up = octave ? 1.15 : 1.55;
+      const dn = octave ? 2.15 : 1.55;
+      const y1 = y - 2.6;
+      const y2 = y + 2.6;
+      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y1 + '" x2="' + L.nutX + '" y2="' + y1 + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
+      strings += '<line x1="' + (L.boardLeft - 18) + '" y1="' + y2 + '" x2="' + L.nutX + '" y2="' + y2 + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
+      strings += '<line x1="' + L.nutX + '" y1="' + y1 + '" x2="' + posts[i] + '" y2="' + (headTop + 2) + '" stroke="#f4ecda" stroke-width="' + up + '"/>';
+      strings += '<line x1="' + L.nutX + '" y1="' + y2 + '" x2="' + posts[i] + '" y2="' + (headBot - 2) + '" stroke="#e4d3b0" stroke-width="' + dn + '"/>';
     }
-    let pill = '<rect x="46" y="58" width="78" height="164" rx="39" fill="#1a110c" stroke="#e8c56b" stroke-width="1.4" opacity="0.92"/>';
+
+    let names = '';
     labels.forEach((lb, i) => {
       const y = L.courseY(i);
-      pill += '<text x="85" y="' + (y - 2) + '" text-anchor="middle" class="neck-course-he">' + lb.he + '</text>';
-      pill += '<text x="85" y="' + (y + 14) + '" text-anchor="middle" class="neck-course-en">' + lb.en + '</text>';
+      names += '<text x="18" y="' + (y - 1) + '" class="neck-course-he">' + lb.he + '</text>';
+      names += '<text x="52" y="' + (y + 1) + '" class="neck-course-en">' + lb.en + '</text>';
     });
-    let fingers = '<text x="148" y="28" class="neck-finger-label">האצבעות</text>';
+
+    let fingers = '<text x="' + (L.boardLeft + 8) + '" y="28" class="neck-finger-label">אצבע</text>';
     for (let f = 1; f <= 4; f++) {
       const home = state.model.fingerHomes[f];
       const x = L.spaceX(clamp(home, 1, L.maxFret));
-      fingers += '<text id="neck-finger-' + f + '" x="' + x + '" y="30" text-anchor="middle" class="neck-finger">' + f + '</text>';
+      fingers += '<text id="neck-finger-' + f + '" x="' + x.toFixed(1) + '" y="46" text-anchor="middle" class="neck-finger">' + f + '</text>';
     }
-    const pegs = [0, 1, 2, 3].map((i) => {
-      const x = 868 + i * 28;
-      return '<line x1="' + x + '" y1="78" x2="' + x + '" y2="58" stroke="#4a301c" stroke-width="3"/>'
-        + '<circle cx="' + x + '" cy="54" r="7" fill="#2a1a10" stroke="#e8c56b" stroke-width="1.4"/>'
-        + '<line x1="' + x + '" y1="196" x2="' + x + '" y2="214" stroke="#4a301c" stroke-width="3"/>'
-        + '<circle cx="' + x + '" cy="218" r="7" fill="#2a1a10" stroke="#e8c56b" stroke-width="1.4"/>';
-    }).join('');
 
-    const svg = '<svg class="neck-svg" viewBox="0 0 1000 250" role="img" aria-label="צוואר בוזוקי טטראחורדו">'
+    const tuners = posts.map((x) => (
+      '<g>'
+      + '<rect x="' + (x - 8) + '" y="' + (headTop - 11) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
+      + '<circle cx="' + x + '" cy="' + headTop + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
+      + '<line x1="' + x + '" y1="' + headTop + '" x2="' + x + '" y2="' + (headTop - 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
+      + '<ellipse cx="' + x + '" cy="' + (headTop - 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
+      + '<rect x="' + (x - 8) + '" y="' + (headBot - 1) + '" width="16" height="12" rx="2" fill="#d5d8de" stroke="#1c2128" stroke-width="1"/>'
+      + '<circle cx="' + x + '" cy="' + headBot + '" r="3.1" fill="#f2f4f7" stroke="#1c2128" stroke-width="1"/>'
+      + '<line x1="' + x + '" y1="' + headBot + '" x2="' + x + '" y2="' + (headBot + 20) + '" stroke="#2c3138" stroke-width="2.5"/>'
+      + '<ellipse cx="' + x + '" cy="' + (headBot + 22) + '" rx="7" ry="4.4" fill="#2a2e36" stroke="#111418" stroke-width="0.8"/>'
+      + '</g>'
+    )).join('');
+
+    const svg = '<svg class="neck-svg" viewBox="0 0 ' + NECK_W + ' ' + NECK_H + '" role="img" aria-label="צוואר בוזוקי טטראחורדו עם סריגי מתכת">'
       + '<defs>'
-      + '<linearGradient id="neckWood" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#8d5a34"/><stop offset="0.45" stop-color="#c4894e"/>'
-      + '<stop offset="0.55" stop-color="#a56b3a"/><stop offset="1" stop-color="#4e301c"/>'
+      + '<linearGradient id="neckShaft" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#a56b3c"/><stop offset="0.5" stop-color="#c4894e"/><stop offset="1" stop-color="#6a4124"/>'
       + '</linearGradient>'
-      + '<linearGradient id="neckHead" x1="0" y1="0" x2="1" y2="1">'
-      + '<stop offset="0" stop-color="#6b4124"/><stop offset="1" stop-color="#3a2416"/>'
+      + '<linearGradient id="neckBoard" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#3d261c"/><stop offset="0.48" stop-color="#6a4330"/><stop offset="1" stop-color="#2a1812"/>'
       + '</linearGradient>'
-      + '<linearGradient id="neckFret" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#f7f3ea"/><stop offset="0.5" stop-color="#b7b0a4"/><stop offset="1" stop-color="#f3efe6"/>'
+      + '<linearGradient id="neckHead" x1="0" y1="0" x2="1" y2="0">'
+      + '<stop offset="0" stop-color="#7a4e2e"/><stop offset="1" stop-color="#4a2e1c"/>'
       + '</linearGradient>'
       + '<filter id="neckGlow" x="-80%" y="-80%" width="260%" height="260%">'
       + '<feGaussianBlur stdDeviation="3.2" result="b"/>'
       + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
       + '</filter>'
       + '</defs>'
-      + '<ellipse cx="36" cy="140" rx="78" ry="108" fill="url(#neckWood)"/>'
-      + '<ellipse cx="18" cy="140" rx="16" ry="22" fill="none" stroke="#3a2414" stroke-width="3"/>'
-      + '<ellipse cx="18" cy="140" rx="6" ry="8" fill="#2a1a10"/>'
-      + '<rect x="' + L.boardLeft + '" y="' + L.boardTop + '" width="' + (L.nutX - L.boardLeft) + '" height="' + (L.boardBot - L.boardTop) + '" rx="8" fill="url(#neckWood)"/>'
-      + '<ellipse cx="' + ((L.boardLeft + L.nutX) / 2) + '" cy="' + (L.boardTop + 10) + '" rx="200" ry="8" fill="#fff" opacity="0.1"/>'
-      + inlays + frets
-      + '<rect x="' + L.nutX + '" y="' + (L.boardTop - 3) + '" width="8" height="' + (L.boardBot - L.boardTop + 6) + '" rx="1.5" fill="#f6f1e6"/>'
-      + '<rect x="' + (L.nutX + 14) + '" y="' + (L.boardTop + 6) + '" width="46" height="' + (L.boardBot - L.boardTop - 12) + '" rx="4" fill="#5c3b24" opacity="0.45"/>'
-      + '<path d="M820 62 C 900 48, 980 70, 986 108 C 992 150, 960 196, 820 188 Z" fill="url(#neckHead)"/>'
-      + pegs + strings + pill
-      + '<text x="792" y="40" text-anchor="middle" class="neck-open-label">פתוח</text>'
+      + '<path d="M' + (L.boardLeft - 36) + ' ' + (shaftTop + 6) + ' L' + L.boardLeft + ' ' + shaftTop
+      + ' L' + L.nutX + ' ' + shaftTop + ' L' + (L.nutX + 10) + ' ' + headTop
+      + ' L' + headRight + ' ' + headTop + ' Q' + (headRight + 16) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
+      + ' L' + (L.nutX + 10) + ' ' + headBot + ' L' + L.nutX + ' ' + shaftBot
+      + ' L' + L.boardLeft + ' ' + shaftBot + ' L' + (L.boardLeft - 36) + ' ' + (shaftBot - 6) + ' Z" fill="url(#neckShaft)"/>'
+      + '<path d="M' + headLeft + ' ' + headTop + ' L' + headRight + ' ' + headTop
+      + ' Q' + (headRight + 14) + ' ' + ((headTop + headBot) / 2) + ' ' + headRight + ' ' + headBot
+      + ' L' + headLeft + ' ' + headBot + ' Z" fill="url(#neckHead)" stroke="#2a1a12" stroke-width="1.2"/>'
+      + '<rect x="' + L.boardLeft + '" y="' + L.boardTop + '" width="' + (L.nutX - L.boardLeft) + '" height="' + (L.boardBot - L.boardTop) + '" fill="url(#neckBoard)"/>'
+      + '<line x1="' + L.boardLeft + '" y1="' + L.boardTop + '" x2="' + L.nutX + '" y2="' + L.boardTop + '" stroke="#e7d7b4" stroke-width="1.4"/>'
+      + '<line x1="' + L.boardLeft + '" y1="' + L.boardBot + '" x2="' + L.nutX + '" y2="' + L.boardBot + '" stroke="#1a100c" stroke-width="1.6"/>'
+      + inlays
+      + '<rect x="' + (L.nutX - 1) + '" y="' + (L.boardTop - 5) + '" width="9" height="' + (L.boardBot - L.boardTop + 10) + '" rx="1.2" fill="#f7f3ea" stroke="#c9bfae" stroke-width="0.6"/>'
+      + strings
+      + frets
+      + tuners
+      + names
+      + '<text x="' + (L.nutX + 28) + '" y="46" text-anchor="middle" class="neck-open-label">פתוח</text>'
+      + '<text x="18" y="' + (shaftBot + 22) + '" class="neck-fret-label">סריג</text>'
+      + fretNums
       + fingers
-      + '<g id="neck-dot" transform="translate(792 74)" opacity="0">'
-      + '<circle r="8" fill="none" stroke="#ffe7a3" stroke-width="2">'
-      + '<animate attributeName="r" values="8;22" dur="1.15s" repeatCount="indefinite"/>'
-      + '<animate attributeName="opacity" values="0.8;0" dur="1.15s" repeatCount="indefinite"/>'
+      + '<g id="neck-dot" transform="translate(' + (L.nutX + 26) + ' ' + L.courseY(0) + ')" opacity="0">'
+      + '<circle r="7" fill="none" stroke="#ffe7a3" stroke-width="2">'
+      + '<animate attributeName="r" values="7;16" dur="1.15s" repeatCount="indefinite"/>'
+      + '<animate attributeName="opacity" values="0.85;0" dur="1.15s" repeatCount="indefinite"/>'
       + '</circle>'
-      + '<circle r="7.5" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.5" filter="url(#neckGlow)"/>'
+      + '<circle r="6.2" fill="#ffe7a3" stroke="#fff6d8" stroke-width="1.4" filter="url(#neckGlow)"/>'
       + '</g>'
       + '</svg>';
     document.getElementById('neck-board-host').innerHTML = svg + '<div id="neck-count" class="neck-count" hidden></div>';
@@ -748,7 +791,7 @@ const NeckPlay = (() => {
     const host = document.getElementById('neck-board-host');
     const svg = host.querySelector('svg');
     if (!svg) return;
-    const scale = svg.getBoundingClientRect().width / 1000 || 1;
+    const scale = svg.getBoundingClientRect().width / NECK_W || 1;
     const left = x * scale - host.clientWidth * 0.58;
     host.scrollLeft = Math.max(0, left);
   }
