@@ -23,7 +23,7 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 
 button, select, .tuner-course, .dromos-item, .routine-item, .chord-card,
 .jins-card, .gloss-item, .rhythm-tab, .ls-chip {
@@ -32,6 +32,7 @@ button, select, .tuner-course, .dromos-item, .routine-item, .chord-card,
 }
 
 body {
+  padding-top: env(safe-area-inset-top);
   font-family: 'Heebo', 'Segoe UI', Tahoma, sans-serif;
   background:
     radial-gradient(1200px 700px at 85% -10%, rgba(79, 179, 217, 0.10), transparent 60%),
@@ -137,7 +138,8 @@ body {
 }
 
 /* ===================== תוכן ראשי ===================== */
-.main { flex: 1; padding: 36px 42px 80px; max-width: 1250px; }
+.main { flex: 1; padding: 36px 42px 80px; max-width: 1250px; min-width: 0; }
+.app { min-width: 0; }
 
 .screen { display: none; animation: fadeUp 0.35s ease; }
 .screen.active { display: block; }
@@ -166,6 +168,8 @@ body {
 .lead { color: var(--text-dim); font-size: clamp(14px, 2.5vw, 16px); }
 
 .card {
+  min-width: 0;
+  max-width: 100%;
   background: linear-gradient(180deg, rgba(79, 179, 217, 0.035), transparent 80px), var(--bg-card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -324,8 +328,8 @@ select {
 .hist p { font-size: 13.8px; line-height: 1.7; color: var(--text-dim); margin: 0; }
 
 /* ===================== לוח סריגים ===================== */
-.fretboard-wrap { overflow-x: auto; padding: 8px 0; margin: 14px 0; position: relative; }
-.fretboard { min-width: 980px; width: 100%; height: auto; display: block; }
+.fretboard-wrap { overflow-x: auto; padding: 8px 0; margin: 14px 0; position: relative; min-width: 0; max-width: 100%; }
+.fretboard { min-width: 1080px; width: 100%; height: auto; display: block; }
 .fretboard-scroll-hint { display: none; text-align: center; font-size: 11px; color: var(--text-dim); opacity: 0.6; padding: 4px 0; }
 
 .fb-dot { cursor: pointer; transition: r 0.12s; }
@@ -636,7 +640,9 @@ select {
 .tab-note.lit text { fill: #1a1408; }
 .tab-note.lit .tn-arrow { fill: #f0cc74; }
 
-.chord-diagrams { display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0; justify-content: center; }
+.chord-diagrams { display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0; justify-content: center; align-items: stretch; }
+.chord-card:has(.bn-neck) { flex: 1 1 100%; width: 100%; max-width: 100%; }
+.chord-svg.bn-neck { width: 100%; min-width: 0; height: auto; }
 .chord-card {
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -1812,6 +1818,8 @@ select {
 .tl-chord-gr { color: var(--aegean); }
 .tl-chord-dia { display: flex; justify-content: center; margin: 6px 0 10px; }
 .tl-chord-svg { width: 100%; max-width: 150px; height: auto; }
+.tl-chord-svg.bn-neck { max-width: none; min-width: 0; }
+.tl-neck-svg.bn-neck { min-width: 1080px; }
 .tl-dot { transition: transform 0.12s ease, fill 0.12s ease; }
 .tl-dot-flash { fill: var(--aegean) !important; transform: scale(1.25); transform-box: fill-box; transform-origin: center; }
 .tl-open.tl-dot-flash { fill: none !important; stroke: var(--aegean) !important; }
@@ -2610,6 +2618,23 @@ select {
   background: none;
   -webkit-text-fill-color: var(--neck-gold-2);
 }
+.app-helper-help {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  inset-inline-end: 16px;
+  z-index: 90;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 197, 107, 0.55);
+  background: rgba(22, 14, 8, 0.82);
+  color: #f6e2a8;
+  font: inherit;
+  font-weight: 800;
+  font-size: 18px;
+  cursor: pointer;
+}
+#app-helper { z-index: 85; }
 .neck-help {
   position: absolute;
   top: 12px;
@@ -3047,7 +3072,7 @@ select {
 @media (max-width: 860px) {
   #screen-neck {
     margin: -18px -14px calc(-1 * (86px + env(safe-area-inset-bottom)));
-    padding: 12px 10px calc(210px + env(safe-area-inset-bottom));
+    padding: 12px 10px calc(340px + env(safe-area-inset-bottom));
     min-height: 70vh;
   }
   .neck-coach { max-width: calc(100vw - 16px); }

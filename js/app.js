@@ -37,6 +37,10 @@ $$('.nav-btn').forEach(btn => {
     // מצייר מחדש את מסך הדרומוסים בכל כניסה (הרינדור הראשוני רץ מוקדם מדי ומשאיר גריף ריק)
     if (btn.dataset.screen === 'dromoi' && typeof renderDromos === 'function') renderDromos();
     stopAllPlayback();
+    const screenId = btn.dataset.screen;
+    requestAnimationFrame(() => {
+      if (typeof AppHelper !== 'undefined') AppHelper.enter(screenId);
+    });
   });
 });
 
@@ -134,129 +138,53 @@ function stopAllPlayback() {
    לוח סריגים — רינדור SVG אינטראקטיבי
    ============================================================ */
 const FB = {
-  left: 56, right: 18, top: 30, bottom: 26,
-  width: 1040, height: 190,
+  left: 148, right: 276, top: 64, bottom: 64,
+  width: 1320, height: 220,
 };
 
 function fretX(fret) {
-  // מרווחים מתכווצים כמו בכלי אמיתי
-  const usable = FB.width - FB.left - FB.right;
-  const ratio = (1 - Math.pow(2, -fret / 12)) / (1 - Math.pow(2, -NUM_FRETS / 12));
-  const x = FB.left + usable * ratio;
-  if (typeof FretboardMirror !== 'undefined' && FretboardMirror.isH()) {
-    return FB.left + (FB.width - FB.right - x);
-  }
-  return x;
+  return typeof BouzoukiNeck !== 'undefined' ? BouzoukiNeck.wireX(fret) : 0;
 }
 function fretCenterX(fret) {
-  const mirrored = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
-  if (fret === 0) return mirrored ? (FB.width - FB.right) + 26 : FB.left - 26;
-  return (fretX(fret - 1) + fretX(fret)) / 2;
+  return typeof BouzoukiNeck !== 'undefined' ? BouzoukiNeck.spaceX(fret) : 0;
 }
 function courseY(ci) {
-  const usable = FB.height - FB.top - FB.bottom;
-  const y = FB.top + (ci / (TUNING.length - 1)) * usable;
-  if (typeof FretboardMirror !== 'undefined' && FretboardMirror.isV()) {
-    return FB.top + (FB.height - FB.bottom - y);
-  }
-  return y;
+  return typeof BouzoukiNeck !== 'undefined' ? BouzoukiNeck.courseY(ci) : 0;
 }
 
-/* מצייר לוח סריגים. getNoteState(courseIdx, fret, midi) מחזיר:
-   null = לא להציג, {type:'root'|'note', label} = להציג */
+/* מצייר את צוואר הבוזוקי המשותף. getNoteState(courseIdx, fret, midi) מחזיר:
+   null = לא להציג, {type:'root'|'note'|'chord', label} = להציג */
 function drawFretboard(svg, getNoteState, opts = {}) {
-  svg.innerHTML = '';
-  svg.setAttribute('viewBox', `0 0 ${FB.width} ${FB.height}`);
-
-  // רקע עץ
-  const defs = svgEl('defs', {}, svg);
-  const grad = svgEl('linearGradient', { id: 'wood' + svg.id, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-  svgEl('stop', { offset: '0%', 'stop-color': '#3a2a1c' }, grad);
-  svgEl('stop', { offset: '50%', 'stop-color': '#2c1f14' }, grad);
-  svgEl('stop', { offset: '100%', 'stop-color': '#241a11' }, grad);
-  svgEl('rect', {
-    x: FB.left - 4, y: FB.top - 16, width: FB.width - FB.left - FB.right + 8,
-    height: FB.height - FB.top - FB.bottom + 32, rx: 6, fill: `url(#wood${svg.id})`,
-    stroke: '#1a120a', 'stroke-width': 1.5
-  }, svg);
-
-  // אינליי נקודות (סריגים 3,5,7,10,12,15)
-  [3, 5, 7, 10, 12, 15].forEach(f => {
-    if (f > NUM_FRETS) return;
-    const cx = fretCenterX(f);
-    const cy = (FB.top + FB.height - FB.bottom) / 2;
-    if (f === 12) {
-      svgEl('circle', { cx, cy: cy - 22, r: 4.5, fill: '#d8c9a0', opacity: 0.5 }, svg);
-      svgEl('circle', { cx, cy: cy + 22, r: 4.5, fill: '#d8c9a0', opacity: 0.5 }, svg);
-    } else {
-      svgEl('circle', { cx, cy, r: 4.5, fill: '#d8c9a0', opacity: 0.45 }, svg);
-    }
-  });
-
-  // סריגים
-  for (let f = 0; f <= NUM_FRETS; f++) {
-    const x = fretX(f);
-    svgEl('line', {
-      x1: x, y1: FB.top - 14, x2: x, y2: FB.height - FB.bottom + 14,
-      stroke: f === 0 ? '#e8d9b0' : '#8a8378',
-      'stroke-width': f === 0 ? 7 : 2.5,
-    }, svg);
-    // מספרי סריגים
-    if (f > 0) {
-      svgEl('text', {
-        x: fretCenterX(f), y: FB.height - 4, fill: '#7d92a8',
-        'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo, sans-serif'
-      }, svg).textContent = f;
-    }
-  }
-
-  // מיתרים (כל קורס = זוג קווים)
+  const markers = [];
   TUNING.forEach((c, ci) => {
-    const y = courseY(ci);
-    const w = 1 + ci * 0.5;
-    svgEl('line', { x1: FB.left - 4, y1: y - 2, x2: FB.width - FB.right, y2: y - 2, stroke: '#c9c2b4', 'stroke-width': w * 0.8, opacity: 0.85 }, svg);
-    svgEl('line', { x1: FB.left - 4, y1: y + 2, x2: FB.width - FB.right, y2: y + 2, stroke: '#b8b0a0', 'stroke-width': w, opacity: 0.95 }, svg);
-    // תווית קורס
-    svgEl('text', {
-      x: 16, y: y + 5, fill: '#e3b341', 'font-size': 15, 'font-weight': 700,
-      'text-anchor': 'middle', 'font-family': 'Heebo, sans-serif'
-    }, svg).textContent = c.note;
-  });
-
-  // נקודות צלילים
-  TUNING.forEach((c, ci) => {
-    const y = courseY(ci);
     for (let f = 0; f <= NUM_FRETS; f++) {
       const midi = c.midi + f;
       const state = getNoteState ? getNoteState(ci, f, midi) : null;
       if (!state) continue;
-      const cx = fretCenterX(f);
-      const g = svgEl('g', {
-        class: 'fb-dot note-dot',
-        'data-course': ci,
-        'data-fret': f,
-        'data-pc': midi % 12,
-      }, svg);
-      const isRoot = state.type === 'root';
-      svgEl('circle', {
-        cx, cy: y, r: 11,
-        fill: isRoot ? '#e3b341' : '#2a7fa8',
-        stroke: isRoot ? '#fff0c8' : '#7fd0ef',
-        'stroke-width': 1.5,
-      }, g);
-      const t = svgEl('text', {
-        x: cx, y: y + 4, fill: isRoot ? '#1a1408' : '#eaf6fc',
-        'font-size': 10.5, 'font-weight': 700, 'text-anchor': 'middle',
-        class: 'fb-note-label', 'font-family': 'Heebo, sans-serif'
-      }, g);
-      t.textContent = state.label;
-      g.addEventListener('click', () => {
-        AudioEngine.pluckCourse(ci, f, 0, 0.55);
-        flashDot(svg, ci, f);
-        if (typeof opts.onDotClick === 'function') opts.onDotClick(ci, f, midi, g);
+      markers.push({
+        ci, fret: f, midi,
+        type: state.type || 'note',
+        label: state.label,
+        opacity: state.opacity,
       });
     }
   });
+  const active = Object.prototype.hasOwnProperty.call(opts, 'active')
+    ? opts.active
+    : (markers.find(m => m.type === 'root') || markers[0] || null);
+  if (typeof BouzoukiNeck !== 'undefined') {
+    BouzoukiNeck.paint(svg, {
+      maxFret: NUM_FRETS,
+      markers,
+      active,
+      onDotClick: (ci, fret, midi, g) => {
+        AudioEngine.pluckCourse(ci, fret, 0, 0.55);
+        flashDot(svg, ci, fret);
+        if (typeof opts.onDotClick === 'function') opts.onDotClick(ci, fret, midi, g);
+      },
+    });
+    return;
+  }
 }
 
 function flashDot(svg, ci, fret) {
@@ -267,6 +195,9 @@ function flashDot(svg, ci, fret) {
     class: 'fb-glow', opacity: 0.9
   }, svg);
   setTimeout(() => halo.remove(), 500);
+  if (typeof BouzoukiNeck !== 'undefined' && typeof TUNING !== 'undefined') {
+    BouzoukiNeck.moveActive(svg, { ci, fret, midi: TUNING[ci].midi + fret });
+  }
 }
 
 /* הילה לכל המופעים של גובה צליל מסוים (pitch class + octave) */
@@ -357,7 +288,8 @@ function drawAnatomy() {
   const scaleLen = (NUT_X - NECK_JOIN) / (1 - Math.pow(2, -13 / 12));
   for (let i = 1; i <= 13; i++) {
     const x = NUT_X - scaleLen * (1 - Math.pow(2, -i / 12));
-    svgEl('line', { x1: x, y1: 100, x2: x, y2: 134, stroke: '#8a8378', 'stroke-width': 1.5 }, svg);
+    svgEl('line', { x1: x, y1: 100, x2: x, y2: 134, stroke: '#140e0a', 'stroke-width': 2.4 }, svg);
+    svgEl('line', { x1: x + 0.8, y1: 100, x2: x + 0.8, y2: 134, stroke: '#f7f4ee', 'stroke-width': 1.1 }, svg);
   }
   // נקודות סימון על הלוח
   [3, 5, 7, 10].forEach(i => {

@@ -132,6 +132,9 @@ const BouzoukiTuner = (() => {
 
         <!-- זיהוי קורס -->
         <div class="ct-courses" id="ct-courses"></div>
+        <div class="fretboard-wrap" dir="ltr" id="ct-neck-wrap">
+          <svg id="ct-neck" class="fretboard" aria-label="צוואר הבוזוקי במכוון"></svg>
+        </div>
 
         <!-- היסטוריה -->
         <div class="ct-history-row">
@@ -145,6 +148,7 @@ const BouzoukiTuner = (() => {
     `;
 
     renderCourses();
+    paintTunerNeck(null, null);
   }
 
   function renderCourses() {
@@ -163,7 +167,38 @@ const BouzoukiTuner = (() => {
   }
 
   /* ---------- עדכון תצוגה ---------- */
-  function updateDisplay(noteStr, solfegeStr, freqStr, cents, rms, matchedCourse) {
+  let _neckKey = '';
+  function paintTunerNeck(midi, courseIdx) {
+    const svg = document.querySelector('#ct-neck');
+    if (!svg || typeof BouzoukiNeck === 'undefined') return;
+    const key = (midi == null ? '' : midi) + ':' + (courseIdx == null ? '' : courseIdx) + ':' + currentTuning;
+    if (key === _neckKey && svg.querySelector('.bn-neck')) return;
+    _neckKey = key;
+    const tuning = TUNINGS[currentTuning];
+    const markers = tuning.courses.map((c) => ({
+      ci: c.course - 1,
+      fret: 0,
+      midi: c.midi,
+      type: 'note',
+      label: c.note,
+    })).filter((m) => m.ci >= 0 && m.ci < 4);
+    let active = null;
+    if (midi != null && courseIdx != null && tuning.courses[courseIdx]) {
+      const c = tuning.courses[courseIdx];
+      const ci = c.course - 1;
+      let fret = midi - c.midi;
+      if (fret < 0 || fret > 15) {
+        const alt = midi - (c.midi + 12);
+        if (alt >= 0 && alt <= 15) fret = alt;
+        else fret = -1;
+      }
+      if (ci >= 0 && ci < 4 && fret >= 0) active = { ci, fret, midi: c.midi + fret };
+    }
+    if (!active && markers[0]) active = { ci: markers[0].ci, fret: 0, midi: markers[0].midi };
+    BouzoukiNeck.paint(svg, { maxFret: 12, mirror: false, markers, active });
+  }
+
+  function updateDisplay(noteStr, solfegeStr, freqStr, cents, rms, matchedCourse, midiNote) {
     const noteEl = document.querySelector('#ct-note');
     const solfegeEl = document.querySelector('#ct-solfege');
     const freqEl = document.querySelector('#ct-freq');
@@ -219,6 +254,7 @@ const BouzoukiTuner = (() => {
       const matched = document.querySelector(`.ct-course[data-idx="${matchedCourse}"]`);
       if (matched) matched.classList.add('ct-course-match');
     }
+    paintTunerNeck(midiNote, matchedCourse);
   }
 
   function addToHistory(noteName, cents) {
@@ -325,7 +361,7 @@ const BouzoukiTuner = (() => {
 
     const matchedCourse = findMatchingCourse(mf);
 
-    updateDisplay(name, solfege, sf.toFixed(1) + ' Hz', _emaCents, rms, matchedCourse);
+    updateDisplay(name, solfege, sf.toFixed(1) + ' Hz', _emaCents, rms, matchedCourse, midi);
 
     // התחייבות לתו רק כשהוא יציב מספר פריימים — מונע "ריצוד" בהיסטוריה
     if (_noteCommit.name === name) _noteCommit.count++;

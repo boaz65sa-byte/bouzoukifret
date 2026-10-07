@@ -128,13 +128,16 @@ const Worksheets = (() => {
 
   /** חיתוך viewBox לתיבת הפוזיציה בלבד — בלי גלילה, מתאים להדפסה */
   function cropSvgToPosition(svg, posBase, span) {
-    if (typeof fretX !== 'function' || typeof FB === 'undefined' || typeof NUM_FRETS === 'undefined') return;
+    const L = svg.__bnLayout;
+    if (!L || typeof NUM_FRETS === 'undefined') return;
     const maxF = Math.min(NUM_FRETS, posBase + span + 1);
-    const padL = 48, padR = 48, padT = 30, padB = 30;
-    const x1 = (posBase === 0 ? FB.left - 42 : fretX(Math.max(0, posBase - 1))) - padL;
-    const x2 = fretX(maxF) + padR;
-    const y1 = FB.top - padT;
-    const y2 = FB.height - FB.bottom + padB;
+    const xs = [L.wireX(Math.max(0, posBase === 0 ? 0 : posBase - 1)), L.wireX(maxF)];
+    if (posBase === 0) xs.push(L.spaceX(0));
+    const pad = 48;
+    const x1 = Math.min(...xs) - pad;
+    const x2 = Math.max(...xs) + pad;
+    const y1 = L.boardTop - 36;
+    const y2 = L.boardBot + 40;
     svg.setAttribute('viewBox', `${x1} ${y1} ${x2 - x1} ${y2 - y1}`);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svg.removeAttribute('width');
@@ -153,8 +156,8 @@ const Worksheets = (() => {
 
     svg.querySelectorAll('rect').forEach(r => {
       const fill = r.getAttribute('fill') || '';
-      if (fill.startsWith('url(#wood')) {
-        r.setAttribute('fill', '#ebe4d6');
+      if (fill.startsWith('url(#wood') || r.getAttribute('data-bn') === 'board') {
+        r.setAttribute('fill', '#efe6d6');
         r.setAttribute('stroke', '#8a7a68');
       }
     });

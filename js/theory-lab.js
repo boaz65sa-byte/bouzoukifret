@@ -74,113 +74,26 @@ const TheoryLab = (() => {
      shape = frets array [C,F,A,D] (index0=C). מוצג משמאל לימין: D A F C
      ============================================================ */
   function buildChordDiagram(chord) {
-    // המרת frets [C,F,A,D] לסדר תצוגה D A F C (גבוה→נמוך, שמאל→ימין) — או הפוך כשמראה אופקית פעילה
     const fretsCFAD = Array.isArray(chord.frets) ? chord.frets : [0, 0, 0, 0];
-    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
-    const mirrorV = typeof FretboardMirror !== 'undefined' && FretboardMirror.isV();
-    // עמודות תצוגה: [D, A, F, C] => fretsCFAD index [3,2,1,0] (או הפוך במירור אופקי)
-    const cols = mirrorH ? [0, 1, 2, 3] : [3, 2, 1, 0];
-    const colLabels = mirrorH ? ['C', 'F', 'A', 'D'] : ['D', 'A', 'F', 'C'];
-
-    // קבע טווח סריגים. תמיכה בערכי בארה 'B' / 'B-1' (לא מספריים) — נסמן כ-? ולא נצייר נקודה
-    const numericFrets = fretsCFAD.filter(f => typeof f === 'number' && f > 0);
-    const maxFret = numericFrets.length ? Math.max(...numericFrets) : 0;
-    const numFrets = Math.max(5, Math.min(maxFret + 1, 7));
-
-    const strW = 30, frH = 30, padT = 40, padL = 30, padR = 16, padB = 14;
-    const w = padL + strW * 3 + padR;
-    const h = padT + frH * numFrets + padB;
-    // dot/label y לפי סריג, וקו הנוט — הופכים סביב מרכז הצוואר כש-mirrorV פעיל
-    const dotY = (f) => mirrorV ? padT + (numFrets - f + 0.5) * frH : padT + (f - 0.5) * frH;
-    const lineY = (f) => mirrorV ? padT + (numFrets - f) * frH : padT + f * frH;
-    const nutY = mirrorV ? padT + frH * numFrets : padT;
-
-    const svg = svgEl('svg', { class: 'tl-chord-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
-
-    // שם אקורד
-    svgEl('text', {
-      x: w / 2, y: 18, fill: 'var(--gold-soft)', 'font-size': 16, 'font-weight': 800,
-      'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif',
-    }, svg).textContent = chord.name || '';
-
-    // מיתרים אנכיים + תוויות מיתר למעלה
-    for (let i = 0; i < 4; i++) {
-      const x = padL + i * strW;
-      svgEl('line', { x1: x, y1: padT, x2: x, y2: padT + frH * numFrets, stroke: '#8fa6bc', 'stroke-width': 1.2 }, svg);
-      svgEl('text', {
-        x, y: h - 2, fill: 'var(--text-dim)', 'font-size': 11, 'font-weight': 700,
-        'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif',
-      }, svg).textContent = colLabels[i];
-    }
-
-    // אגוז (nut)
-    svgEl('line', { x1: padL - 3, y1: nutY, x2: padL + strW * 3 + 3, y2: nutY, stroke: '#e8d9b0', 'stroke-width': 4 }, svg);
-    // סריגים
-    for (let f = 1; f <= numFrets; f++) {
-      svgEl('line', { x1: padL, y1: lineY(f), x2: padL + strW * 3, y2: lineY(f), stroke: '#3b566f', 'stroke-width': 1 }, svg);
-    }
-    // מספרי סריג בצד
-    for (let f = 1; f <= numFrets; f++) {
-      svgEl('text', {
-        x: padL + strW * 3 + 9, y: dotY(f) + 4, fill: '#5a708a',
-        'font-size': 9, 'text-anchor': 'middle', 'font-family': 'monospace',
-      }, svg).textContent = f;
-    }
-
-    const dots = []; // {el, courseIdx, fret}
-    cols.forEach((cfadIdx, col) => {
-      const x = padL + col * strW;
-      const fret = fretsCFAD[cfadIdx];
-      const courseIdx = mirrorH ? (3 - col) : col; // עמודה 0=D=>course0, 1=A=>1, 2=F=>2, 3=C=>3 (הפוך במירור)
-      const markY = mirrorV ? nutY + 10 : nutY - 8;
-
-      if (fret === 'x') {
-        svgEl('text', {
-          x, y: markY, fill: '#d96459', 'font-size': 14, 'font-weight': 800,
-          'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif',
-        }, svg).textContent = '×';
-        return;
-      }
-      if (typeof fret !== 'number') {
-        // ערך בארה לא-מספרי (למשל 'B' / 'B-1') — סמן בסימן שאלה מעל
-        svgEl('text', {
-          x, y: markY, fill: 'var(--gold)', 'font-size': 12, 'font-weight': 800,
-          'text-anchor': 'middle', 'font-family': 'monospace',
-        }, svg).textContent = String(fret);
-        return;
-      }
-      if (fret === 0) {
-        const o = svgEl('circle', { cx: x, cy: mirrorV ? nutY + 10 : nutY - 10, r: 5, fill: 'none', stroke: '#5fc88f', 'stroke-width': 1.6, class: 'tl-dot tl-open' }, svg);
-        o.style.cursor = 'pointer';
-        o.dataset.course = courseIdx; o.dataset.fret = 0;
-        dots.push({ el: o, courseIdx, fret: 0 });
-      } else {
-        const cy = dotY(Math.min(fret, numFrets));
-        const c = svgEl('circle', { cx: x, cy, r: 9, fill: 'var(--gold)', class: 'tl-dot' }, svg);
-        c.style.cursor = 'pointer';
-        c.dataset.course = courseIdx; c.dataset.fret = fret;
-        const t = svgEl('text', {
-          x, y: cy + 3.5, fill: '#1a1408', 'font-size': 10, 'font-weight': 800,
-          'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif',
-        }, svg);
-        t.style.pointerEvents = 'none';
-        t.textContent = fret;
-        dots.push({ el: c, courseIdx, fret });
-      }
+    const courseOf = [3, 2, 1, 0];
+    const svg = svgEl('svg', { class: 'tl-chord-svg', role: 'img', 'aria-label': chord.name || 'אקורד על הצוואר' });
+    const markers = [];
+    let active = null;
+    fretsCFAD.forEach((fret, shapeIdx) => {
+      if (typeof fret !== 'number') return;
+      const ci = courseOf[shapeIdx];
+      const midi = TUNING[ci].midi + fret;
+      markers.push({ ci, fret, midi, type: 'chord', label: fret === 0 ? '○' : String(fret) });
+      if (!active) active = { ci, fret, midi };
     });
-
-    // נגינת מיתר בודד בלחיצה על נקודה
-    dots.forEach(d => {
-      d.el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        ensureAudio();
-        if (typeof AudioEngine !== 'undefined' && AudioEngine.pluckCourse) {
-          AudioEngine.pluckCourse(d.courseIdx, d.fret, 0, 0.55);
-        }
-        flashDot(d.el);
-      });
-    });
-
+    if (typeof BouzoukiNeck !== 'undefined') {
+      BouzoukiNeck.paint(svg, { maxFret: 12, markers, active });
+    }
+    const dots = [...svg.querySelectorAll('.note-dot')].map(node => ({
+      el: node,
+      courseIdx: parseInt(node.dataset.course, 10),
+      fret: parseInt(node.dataset.fret, 10),
+    }));
     return { svg, dots };
   }
 
@@ -690,115 +603,50 @@ const TheoryLab = (() => {
     const inPath = new Set(path.map(p => p.ci + '-' + p.fret));
     const activeCourses = new Set(activeCoursesForMode(mode));
 
-    const padL = 60, padR = 14, padT = 16, padB = 26;
-    const fretW = 46, rowH = 44;
-    const w = padL + fretW * NECK_FRETS + padR;
-    const h = padT + rowH * 3 + padB;
-
-    const mirrorH = typeof FretboardMirror !== 'undefined' && FretboardMirror.isH();
-    const mirrorV = typeof FretboardMirror !== 'undefined' && FretboardMirror.isV();
-    const neckRight = padL + fretW * NECK_FRETS;
-    function neckX(f) {
-      const x = padL + f * fretW;
-      return mirrorH ? (padL + (neckRight - x)) : x;
-    }
-    function neckCenterX(f) {
-      if (f === 0) return mirrorH ? neckRight + 22 : padL - 22;
-      return (neckX(f - 1) + neckX(f)) / 2;
-    }
-    function displayRow(row) { return mirrorV ? (3 - row) : row; }
-
-    const svg = svgEl('svg', { class: 'tl-neck-svg', viewBox: `0 0 ${w} ${h}`, role: 'img' });
-
-    // רקע עץ
-    svgEl('rect', { x: padL - 6, y: padT - 6, width: fretW * NECK_FRETS + 12, height: rowH * 3 + 12, rx: 6, fill: '#2b2014', stroke: '#1a120a', 'stroke-width': 1.5 }, svg);
-
-    // הדגשת המיתרים הפעילים כשלא כל 4 פעילים
-    if (mode !== 4) {
-      ROW_COURSES.forEach((ci, row) => {
-        if (!activeCourses.has(ci)) return;
-        const dr = displayRow(row);
-        svgEl('rect', { x: padL - 6, y: padT + dr * rowH - rowH / 2 + 6, width: fretW * NECK_FRETS + 12, height: rowH, fill: '#e3b341', opacity: 0.1 }, svg);
-      });
-    }
-
-    // אינליי נקודות
-    [3, 5, 7, 12].forEach(f => {
-      if (f > NECK_FRETS) return;
-      const cx = neckCenterX(f);
-      svgEl('circle', { cx, cy: padT + rowH * 1.5, r: 4, fill: '#d8c9a0', opacity: 0.35 }, svg);
-    });
-
-    // סריגים אנכיים + מספרים
-    for (let f = 0; f <= NECK_FRETS; f++) {
-      const x = neckX(f);
-      svgEl('line', { x1: x, y1: padT - 4, x2: x, y2: padT + rowH * 3 + 4, stroke: f === 0 ? '#e8d9b0' : '#8a8378', 'stroke-width': f === 0 ? 5 : 1.4, opacity: f === 0 ? 1 : 0.6 }, svg);
-      if (f > 0) {
-        svgEl('text', { x: neckCenterX(f), y: h - 8, fill: '#7d92a8', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = f;
-      }
-    }
-
-    _seqDots = [];
-    const dotByKey = {};
-
-    ROW_COURSES.forEach((ci, row) => {
-      const y = padT + displayRow(row) * rowH;
-      // קו מיתר
-      svgEl('line', { x1: padL - 4, y1: y, x2: w - padR, y2: y, stroke: '#b8b0a0', 'stroke-width': 1 + ci * 0.5, opacity: 0.85 }, svg);
-      // תווית מיתר (note + מספר מיתר)
-      const stringNo = TUNING[ci].course; // 1=D ... 4=C
-      const labelX = mirrorH ? (w - 30) : 30;
-      svgEl('text', { x: labelX, y: y - 4, fill: '#e3b341', 'font-size': 15, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = TUNING[ci].note;
-      svgEl('text', { x: labelX, y: y + 11, fill: '#7d92a8', 'font-size': 9, 'text-anchor': 'middle', 'font-family': 'Heebo,sans-serif' }, svg).textContent = 'מיתר ' + stringNo;
-
-      // צלילי הסולם על המיתר
+    const markers = [];
+    let active = null;
+    for (let ci = 0; ci < 4; ci++) {
+      if (Number(mode) !== 4 && !activeCourses.has(ci)) continue;
       const openMidi = TUNING[ci].midi;
       for (let f = 0; f <= NECK_FRETS; f++) {
         const midi = openMidi + f;
         const pc = ((midi % 12) + 12) % 12;
         if (!pcs.has(pc)) continue;
-        const cx = neckCenterX(f);
         const isRoot = pc === ROOT_PC;
         const isIn = inPath.has(ci + '-' + f);
-        const dim = (Number(mode) !== 4 && !activeCourses.has(ci));
-        const g = svgEl('g', { class: 'tl-neck-dot', style: 'cursor:pointer', 'data-course': ci, 'data-fret': f }, svg);
-        svgEl('circle', {
-          cx, cy: y, r: isIn ? 12 : 9,
-          fill: isRoot ? '#e3b341' : '#2a7fa8',
-          stroke: isRoot ? '#fff0c8' : '#7fd0ef',
-          'stroke-width': isIn ? 2 : 1.2,
-          opacity: isIn ? 1 : (dim ? 0.12 : 0.32),
-        }, g);
-        const lbl = SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc];
-        svgEl('text', {
-          x: cx, y: y + 3.5, fill: isRoot ? '#1a1408' : '#eaf6fc',
-          'font-size': 9.5, 'font-weight': 700, 'text-anchor': 'middle',
-          'font-family': 'Heebo,sans-serif', opacity: isIn ? 1 : (dim ? 0.18 : 0.5),
-          style: 'pointer-events:none',
-        }, g).textContent = lbl;
-        g.addEventListener('click', () => {
-          ensureAudio();
-          if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(ci, f, 0, 0.55);
-          flashNeckDot(g);
+        const label = isIn
+          ? String((path.find(p => p.ci === ci && p.fret === f) || {}).degree || '')
+          : (SOLFEGE[NOTE_NAMES[pc]] || NOTE_NAMES[pc]);
+        markers.push({
+          ci, fret: f, midi,
+          type: isRoot ? 'root' : 'note',
+          label,
+          opacity: isIn ? 1 : 0.45,
+          className: 'tl-neck-dot',
         });
-        _seqDots.push(g);
-        dotByKey[ci + '-' + f] = g;
+        if (isIn && isRoot && !active) active = { ci, fret: f, midi };
       }
-    });
-
-    // קו מחבר את מסלול הפוזיציה + מספור סדר נגינה
-    if (path.length) {
-      const pts = path.map(p => {
-        const row = ROW_COURSES.indexOf(p.ci);
-        const x = neckCenterX(p.fret);
-        const y = padT + displayRow(row) * rowH;
-        return { x, y };
+    }
+    if (!active && path[0]) active = { ci: path[0].ci, fret: path[0].fret, midi: path[0].midi };
+    const svg = svgEl('svg', { class: 'tl-neck-svg', role: 'img', 'aria-label': 'דרומוס על צוואר הבוזוקי' });
+    if (typeof BouzoukiNeck !== 'undefined') {
+      BouzoukiNeck.paint(svg, {
+        maxFret: NECK_FRETS,
+        markers,
+        active,
+        onDotClick: (ci, fret) => {
+          ensureAudio();
+          if (AudioEngine.pluckCourse) AudioEngine.pluckCourse(ci, fret, 0, 0.55);
+          const g = dotByKey[ci + '-' + fret];
+          if (g) flashNeckDot(g);
+        },
       });
-      const poly = pts.map(pt => pt.x + ',' + pt.y).join(' ');
-      svgEl('polyline', { points: poly, fill: 'none', stroke: '#f0cc74', 'stroke-width': 2, 'stroke-dasharray': '4 3', opacity: 0.7 }, svg);
-      pts.forEach((pt, i) => {
-        svgEl('text', { x: pt.x + (mirrorH ? -11 : 11), y: pt.y - 10, fill: '#f0cc74', 'font-size': 10, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'monospace', style: 'pointer-events:none' }, svg).textContent = i + 1;
-      });
+    }
+    _seqDots = [...svg.querySelectorAll('.tl-neck-dot')];
+    const dotByKey = {};
+    _seqDots.forEach(g => { dotByKey[g.dataset.course + '-' + g.dataset.fret] = g; });
+    if (path.length && typeof FretboardScale !== 'undefined' && FretboardScale.drawPathOverlay) {
+      FretboardScale.drawPathOverlay(svg, path, '#f0cc74');
     }
 
     return { svg, path, dotByKey };
