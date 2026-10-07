@@ -752,8 +752,15 @@ CH: Dm . . . G . . .`;
     });
   }
 
+  function glowPlayed(course, fret) {
+    if (!_fbSvg || course == null || fret == null || typeof BouzoukiNeck === 'undefined') return;
+    const midi = typeof TUNING !== 'undefined' && TUNING[course] ? TUNING[course].midi + fret : null;
+    BouzoukiNeck.moveActive(_fbSvg, { ci: course, fret: fret, midi: midi });
+  }
+
   function flashDot(course, fret) {
     if (!_fbSvg) return;
+    glowPlayed(course, fret);
     _fbSvg.querySelectorAll('.st-active').forEach(d => d.classList.remove('st-active'));
     const dot = _fbSvg.querySelector(`.note-dot[data-course="${course}"][data-fret="${fret}"]`);
     if (dot) {
@@ -783,6 +790,7 @@ CH: Dm . . . G . . .`;
       const lbl = dot.querySelector('text');
       if (lbl) lbl.textContent = '♪';
     }
+    glowPlayed(note.course, note.fret);
     highlightMelCell(globalIdx);
     const pi = phraseIndexForTime(note.time);
     ensurePhraseVisible(globalIdx);

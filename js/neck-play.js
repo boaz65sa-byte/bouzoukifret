@@ -677,6 +677,9 @@ const NeckPlay = (() => {
     const host = document.getElementById('neck-board-host');
     const svg = host.querySelector('svg');
     if (!svg) return;
+    if (typeof BouzoukiNeck !== 'undefined' && BouzoukiNeck.played) {
+      BouzoukiNeck.played(svg, { ci: note.string, fret: note.fret, midi: note.midi });
+    }
     const scale = svg.getBoundingClientRect().width / NECK_W || 1;
     const left = x * scale - host.clientWidth * 0.58;
     host.scrollLeft = Math.max(0, left);

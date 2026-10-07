@@ -3093,3 +3093,158 @@ select {
   .neck-coach { max-width: calc(100vw - 32px - var(--safe-left) - var(--safe-right)); }
   .neck-svg { min-width: 1080px; }
 }
+
+/* ===================== שכבת זוהר על הצוואר ===================== */
+.bn-glow-toggle {
+  position: fixed;
+  top: calc(62px + var(--safe-top));
+  inset-inline-end: 16px;
+  z-index: 90;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(93, 255, 138, 0.55);
+  background: rgba(8, 16, 12, 0.9);
+  color: #d9ffe8;
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(73, 255, 106, 0.22);
+}
+.bn-glow-toggle[aria-pressed="false"] {
+  border-color: rgba(246, 226, 168, 0.35);
+  color: rgba(246, 226, 168, 0.72);
+  box-shadow: none;
+}
+html.bn-glow-on .bn-active .neck-dot-plate {
+  stroke: #7dffb0;
+  stroke-width: 1.6px;
+}
+html.bn-glow-off .bn-tab,
+html.bn-glow-off .bn-trail,
+html.bn-glow-off .bn-flash { display: none !important; }
+.bn-trail { pointer-events: none; }
+.bn-trail-wide { animation: bnTrailFadeWide 2.5s ease-out forwards; }
+.bn-trail-core { animation: bnTrailFade 2.5s ease-out forwards; }
+@keyframes bnTrailFadeWide {
+  0% { opacity: 0.42; }
+  60% { opacity: 0.28; }
+  100% { opacity: 0; }
+}
+@keyframes bnTrailFade {
+  0% { opacity: 0.95; }
+  60% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+html.bn-glow-on .bn-flash.is-hit {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bnFlash 0.48s ease-out;
+}
+@keyframes bnFlash {
+  0% { opacity: 0.95; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(1.85); }
+}
+.bn-tab {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 8px 0 6px;
+  padding: 8px 10px 6px;
+  border-radius: 12px;
+  background: #0c1210;
+  border: 1px solid rgba(93, 255, 138, 0.28);
+  box-shadow: 0 0 18px rgba(73, 255, 106, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.35);
+  color: #d7ffe4;
+  font-family: Heebo, sans-serif;
+}
+.bn-tab-cap {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8dffb8;
+  margin: 0 0 4px;
+}
+.bn-tab-body { display: flex; align-items: flex-start; min-width: 0; gap: 6px; }
+.bn-tab-labs { position: relative; width: 36px; flex: 0 0 36px; height: 86px; }
+.bn-tab-lab {
+  position: absolute;
+  inset-inline: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #d7ffe6;
+  line-height: 1.05;
+}
+.bn-tab-lab i {
+  display: block;
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(180, 255, 210, 0.72);
+}
+.bn-tab-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: auto;
+}
+.bn-tab-track {
+  position: relative;
+  display: inline-block;
+  min-width: 100%;
+  height: 86px;
+  vertical-align: top;
+  background:
+    linear-gradient(#1e4630, #1e4630) 0 8px / 100% 1px no-repeat,
+    linear-gradient(#1e4630, #1e4630) 0 24px / 100% 1px no-repeat,
+    linear-gradient(#1e4630, #1e4630) 0 40px / 100% 1px no-repeat,
+    linear-gradient(#1e4630, #1e4630) 0 56px / 100% 1px no-repeat;
+}
+.bn-tab-cols { display: flex; height: 86px; }
+.bn-tab-col { position: relative; width: 46px; flex: 0 0 46px; height: 86px; }
+.bn-tab-fret {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  font-weight: 800;
+  color: #f4fff8;
+  text-shadow: 0 0 6px #49ff6a;
+  line-height: 1;
+}
+.bn-tab-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9dffc4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bn-tab-head {
+  position: absolute;
+  top: 2px;
+  height: 62px;
+  width: 2px;
+  margin-left: -1px;
+  background: #49ff6a;
+  box-shadow: 0 0 8px #49ff6a, 0 0 16px rgba(73, 255, 106, 0.65);
+  pointer-events: none;
+  transition: left 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bn-trail-wide,
+  .bn-trail-core { animation: none; opacity: 0.8; }
+  .bn-flash.is-hit { animation: none !important; opacity: 0.9; transform: none; }
+  .bn-tab-head { transition: none; }
+}
