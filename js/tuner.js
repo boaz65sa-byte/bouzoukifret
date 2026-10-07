@@ -376,6 +376,7 @@ const BouzoukiTuner = (() => {
       showError('הדפדפן לא תומך בגישה למיקרופון. נסו Chrome או Edge.');
       return false;
     }
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -384,7 +385,8 @@ const BouzoukiTuner = (() => {
           autoGainControl: false
         }
       });
-      micCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (armed) await armed.resume;
+      micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       const src = micCtx.createMediaStreamSource(micStream);
       analyser = micCtx.createAnalyser();
       analyser.fftSize = 4096;
@@ -392,6 +394,7 @@ const BouzoukiTuner = (() => {
       showError('');
       return true;
     } catch (e) {
+      if (armed) armed.close();
       showError('לא ניתן לגשת למיקרופון — אשרו את הבקשה בדפדפן.');
       return false;
     }

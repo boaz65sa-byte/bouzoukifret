@@ -1,51 +1,58 @@
-# Building the iOS version on a Mac
+# Building the iOS app on a Mac
 
-Context: `mobile/capacitor.config.json` already exists (app ID `com.bouzoukifret.app`), but the
-Capacitor project itself was never initialized — there's no `mobile/package.json` and no
-`mobile/ios` folder. This needs a Mac with Xcode; there's no cloud-build path for Capacitor
-the way EAS Build works for Expo/React Native apps.
+The live App Store app is **Bouzouki Academy 1.0** (bundle `com.bouzoukifret.app`), shipped on 13 August 2026. That binary is a Capacitor snapshot of the site from the Mac that archived it. It does not pick up later website deploys.
 
-## 1. Clone the project
+Android is different: the Play listing is a Trusted Web Activity of the live site, so a website deploy updates Android without a new store binary.
+
+This repository does not contain the Xcode project. `mobile/ios/` and `mobile/www/` are gitignored and live on the Mac that already shipped 1.0. `mobile/capacitor.config.json` is in git (`appId` `com.bouzoukifret.app`, `webDir` `www`).
+
+## Rebuild and resubmit
+
+On the Mac that has the existing `mobile/ios` project:
 
 ```bash
-git clone https://github.com/boaz65sa-byte/bouzoukifret.git
-cd bouzoukifret/mobile
+git pull
+npm run mobile:www
+cd mobile
+npx cap sync ios
+npx cap open ios
 ```
 
-## 2. Install required tools (if not already present)
+`npm run mobile:www` copies the current site into `mobile/www`. `npx cap sync ios` copies that web bundle into the Xcode project. Do not run `npx cap add ios` again if `mobile/ios` already exists.
+
+In Xcode:
+
+1. Keep the existing signing team and the bundle id `com.bouzoukifret.app`.
+2. Keep `NSMicrophoneUsageDescription` in `ios/App/App/Info.plist`. Do not delete it when syncing. If it is missing, add:
+
+   ```xml
+   <key>NSMicrophoneUsageDescription</key>
+   <string>האפליקציה משתמשת במיקרופון כדי לזהות את הצליל שאתם מנגנים או שרים בזמן אמת (מכוון, זיהוי אקורדים, תרגילי קצב) — הניתוח קורה כולו על המכשיר ואינו נשמר או נשלח.</string>
+   ```
+
+   English, if a second string is required by a localization:
+
+   `This app uses the microphone to analyze the sound you play or sing in real time (tuner, chord detection, rhythm drills) — all analysis happens on-device and nothing is recorded or transmitted.`
+
+3. Keep `PrivacyInfo.xcprivacy` in the App target (`ios/App/App/PrivacyInfo.xcprivacy`). Do not remove it during the archive. It must stay a member of the app target so App Store Connect still receives the privacy manifest.
+4. Product → Archive.
+5. Organizer → Distribute App → App Store Connect → Upload.
+6. In App Store Connect, submit the new build for review. Bump the version/build number above 1.0. The August binary does not include the neck, helper, or later practice screens until this archive is accepted.
+
+## First time on a Mac that has no `mobile/ios` yet
 
 ```bash
-brew install node
-sudo gem install cocoapods
-npm install -g @capacitor/cli
-```
-
-## 3. Initialize the Capacitor project (not done yet — only the config file exists)
-
-```bash
+git pull
+npm run mobile:www
+cd mobile
 npm init -y
-npm install @capacitor/core @capacitor/ios @capacitor/android
+npm install @capacitor/core @capacitor/ios
 npx cap add ios
 npx cap sync ios
 ```
 
-## 4. Open in Xcode and build
+Then add `NSMicrophoneUsageDescription` and `PrivacyInfo.xcprivacy` as above before the first archive. `cap add ios` does not copy those privacy files from this repo, because they are not stored here.
 
-```bash
-npx cap open ios
-```
+## What not to expect
 
-In Xcode:
-- Sign in with your Apple Developer account (Xcode → Settings → Accounts)
-- Select your Team under the project's Signing settings
-- Product → Archive, then upload to App Store Connect via the Organizer window
-
-## Notes
-
-- App Store Connect itself is domain-blocked for Claude's browser tools — any App Store Connect
-  steps (demo account, Sign-In Information, submitting for review) need to be done by the user
-  directly, same as with WinrSwipe's iOS submission.
-- WinrSwipe's iOS submission (this session) hit rejections for: missing Sign in with Apple,
-  fake/missing demo reviewer account, and a broken Support URL (Vercel deployment protection).
-  Worth checking Bouzouki Academy's own Support URL and any login flow for the same issues before
-  submitting, if applicable.
+There is no cloud archive for this Capacitor app. A website deploy updates the public site and the Android TWA only. iOS changes when the steps above are run on a Mac and the new build is accepted in App Store Connect.

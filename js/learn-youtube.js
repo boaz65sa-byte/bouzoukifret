@@ -926,6 +926,11 @@ const LearnHub = (() => {
     async function testProxy() {
       if (typeof ProxySettings === 'undefined' || typeof StemAPI === 'undefined') return;
       ProxySettings.save(input.value);
+      const saved = ProxySettings.getResolved();
+      if (typeof DeviceUtils !== 'undefined' && !DeviceUtils.proxyReachableFromPage(saved)) {
+        statusEl.textContent = DeviceUtils.proxyHintMessage(saved);
+        return;
+      }
       statusEl.textContent = 'בודק…';
       const h = await StemAPI.checkHealth();
       if (h.ok) {
@@ -948,14 +953,23 @@ const LearnHub = (() => {
     const el = document.getElementById('learn-proxy-banner');
     if (!el) return;
     const onPublic = typeof DeviceUtils !== 'undefined' && DeviceUtils.isPublicHostedPage();
+    const reachable = proxyReachable !== false;
+    if (onPublic && !reachable) {
+      el.hidden = false;
+      el.className = 'learn-proxy-banner';
+      const url = typeof YoutubeSearch !== 'undefined' ? YoutubeSearch.getProxyUrl() : 'http://127.0.0.1:3456';
+      const msg = typeof DeviceUtils !== 'undefined'
+        ? DeviceUtils.proxyHintMessage(url)
+        : 'באתר הציבורי אין שרת מקומי. אפשר ללמוד כאן בלי localhost:3456.';
+      el.innerHTML = `<span>${msg}</span>`;
+      return;
+    }
     if (onPublic) {
       el.hidden = true;
       return;
     }
     const dl = downloadReady
       || (typeof StemAPI !== 'undefined' ? await StemAPI.checkDownloadReady() : null);
-    const reachable = proxyReachable !== false;
-
     if (dl?.ready && (online || onPublic || resultCount > 0)) {
       el.hidden = true;
       return;
@@ -998,6 +1012,12 @@ const LearnHub = (() => {
   async function _checkProxyOnInit() {
     if (typeof ProxySettings !== 'undefined') await ProxySettings.loadSiteConfig();
     if (typeof YoutubeSearch === 'undefined') return;
+    const proxyUrl = YoutubeSearch.getProxyUrl();
+    const reachableNow = typeof DeviceUtils === 'undefined' || DeviceUtils.proxyReachableFromPage(proxyUrl);
+    if (!reachableNow) {
+      await _updateProxyBanner(false, false, false, 0, { ready: true, via: 'device' });
+      return;
+    }
     const health = await YoutubeSearch.checkProxy();
     let needsRestart = false;
     if (health.online) {

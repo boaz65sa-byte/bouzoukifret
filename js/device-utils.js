@@ -48,9 +48,33 @@ const DeviceUtils = (() => {
     }
   }
 
-  /** localhost:3456 עובד גם כשהאתר על Vercel — אם stem-proxy רץ על אותו מחשב */
-  function proxyReachableFromPage() {
+  /**
+   * אתר ציבורי (HTTPS) לא יכול להגיע ל-localhost של המחשב.
+   * לא מנסים את הבקשה — מציגים הסבר בעברית במקום.
+   */
+  function proxyReachableFromPage(proxyUrl) {
+    const raw = proxyUrl || window.BOUZOUKI_CONFIG?.stemProxyUrl || '';
+    let host = '';
+    try { host = new URL(String(raw)).hostname; } catch { host = ''; }
+    if (isPublicHostedPage() && (!host || isLocalProxyHost(host))) return false;
     return true;
+  }
+
+  /** יוצרים ומעירים AudioContext בתוך מחוות המשתמש, לפני await של getUserMedia. */
+  function armUserGestureAudio() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    const ctx = new Ctx();
+    let resume = Promise.resolve();
+    try {
+      const pending = ctx.resume();
+      if (pending && typeof pending.then === 'function') resume = pending;
+    } catch { /* already running */ }
+    return {
+      ctx,
+      resume,
+      close() { try { ctx.close(); } catch { /* noop */ } },
+    };
   }
 
   const DEFAULT_API_ORIGIN = 'https://bouzoukifret.vercel.app';
@@ -78,7 +102,7 @@ const DeviceUtils = (() => {
 
   function proxyHintMessage(proxyUrl) {
     if (isPublicHostedPage() && isLocalProxyHost(new URL(proxyUrl).hostname)) {
-      return 'הריצו stem-proxy מקומי (start-windows.bat) והגדירו http://localhost:3456 ב«הגדרות פרוקסי» — עובד גם מ-Vercel על אותו מחשב';
+      return 'באתר הציבורי אין שרת מקומי. החיפוש והניתוח רצים בדפדפן, בלי לפנות אל localhost:3456. שרת stem-proxy זמין רק כשמריצים את האפליקציה על המחשב.';
     }
     if (!isMobile()) {
       return `הריצו stem-proxy: cd tools\\stem-proxy && npm start (${proxyUrl})`;
@@ -92,7 +116,7 @@ const DeviceUtils = (() => {
 
   return {
     isMobile, isIOS, isPublicHostedPage, isLocalProxyHost,
-    resolveProxyUrl, proxyReachableFromPage, proxyHintMessage,
+    resolveProxyUrl, proxyReachableFromPage, armUserGestureAudio, proxyHintMessage,
     apiOriginUrls, DEFAULT_API_ORIGIN,
   };
 })();

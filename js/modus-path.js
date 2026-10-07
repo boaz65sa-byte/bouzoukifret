@@ -151,17 +151,19 @@ const ModusPath = (() => {
   async function ensureMic() {
     if (mic.stream) return true;
     if (!navigator.mediaDevices?.getUserMedia) return false;
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       mic.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
-      mic.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (armed) await armed.resume;
+      mic.ctx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       const src = mic.ctx.createMediaStreamSource(mic.stream);
       mic.analyser = mic.ctx.createAnalyser();
       mic.analyser.fftSize = 2048;
       AudioEngine.micBoost(src).connect(mic.analyser);
       return true;
-    } catch { return false; }
+    } catch { if (armed) armed.close(); return false; }
   }
   function stopMic() {
     if (mic.timer) { clearInterval(mic.timer); mic.timer = null; }

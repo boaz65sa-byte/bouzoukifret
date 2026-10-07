@@ -413,13 +413,16 @@ C: . . . . . . . .`;
       statusEl.textContent = 'הדפדפן הזה לא תומך בגישה למיקרופון.';
       return;
     }
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       _micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (armed) await armed.resume;
     } catch (e) {
+      if (armed) armed.close();
       statusEl.textContent = 'לא ניתן לגשת למיקרופון — ' + (e.message || e);
       return;
     }
-    _micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    _micCtx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
     const src = _micCtx.createMediaStreamSource(_micStream);
     const analyser = _micCtx.createAnalyser();
     analyser.fftSize = 2048;

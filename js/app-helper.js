@@ -405,6 +405,11 @@ const AppHelper = (() => {
 
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
+  function cssPx(name) {
+    const n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+    return Number.isFinite(n) ? n : 0;
+  }
+
   function place(opts) {
     const coach = document.getElementById('app-helper');
     if (!coach) return;
@@ -412,9 +417,11 @@ const AppHelper = (() => {
     const collapsed = state.collapsed && !inTour;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const margin = 12;
-    const topSafe = vw < 860 ? 18 : 12;
-    const bottomSafe = vw < 860 ? 100 : 16;
+    const safeTop = cssPx('--safe-top');
+    const safeBottom = cssPx('--safe-bottom');
+    const margin = vw < 860 ? 16 : 12;
+    const topSafe = (vw < 860 ? 10 : 12) + safeTop;
+    const bottomSafe = (vw < 860 ? 108 : 16) + safeBottom;
     const cw = coach.offsetWidth || (collapsed ? 68 : 340);
     const ch = coach.offsetHeight || (collapsed ? 68 : 132);
     const target = targetEl();

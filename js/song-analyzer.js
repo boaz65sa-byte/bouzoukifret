@@ -116,11 +116,13 @@ const SongAnalyzer = (() => {
 
   async function _ensureMic() {
     if (_ctx && _micStream && _micSource) return true;
+    const armed = typeof DeviceUtils !== 'undefined' ? DeviceUtils.armUserGestureAudio() : null;
     try {
       _micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false },
       });
-      _ctx = new AudioContext();
+      if (armed) await armed.resume;
+      _ctx = armed ? armed.ctx : new (window.AudioContext || window.webkitAudioContext)();
       _micSource = _ctx.createMediaStreamSource(_micStream);
       const analyser = _ctx.createAnalyser();
       analyser.fftSize = 2048;
@@ -128,6 +130,7 @@ const SongAnalyzer = (() => {
       _ctx._saAnalyser = analyser;
       return true;
     } catch {
+      if (armed) armed.close();
       return false;
     }
   }
@@ -797,6 +800,10 @@ const SongAnalyzer = (() => {
     StemAPI.checkHealth().then(h => {
       const hint = document.getElementById('sa-config-hint');
       if (!hint) return;
+      if (h.localOnly) {
+        hint.textContent = 'באתר הציבורי אין שרת מקומי. הניתוח בדפדפן עובד בלי localhost:3456.';
+        return;
+      }
       if (h.ok) {
         const parts = ['✓ stem-proxy פעיל'];
         if (h.ytdlp) parts.push('YouTube (yt-dlp)');
