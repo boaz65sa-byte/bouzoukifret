@@ -405,6 +405,118 @@ const AppHelper = (() => {
 
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
+  /* שם התו, ראש הנגינה בטאב, והנקודה הזהובה — העוזר לא מכסה אותם. */
+  function neckKeepClear(vw, vh) {
+    const pad = 14;
+    const out = [];
+    const push = (el) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      if (r.bottom < -40 || r.top > vh + 40 || r.right < -40 || r.left > vw + 40) return;
+      out.push({
+        left: r.left - pad,
+        top: r.top - pad,
+        right: r.right + pad,
+        bottom: r.bottom + pad,
+      });
+    };
+    document.querySelectorAll('.bn-namebar-pill').forEach((el) => {
+      const bar = el.closest('.bn-namebar');
+      if (bar && bar.hidden) return;
+      push(el);
+    });
+    document.querySelectorAll('.bn-tab-head').forEach((el) => {
+      if (el.hidden) return;
+      push(el);
+    });
+    document.querySelectorAll('svg.bn-neck .bn-active').forEach((g) => {
+      if (g.getAttribute('opacity') === '0') return;
+      const circles = g.querySelectorAll('circle');
+      let dot = null;
+      for (let i = 0; i < circles.length; i++) {
+        if ((circles[i].getAttribute('fill') || '').toLowerCase() === '#ffe7a3') dot = circles[i];
+      }
+      push(dot);
+    });
+    return out;
+  }
+
+  function overlapArea(x, y, w, h, blocks) {
+    let area = 0;
+    const right = x + w;
+    const bottom = y + h;
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const iw = Math.min(right, b.right) - Math.max(x, b.left);
+      const ih = Math.min(bottom, b.bottom) - Math.max(y, b.top);
+      if (iw > 0 && ih > 0) area += iw * ih;
+    }
+    return area;
+  }
+
+  function settleClear(x, y, flip, cw, ch, target) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = vw < 860 ? 16 : 12;
+    const topSafe = (vw < 860 ? 10 : 12) + cssPx('--safe-top');
+    const bottomSafe = (vw < 860 ? 108 : 16) + cssPx('--safe-bottom');
+    const maxX = Math.max(margin, vw - cw - margin);
+    const maxY = Math.max(topSafe, vh - ch - bottomSafe);
+    const blocks = neckKeepClear(vw, vh);
+    const fit = (px, py) => ({ x: clamp(px, margin, maxX), y: clamp(py, topSafe, maxY) });
+    const here = fit(x, y);
+    const hit0 = blocks.length ? overlapArea(here.x, here.y, cw, ch, blocks) : 0;
+    if (!hit0) return { x: here.x, y: here.y, flip: flip, dodged: false };
+
+    const candidates = [];
+    const consider = (px, py, fl) => {
+      const p = fit(px, py);
+      candidates.push({
+        x: p.x,
+        y: p.y,
+        flip: fl,
+        hit: overlapArea(p.x, p.y, cw, ch, blocks),
+        dist: Math.hypot(p.x - here.x, p.y - here.y),
+      });
+    };
+    [56, 110, 170, 240, 320].forEach((s) => {
+      consider(x - s, y, false);
+      consider(x + s, y, true);
+      consider(x, y + s, flip);
+      consider(x, y - s, flip);
+      consider(x - s, y + s, false);
+      consider(x + s, y + s, true);
+    });
+    let uTop = vh;
+    let uBot = 0;
+    blocks.forEach((b) => {
+      uTop = Math.min(uTop, b.top);
+      uBot = Math.max(uBot, b.bottom);
+    });
+    consider(x, uTop - ch - 12, flip);
+    consider(x, uBot + 12, flip);
+    consider(margin, uBot + 12, false);
+    consider(maxX, uBot + 12, true);
+    consider(margin, maxY, false);
+    consider(maxX, maxY, true);
+    consider(margin, topSafe, false);
+    consider(maxX, topSafe, true);
+    if (target && target.getBoundingClientRect) {
+      const t = target.getBoundingClientRect();
+      if (t.width > 2) {
+        const gap = 12;
+        consider(t.right + gap, t.top, true);
+        consider(t.left - cw - gap, t.top, false);
+        consider(margin, t.bottom + gap, false);
+        consider(maxX, t.bottom + gap, true);
+      }
+    }
+    candidates.sort((a, b) => a.hit - b.hit || a.dist - b.dist);
+    const best = candidates[0] || { x: here.x, y: here.y, flip: flip, hit: hit0 };
+    return { x: best.x, y: best.y, flip: best.flip, dodged: true };
+  }
+
   function cssPx(name) {
     const n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
     return Number.isFinite(n) ? n : 0;
@@ -432,13 +544,29 @@ const AppHelper = (() => {
 
     if (collapsed && state.following && target) {
       const host = document.getElementById('neck-board-host') || target.closest('.fretboard-wrap, .neck-board-host');
-      const t = target.getBoundingClientRect();
+      let dot = null;
+      if (target.querySelectorAll) {
+        const circles = target.querySelectorAll('circle');
+        for (let i = 0; i < circles.length; i++) {
+          if ((circles[i].getAttribute('fill') || '').toLowerCase() === '#ffe7a3') dot = circles[i];
+        }
+      }
+      const t = (dot || target).getBoundingClientRect();
       const h = host ? host.getBoundingClientRect() : t;
-      const orb = 62;
-      let cx = t.width ? t.left + t.width / 2 : h.left + 40;
-      if (h.width) cx = clamp(cx, h.left + 28, h.right - 28);
-      x = cx - orb / 2;
-      y = (h.top || 80) - orb - 8;
+      const orb = Math.min(cw, 68);
+      const gap = 28;
+      const cx = t.width ? t.left + t.width / 2 : h.left + 40;
+      const cy = t.height ? t.top + t.height / 2 : (h.top + Math.min(h.height, 80) / 2);
+      const rightX = (t.width ? t.right : cx) + gap;
+      const leftX = (t.width ? t.left : cx) - orb - gap;
+      if (vw - margin - cw - rightX >= leftX - margin) {
+        x = rightX;
+        flip = true;
+      } else {
+        x = leftX;
+        flip = false;
+      }
+      y = cy - ch / 2;
     } else if (!collapsed && target && target.getBoundingClientRect().width) {
       const t = target.getBoundingClientRect();
       const gap = 12;
@@ -461,8 +589,11 @@ const AppHelper = (() => {
       y = pick.y;
       flip = !!pick.flip;
     }
-    x = clamp(x, margin, Math.max(margin, vw - cw - margin));
-    y = clamp(y, topSafe, Math.max(topSafe, vh - ch - bottomSafe));
+    const settled = settleClear(x, y, flip, cw, ch, target);
+    x = settled.x;
+    y = settled.y;
+    flip = settled.flip;
+    coach.classList.toggle('is-dodge', !!settled.dodged);
     coach.classList.toggle('is-flip', flip && !collapsed);
     coach.style.left = Math.round(x) + 'px';
     coach.style.top = Math.round(y) + 'px';

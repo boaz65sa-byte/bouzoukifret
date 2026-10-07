@@ -3033,6 +3033,10 @@ select {
 .neck-coach.is-following {
   transition: left 0.42s ease, top 0.42s ease;
 }
+.neck-coach.is-dodge,
+.neck-coach.is-dodge.is-following {
+  transition: none;
+}
 .neck-coach > * { pointer-events: auto; }
 .neck-avatar {
   width: 68px;
