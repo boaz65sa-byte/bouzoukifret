@@ -176,9 +176,16 @@ const ModusPath = (() => {
   function playFrets(frets, gapMs = 380) {
     if (typeof AudioEngine === 'undefined') return;
     AudioEngine.ensureCtx();
+    AudioEngine.stopModeScale?.();
     const t0 = AudioEngine.ctx.currentTime + 0.05;
+    const svg = document.querySelector('#mp-neck-host svg.bn-neck, #mp-neck-host svg');
     frets.forEach((f, i) => {
-      AudioEngine.pluckMidi(D_OPEN + f, t0 + i * (gapMs / 1000), 0.5);
+      AudioEngine.pluckCourse(0, f, t0 + i * (gapMs / 1000), 0.5);
+      setTimeout(() => {
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+          FretboardScale.playhead(svg, { ci: 0, fret: f, midi: D_OPEN + f });
+        }
+      }, i * gapMs);
     });
   }
 
@@ -402,9 +409,8 @@ const ModusPath = (() => {
       posBase: st.posBase,
       stringMode: st.stringMode,
       onStep(fret, i, pt) {
-        if (pt && svg && typeof FretboardScale !== 'undefined') {
-          FretboardScale.flashMidi(svg, pt.midi);
-        }
+        if (!svg || typeof FretboardScale === 'undefined' || !FretboardScale.playhead) return;
+        FretboardScale.playhead(svg, pt || { ci: 0, fret: fret, midi: D_OPEN + fret });
       },
     });
   }

@@ -1544,14 +1544,74 @@ const FretboardScale = (() => {
     return board.querySelector('svg');
   }
 
-  function flashMidi(svg, midi) {
-    if (typeof flashMidiOnBoard === 'function') flashMidiOnBoard(svg, midi);
-    else if (typeof flashDot === 'function') {
-      TUNING.forEach((c, ci) => {
-        const f = midi - c.midi;
-        if (f >= 0 && f <= NUM_FRETS) flashDot(svg, ci, f);
-      });
+  function markPlaying(svg) {
+    if (!svg || !svg.classList) return;
+    svg.classList.add('bn-playing');
+    if (svg.__bnPlayTimer) clearTimeout(svg.__bnPlayTimer);
+    svg.__bnPlayTimer = setTimeout(() => {
+      svg.classList.remove('bn-playing');
+      svg.__bnPlayTimer = null;
+    }, 1500);
+  }
+
+  /* נקודה אחת: הקורס והסריג של המסלול, או המופע הקרוב בתיבה — לא כל הלוח. */
+  function resolvePlayNote(svg, note) {
+    if (note == null) return null;
+    const raw = (typeof note === 'number') ? { midi: note } : note;
+    let ci = raw.ci != null ? raw.ci : raw.course;
+    let fret = raw.fret != null ? raw.fret : raw.f;
+    if (ci != null && fret != null && fret !== 'x' && !Number.isNaN(Number(fret)) && !Number.isNaN(Number(ci))) {
+      ci = Number(ci);
+      fret = Number(fret);
+      const midi = raw.midi != null ? raw.midi : (typeof TUNING !== 'undefined' && TUNING[ci] ? TUNING[ci].midi + fret : null);
+      return { ci: ci, fret: fret, midi: midi };
     }
+    const midi = raw.midi;
+    if (midi == null || typeof TUNING === 'undefined') return null;
+    const pc = ((midi % 12) + 12) % 12;
+    const dots = svg && svg.querySelectorAll ? svg.querySelectorAll('.fb-dot') : [];
+    const cands = [];
+    dots.forEach((g) => {
+      const dci = Number(g.getAttribute('data-course'));
+      const df = Number(g.getAttribute('data-fret'));
+      if (!Number.isFinite(dci) || !Number.isFinite(df) || !TUNING[dci]) return;
+      const m = TUNING[dci].midi + df;
+      if (m === midi || ((m % 12) + 12) % 12 === pc) cands.push({ ci: dci, fret: df, midi: m, exact: m === midi });
+    });
+    const exact = cands.filter((c) => c.exact);
+    const pool = exact.length ? exact : cands;
+    if (pool.length) {
+      const prev = svg && svg.__bnFrom;
+      pool.sort((a, b) => {
+        if (!prev) return a.fret - b.fret || a.ci - b.ci;
+        const da = Math.abs(a.fret - prev.fret) * 3 + Math.abs(a.ci - prev.ci);
+        const db = Math.abs(b.fret - prev.fret) * 3 + Math.abs(b.ci - prev.ci);
+        return da - db;
+      });
+      return pool[0];
+    }
+    const maxF = typeof NUM_FRETS !== 'undefined' ? NUM_FRETS : 15;
+    let best = null;
+    for (let i = 0; i < TUNING.length; i++) {
+      const f = midi - TUNING[i].midi;
+      if (f >= 0 && f <= maxF && (!best || f < best.fret)) best = { ci: i, fret: f, midi: midi };
+    }
+    return best;
+  }
+
+  function playhead(svg, note) {
+    if (!svg) return null;
+    const resolved = resolvePlayNote(svg, note);
+    if (!resolved) return null;
+    markPlaying(svg);
+    if (typeof BouzoukiNeck !== 'undefined') BouzoukiNeck.moveActive(svg, resolved);
+    return resolved;
+  }
+
+  function flashMidi(svg, midi, extra) {
+    const note = (midi && typeof midi === 'object') ? Object.assign({}, midi) : { midi: midi };
+    if (extra && typeof extra === 'object') Object.assign(note, extra);
+    return playhead(svg, note);
   }
 
   return {
@@ -1610,5 +1670,7 @@ const FretboardScale = (() => {
     mountMelody,
     mountMelodyLesson,
     flashMidi,
+    playhead,
+    resolvePlayNote,
   };
 })();

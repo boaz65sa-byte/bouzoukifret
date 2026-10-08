@@ -469,8 +469,9 @@ const ScaleExplorer = (() => {
       posBase: st.posBase,
       stringMode: st.stringMode,
       onStep(fret, i, p) {
-        if (p && typeof FretboardScale !== 'undefined') FretboardScale.flashMidi(svg, p.midi);
-        else if (svg && typeof flashDot === 'function') flashDot(svg, 0, fret);
+        const note = p && p.ci != null ? p : { ci: 0, fret: fret, midi: (typeof TUNING !== 'undefined' ? TUNING[0].midi : 62) + fret };
+        if (svg && typeof FretboardScale !== 'undefined' && FretboardScale.playhead) FretboardScale.playhead(svg, note);
+        else if (svg && typeof flashDot === 'function') flashDot(svg, note.ci || 0, fret);
       },
     });
     const n = dr.intervals.length + 1;

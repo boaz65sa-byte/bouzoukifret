@@ -1,7 +1,7 @@
 /* ============================================================
-   צוואר בוזוקי משותף — אותו גריף כמו במסך «למד על הצוואר».
-   סריגי מתכת, מספרי סריג, נקודות מיקום, ראש עם מפתחות,
-   ארבעה קורסים כפולים דו–פה–לה–רה, ונקודה זהובה עם שם התו.
+   צוואר בוזוקי משותף — לוח שטוח (בלי הטיה), עץ כהה, סריגי
+   ניקל, נקודות צדף, סף עצם, וארבעה קורסים כפולים (שמונה מיתרים).
+   הנקודה הזהובה, שם התו, השובל והטאב יושבים מעל הציור.
    ============================================================ */
 'use strict';
 
@@ -64,6 +64,9 @@ const BouzoukiNeck = (() => {
     const nut = mirrorH ? 276 : 1044;
     const heel = mirrorH ? 1172 : 148;
     const boardLen = Math.abs(nut - heel);
+    /* טמפרמנט שווה — אותו יחס כמו חוק 18 (17.817). הסריג ה-12 יושב
+       בחצי אורך המיתר מהסף; על הלוח שנגמר בסריג האחרון המרווחים
+       מתקצרים לכיוון הגוף. */
     const full = 1 - Math.pow(2, -shown / 12);
     const sign = heel < nut ? -1 : 1;
 
@@ -284,6 +287,75 @@ const BouzoukiNeck = (() => {
     }
   }
 
+  let grainHref = null;
+  function woodGrainHref() {
+    if (grainHref != null) return grainHref;
+    grainHref = '';
+    try {
+      const c = document.createElement('canvas');
+      c.width = 960;
+      c.height = 72;
+      const g = c.getContext('2d');
+      if (!g) return grainHref;
+      let seed = 0xB07A11;
+      const rnd = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+      g.clearRect(0, 0, 960, 72);
+      for (let i = 0; i < 110; i++) {
+        const y = rnd() * 72;
+        const thick = rnd() > 0.84 ? 1.7 : 0.35 + rnd() * 0.85;
+        const dark = rnd() > 0.42;
+        const alpha = dark ? 0.22 + rnd() * 0.38 : 0.1 + rnd() * 0.2;
+        g.strokeStyle = dark
+          ? 'rgba(6,3,2,' + alpha.toFixed(3) + ')'
+          : 'rgba(128,68,38,' + alpha.toFixed(3) + ')';
+        g.lineWidth = thick;
+        g.beginPath();
+        g.moveTo(0, y);
+        g.bezierCurveTo(280, y + (rnd() - 0.5) * 2.4, 640, y + (rnd() - 0.5) * 2.2, 960, y + (rnd() - 0.5) * 1.2);
+        g.stroke();
+      }
+      for (let i = 0; i < 80; i++) {
+        g.fillStyle = 'rgba(0,0,0,' + (0.06 + rnd() * 0.14).toFixed(3) + ')';
+        g.fillRect(rnd() * 960, rnd() * 72, 8 + rnd() * 22, 0.55);
+      }
+      grainHref = c.toDataURL('image/png');
+    } catch (e) {
+      grainHref = '';
+    }
+    return grainHref;
+  }
+
+  function coursePair(i) {
+    const octave = typeof TUNING !== 'undefined' && TUNING[i] && TUNING[i].pair === 'octave';
+    if (!octave && i <= 0) return { gap: 3.5, upper: { w: 0.85, wound: false }, lower: { w: 0.85, wound: false } };
+    if (!octave) return { gap: 3.8, upper: { w: 1.15, wound: false }, lower: { w: 1.15, wound: false } };
+    if (i === 2) return { gap: 4.3, upper: { w: 0.8, wound: false }, lower: { w: 2.05, wound: true } };
+    return { gap: 4.8, upper: { w: 0.95, wound: false }, lower: { w: 2.55, wound: true } };
+  }
+
+  function drawString(parent, x1, y1, x2, y2, spec, uid) {
+    const col = spec.wound ? ('url(#' + uid + '-wound)') : ('url(#' + uid + '-plain)');
+    el('line', {
+      x1: x1, y1: (y1 + 0.75).toFixed(2), x2: x2, y2: (y2 + 0.75).toFixed(2),
+      stroke: '#070504', 'stroke-width': (spec.w + 0.85).toFixed(2),
+      'stroke-linecap': 'round', opacity: 0.5,
+    }, parent);
+    el('line', {
+      x1: x1, y1: y1.toFixed(2), x2: x2, y2: y2.toFixed(2),
+      stroke: col, 'stroke-width': spec.w, 'stroke-linecap': 'round',
+    }, parent);
+    const lift = spec.wound ? 0.55 : 0.32;
+    el('line', {
+      x1: x1, y1: (y1 - lift).toFixed(2), x2: x2, y2: (y2 - lift).toFixed(2),
+      stroke: spec.wound ? '#f6e2bc' : '#f4f8ff',
+      'stroke-width': spec.wound ? 0.42 : 0.3,
+      'stroke-linecap': 'round', opacity: spec.wound ? 0.5 : 0.82,
+    }, parent);
+  }
+
   function paint(svg, opts) {
     opts = opts || {};
     const L = layout(opts.maxFret, flagsFrom(opts));
@@ -310,102 +382,202 @@ const BouzoukiNeck = (() => {
 
     const defs = el('defs', {}, svg);
     const shaft = el('linearGradient', { id: uid + '-shaft', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-    el('stop', { offset: '0', 'stop-color': '#a56b3c' }, shaft);
-    el('stop', { offset: '0.5', 'stop-color': '#c4894e' }, shaft);
-    el('stop', { offset: '1', 'stop-color': '#6a4124' }, shaft);
+    el('stop', { offset: '0', 'stop-color': '#8d5a32' }, shaft);
+    el('stop', { offset: '0.18', 'stop-color': '#c48a52' }, shaft);
+    el('stop', { offset: '0.5', 'stop-color': '#6e4124' }, shaft);
+    el('stop', { offset: '0.82', 'stop-color': '#4a2c18' }, shaft);
+    el('stop', { offset: '1', 'stop-color': '#2a160e' }, shaft);
     const board = el('linearGradient', { id: uid + '-board', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-    el('stop', { offset: '0', 'stop-color': '#3d261c' }, board);
-    el('stop', { offset: '0.48', 'stop-color': '#6a4330' }, board);
-    el('stop', { offset: '1', 'stop-color': '#2a1812' }, board);
-    const head = el('linearGradient', { id: uid + '-head', x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
-    el('stop', { offset: '0', 'stop-color': '#7a4e2e' }, head);
-    el('stop', { offset: '1', 'stop-color': '#4a2e1c' }, head);
+    el('stop', { offset: '0', 'stop-color': '#2c1812' }, board);
+    el('stop', { offset: '0.22', 'stop-color': '#4a2c22' }, board);
+    el('stop', { offset: '0.55', 'stop-color': '#24140f' }, board);
+    el('stop', { offset: '1', 'stop-color': '#120a08' }, board);
+    const sheen = el('linearGradient', { id: uid + '-sheen', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#000', 'stop-opacity': '0.42' }, sheen);
+    el('stop', { offset: '0.14', 'stop-color': '#fff', 'stop-opacity': '0.07' }, sheen);
+    el('stop', { offset: '0.5', 'stop-color': '#000', 'stop-opacity': '0' }, sheen);
+    el('stop', { offset: '0.86', 'stop-color': '#000', 'stop-opacity': '0.18' }, sheen);
+    el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': '0.5' }, sheen);
+    const head = el('linearGradient', { id: uid + '-head', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#6a4128' }, head);
+    el('stop', { offset: '0.45', 'stop-color': '#3d2416' }, head);
+    el('stop', { offset: '1', 'stop-color': '#24150e' }, head);
+    const bone = el('linearGradient', { id: uid + '-bone', x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#e7dcc8' }, bone);
+    el('stop', { offset: '0.35', 'stop-color': '#fbf6ea' }, bone);
+    el('stop', { offset: '0.7', 'stop-color': '#f3ead8' }, bone);
+    el('stop', { offset: '1', 'stop-color': '#cbbba4' }, bone);
+    const metal = el('linearGradient', { id: uid + '-metal', x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#5c656e' }, metal);
+    el('stop', { offset: '0.28', 'stop-color': '#eef3f8' }, metal);
+    el('stop', { offset: '0.55', 'stop-color': '#b7c0c8' }, metal);
+    el('stop', { offset: '1', 'stop-color': '#6a727b' }, metal);
+    const plain = el('linearGradient', { id: uid + '-plain', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#f7f9fc' }, plain);
+    el('stop', { offset: '0.45', 'stop-color': '#c5ccd4' }, plain);
+    el('stop', { offset: '1', 'stop-color': '#8e98a3' }, plain);
+    const wound = el('linearGradient', { id: uid + '-wound', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0', 'stop-color': '#e7c48a' }, wound);
+    el('stop', { offset: '0.4', 'stop-color': '#a8743e' }, wound);
+    el('stop', { offset: '1', 'stop-color': '#5c3a22' }, wound);
+    const pearl = el('radialGradient', { id: uid + '-pearl', cx: '38%', cy: '32%', r: '70%' }, defs);
+    el('stop', { offset: '0', 'stop-color': '#fffef8' }, pearl);
+    el('stop', { offset: '0.45', 'stop-color': '#f4efe2' }, pearl);
+    el('stop', { offset: '0.78', 'stop-color': '#d5e4e2' }, pearl);
+    el('stop', { offset: '1', 'stop-color': '#b7c3bf' }, pearl);
     const glow = el('filter', { id: uid + '-glow', x: '-80%', y: '-80%', width: '260%', height: '260%' }, defs);
     el('feGaussianBlur', { stdDeviation: '3.2', result: 'b' }, glow);
     const merge = el('feMerge', {}, glow);
     el('feMergeNode', { in: 'b' }, merge);
     el('feMergeNode', { in: 'SourceGraphic' }, merge);
+    const grainUrl = woodGrainHref();
+    if (grainUrl) {
+      const pat = el('pattern', {
+        id: uid + '-grain', patternUnits: 'userSpaceOnUse',
+        width: 960, height: 72,
+      }, defs);
+      const img = el('image', { width: 960, height: 72, preserveAspectRatio: 'none' }, pat);
+      img.setAttribute('href', grainUrl);
+    }
 
+    const decor = el('g', { 'pointer-events': 'none' }, svg);
     const heelOuter = L.heel + (headOnRight ? -36 : 36);
     const nutShoulder = L.nut + (headOnRight ? 10 : -10);
-    el('path', {
-      d: 'M' + heelOuter + ' ' + (shaftTop + 6)
-        + ' L' + L.heel + ' ' + shaftTop
-        + ' L' + L.nut + ' ' + shaftTop
-        + ' L' + nutShoulder + ' ' + headTop
-        + ' L' + headOuter + ' ' + headTop
-        + ' Q' + (headOuter + (headOnRight ? 16 : -16)) + ' ' + ((headTop + headBot) / 2) + ' ' + headOuter + ' ' + headBot
-        + ' L' + nutShoulder + ' ' + headBot
-        + ' L' + L.nut + ' ' + shaftBot
-        + ' L' + L.heel + ' ' + shaftBot
-        + ' L' + heelOuter + ' ' + (shaftBot - 6) + ' Z',
-      fill: 'url(#' + uid + '-shaft)',
-    }, svg);
+    const shaftD = 'M' + heelOuter + ' ' + (shaftTop + 6)
+      + ' L' + L.heel + ' ' + shaftTop
+      + ' L' + L.nut + ' ' + shaftTop
+      + ' L' + nutShoulder + ' ' + headTop
+      + ' L' + headOuter + ' ' + headTop
+      + ' Q' + (headOuter + (headOnRight ? 16 : -16)) + ' ' + ((headTop + headBot) / 2) + ' ' + headOuter + ' ' + headBot
+      + ' L' + nutShoulder + ' ' + headBot
+      + ' L' + L.nut + ' ' + shaftBot
+      + ' L' + L.heel + ' ' + shaftBot
+      + ' L' + heelOuter + ' ' + (shaftBot - 6) + ' Z';
+    el('path', { d: shaftD, fill: 'url(#' + uid + '-shaft)' }, decor);
+    if (grainUrl) el('path', { d: shaftD, fill: 'url(#' + uid + '-grain)', opacity: 0.28 }, decor);
+    el('line', {
+      x1: boardMin, y1: shaftTop + 1.2, x2: boardMax, y2: shaftTop + 1.2,
+      stroke: '#f4ead8', 'stroke-width': 1.5,
+    }, decor);
+    el('line', {
+      x1: boardMin, y1: shaftBot - 1.2, x2: boardMax, y2: shaftBot - 1.2,
+      stroke: '#1a100c', 'stroke-width': 2.2,
+    }, decor);
     el('path', {
       d: 'M' + headMin + ' ' + headTop + ' L' + headMax + ' ' + headTop
         + ' L' + headMax + ' ' + headBot + ' L' + headMin + ' ' + headBot + ' Z',
       fill: 'url(#' + uid + '-head)',
-      stroke: '#2a1a12',
+      stroke: '#1a100c',
       'stroke-width': 1.2,
-    }, svg);
+    }, decor);
+
+    const bind = 3.6;
+    const woodY = L.boardTop + bind;
+    const woodH = (L.boardBot - L.boardTop) - bind * 2;
+    el('rect', {
+      x: boardMin, y: L.boardTop, width: boardMax - boardMin, height: L.boardBot - L.boardTop,
+      fill: 'url(#' + uid + '-bone)',
+    }, decor);
     el('rect', {
       'data-bn': 'board',
-      x: boardMin, y: L.boardTop, width: boardMax - boardMin, height: L.boardBot - L.boardTop,
+      x: boardMin, y: woodY, width: boardMax - boardMin, height: woodH,
       fill: 'url(#' + uid + '-board)',
-    }, svg);
-    el('line', { x1: boardMin, y1: L.boardTop, x2: boardMax, y2: L.boardTop, stroke: '#e7d7b4', 'stroke-width': 1.4 }, svg);
-    el('line', { x1: boardMin, y1: L.boardBot, x2: boardMax, y2: L.boardBot, stroke: '#1a100c', 'stroke-width': 1.6 }, svg);
+    }, decor);
+    if (grainUrl) {
+      el('rect', {
+        x: boardMin, y: woodY, width: boardMax - boardMin, height: woodH,
+        fill: 'url(#' + uid + '-grain)', opacity: 0.9,
+      }, decor);
+    }
+    el('rect', {
+      x: boardMin, y: woodY, width: boardMax - boardMin, height: woodH,
+      fill: 'url(#' + uid + '-sheen)',
+    }, decor);
+    el('line', {
+      x1: boardMin, y1: woodY, x2: boardMax, y2: woodY,
+      stroke: '#120c09', 'stroke-width': 1.15,
+    }, decor);
+    el('line', {
+      x1: boardMin, y1: woodY + woodH, x2: boardMax, y2: woodY + woodH,
+      stroke: '#120c09', 'stroke-width': 1.15,
+    }, decor);
 
-    const pearl = '#f6edd4';
+    const pearlFill = 'url(#' + uid + '-pearl)';
+    function inlay(cx, cy, r) {
+      el('ellipse', {
+        cx: cx.toFixed(1), cy: (cy + 1.1).toFixed(1), rx: (r + 0.4).toFixed(1), ry: 1.5,
+        fill: '#000', opacity: 0.35,
+      }, decor);
+      el('circle', { cx: cx.toFixed(1), cy: cy.toFixed(1), r: r, fill: pearlFill }, decor);
+      el('circle', {
+        cx: (cx - r * 0.28).toFixed(1), cy: (cy - r * 0.32).toFixed(1), r: Math.max(0.8, r * 0.28),
+        fill: '#fff', opacity: 0.55,
+      }, decor);
+    }
     [3, 5, 7, 9, 12, 15].forEach((f) => {
       if (f > L.maxFret) return;
       const x = (L.wireX(f - 1) + L.wireX(f)) / 2;
       const mid = (L.courseY(1) + L.courseY(2)) / 2;
       if (f === 12) {
-        el('circle', { cx: x.toFixed(1), cy: (mid - 12).toFixed(1), r: 4.2, fill: pearl }, svg);
-        el('circle', { cx: x.toFixed(1), cy: (mid + 12).toFixed(1), r: 4.2, fill: pearl }, svg);
+        inlay(x, mid - 14, 4.4);
+        inlay(x, mid + 14, 4.4);
       } else {
-        el('circle', { cx: x.toFixed(1), cy: mid.toFixed(1), r: 4.6, fill: pearl }, svg);
+        inlay(x, mid, 4.8);
       }
     });
 
-    const nutX = headOnRight ? L.nut - 1 : L.nut - 8;
+    const hiSign = headOnRight ? 0.65 : -0.65;
+    for (let f = 1; f <= L.maxFret; f++) {
+      const x = L.wireX(f);
+      el('line', {
+        x1: (x - hiSign).toFixed(1), y1: woodY, x2: (x - hiSign).toFixed(1), y2: woodY + woodH,
+        stroke: '#0c0806', 'stroke-width': 3.3, 'stroke-linecap': 'round', opacity: 0.8,
+      }, decor);
+      el('line', {
+        'data-bn': 'fret', x1: x.toFixed(1), y1: woodY, x2: x.toFixed(1), y2: woodY + woodH,
+        stroke: 'url(#' + uid + '-metal)', 'stroke-width': 2.25, 'stroke-linecap': 'round',
+      }, decor);
+      el('line', {
+        'data-bn': 'fret-hi', x1: (x + hiSign).toFixed(1), y1: woodY + 1, x2: (x + hiSign).toFixed(1), y2: woodY + woodH - 1,
+        stroke: '#f5f8fb', 'stroke-width': 0.6, opacity: 0.9,
+      }, decor);
+    }
+
+    const nutW = 10;
+    const nutX = headOnRight ? L.nut - 7 : L.nut - 3;
     el('rect', {
-      x: nutX, y: L.boardTop - 5, width: 9, height: L.boardBot - L.boardTop + 10,
-      rx: 1.2, fill: '#f7f3ea', stroke: '#c9bfae', 'stroke-width': 0.6,
-    }, svg);
+      x: nutX, y: L.boardTop - 4, width: nutW, height: L.boardBot - L.boardTop + 8,
+      rx: 1.4, fill: 'url(#' + uid + '-bone)', stroke: '#b7aa96', 'stroke-width': 0.6,
+    }, decor);
+    el('line', {
+      x1: nutX + 1, y1: L.boardTop - 2, x2: nutX + 1, y2: L.boardBot + 2,
+      stroke: '#fff', 'stroke-width': 0.7, opacity: 0.65,
+    }, decor);
 
     const posts = [0, 1, 2, 3].map((i) => headMin + 46 + i * ((headMax - headMin - 70) / 3));
     for (let i = 0; i < 4; i++) {
       const y = L.courseY(i);
-      const octave = typeof TUNING !== 'undefined' && TUNING[i] && TUNING[i].pair === 'octave';
-      const up = octave ? 1.15 : 1.55;
-      const dn = octave ? 2.15 : 1.55;
-      const y1 = y - 2.6;
-      const y2 = y + 2.6;
-      const stringEnd = headOnRight ? boardMin - 18 : boardMax + 18;
-      const x1 = Math.min(stringEnd, L.nut);
-      const x2 = Math.max(stringEnd, L.nut);
-      el('line', { x1: x1, y1: y1, x2: x2, y2: y1, stroke: '#f4ecda', 'stroke-width': up }, svg);
-      el('line', { x1: x1, y1: y2, x2: x2, y2: y2, stroke: '#e4d3b0', 'stroke-width': dn }, svg);
-      el('line', { x1: L.nut, y1: y1, x2: posts[i], y2: headTop + 2, stroke: '#f4ecda', 'stroke-width': up }, svg);
-      el('line', { x1: L.nut, y1: y2, x2: posts[i], y2: headBot - 2, stroke: '#e4d3b0', 'stroke-width': dn }, svg);
-    }
-
-    for (let f = 1; f <= L.maxFret; f++) {
-      const x = L.wireX(f);
-      el('line', {
-        'data-bn': 'fret', x1: x.toFixed(1), y1: L.boardTop, x2: x.toFixed(1), y2: L.boardBot,
-        stroke: '#140e0a', 'stroke-width': 4.2, 'stroke-linecap': 'butt',
-      }, svg);
-      el('line', {
-        'data-bn': 'fret-hi', x1: (x + 1.1).toFixed(1), y1: L.boardTop, x2: (x + 1.1).toFixed(1), y2: L.boardBot,
-        stroke: '#f7f4ee', 'stroke-width': 2.15,
-      }, svg);
+      const pair = coursePair(i);
+      const yUp = y - pair.gap / 2;
+      const yDn = y + pair.gap / 2;
+      const stringEnd = headOnRight ? boardMin - 14 : boardMax + 14;
+      const xHeel = headOnRight ? Math.min(stringEnd, L.nut) : Math.max(stringEnd, L.nut);
+      el('rect', {
+        x: nutX + 1.5, y: yUp - 0.7, width: nutW - 3, height: 1.35,
+        fill: '#3a3128', opacity: 0.55,
+      }, decor);
+      el('rect', {
+        x: nutX + 1.5, y: yDn - 0.7, width: nutW - 3, height: 1.35,
+        fill: '#3a3128', opacity: 0.55,
+      }, decor);
+      drawString(decor, xHeel, yUp, L.nut, yUp, pair.upper, uid);
+      drawString(decor, xHeel, yDn, L.nut, yDn, pair.lower, uid);
+      drawString(decor, L.nut, yUp, posts[i], headTop + 3, pair.upper, uid);
+      drawString(decor, L.nut, yDn, posts[i], headBot - 3, pair.lower, uid);
     }
 
     posts.forEach((x) => {
-      const g = el('g', {}, svg);
+      const g = el('g', {}, decor);
       [[headTop, -1], [headBot, 1]].forEach((pair) => {
         const y = pair[0];
         const dir = pair[1];

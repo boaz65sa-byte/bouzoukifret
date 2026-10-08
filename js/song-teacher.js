@@ -324,7 +324,7 @@ CH: Dm . . . G . . .`;
         const note = path[i];
         if (!note) return;
         AudioEngine.pluckCourse(note.course, note.fret, 0, 0.55);
-        if (svgs[vi] && FretboardScale.flashMidi) FretboardScale.flashMidi(svgs[vi], note.midi);
+        if (svgs[vi] && FretboardScale.playhead) FretboardScale.playhead(svgs[vi], { ci: note.course, fret: note.fret, midi: note.midi });
         setV2ChipActive(listHosts[vi], i, true);
         maxDur = Math.max(maxDur, note.duration || 0.3);
       });
@@ -753,9 +753,15 @@ CH: Dm . . . G . . .`;
   }
 
   function glowPlayed(course, fret) {
-    if (!_fbSvg || course == null || fret == null || typeof BouzoukiNeck === 'undefined') return;
+    if (!_fbSvg || course == null || fret == null) return;
     const midi = typeof TUNING !== 'undefined' && TUNING[course] ? TUNING[course].midi + fret : null;
-    BouzoukiNeck.moveActive(_fbSvg, { ci: course, fret: fret, midi: midi });
+    const note = { ci: course, fret: fret, midi: midi };
+    if (typeof FretboardScale !== 'undefined' && FretboardScale.playhead) {
+      FretboardScale.playhead(_fbSvg, note);
+      return;
+    }
+    if (typeof BouzoukiNeck === 'undefined') return;
+    BouzoukiNeck.moveActive(_fbSvg, note);
   }
 
   function flashDot(course, fret) {
