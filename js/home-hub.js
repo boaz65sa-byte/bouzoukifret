@@ -35,7 +35,9 @@ const HomeHub = (() => {
     card.className = 'hub-card';
     const icoSpan = document.createElement('span');
     icoSpan.className = 'hub-card-ico';
-    icoSpan.textContent = ico ? ico.textContent : '•';
+    const svg = ico && ico.querySelector('svg');
+    if (svg) icoSpan.appendChild(svg.cloneNode(true));
+    else icoSpan.textContent = ico && ico.textContent.trim() ? ico.textContent.trim() : '';
     const labelSpan = document.createElement('span');
     labelSpan.className = 'hub-card-label';
     labelSpan.textContent = label;
