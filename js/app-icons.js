@@ -218,15 +218,18 @@ const AppIcons = (() => {
   }
 
   mountNav();
+  let booted = false;
   function boot() {
     mountNav();
     mountHeads();
     decorateChrome();
     scan(document);
+    if (booted) return;
+    booted = true;
     watch();
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  document.addEventListener('DOMContentLoaded', boot);
+  if (document.readyState !== 'loading') boot();
 
   return { el, mountNav, scan };
 })();
