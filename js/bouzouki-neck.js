@@ -769,7 +769,8 @@ const BouzoukiNeck = (() => {
     btn.title = 'הדלקה וכיבוי של שכבת הזוהר';
     btn.setAttribute('aria-label', 'שכבת זוהר על הצוואר');
     btn.addEventListener('click', () => setEnabled(!glowOn()));
-    document.body.appendChild(btn);
+    const slot = document.getElementById('chrome-tools');
+    (slot || document.body).appendChild(btn);
     applyGlowClass();
   }
 
