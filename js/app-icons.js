@@ -23,11 +23,11 @@ const AppIcons = (() => {
     note: g(soft('M9 16.8a2.4 2.4 0 1 1-2.2-2.4') + line('M9 17.2V6.2l9-2v9.2M9 17.2a2.4 2.4 0 1 1-2.2-2.4M18 13.4a2.4 2.4 0 1 1-2.2-2.4')),
     download: g(soft('M5 15.5V19h14v-3.5') + line('M12 4v10M8.2 10.2 12 14l3.8-3.8M5 19h14')),
     neck: g(soft('M4 8h16v8H4z') + line('M4 8h16v8H4zM8 8v8M12 8v8M16 8v8M7 12h.01M11 12h.01')),
-    sliders: g(line('M4 8h16M4 16h16M8 8v0M8 5.5v5M16 16v0M16 13.5v5')),
+    sliders: g(line('M4 8h16M4 16h16') + '<circle cx="9" cy="8" r="2.1" fill="currentColor" stroke="none" opacity="0.9"/>' + '<circle cx="15" cy="16" r="2.1" fill="currentColor" stroke="none" opacity="0.9"/>'),
     chart: g(soft('M5 19V11h3.2v8zM10.4 19V7h3.2v12zM15.8 19v-6H19v6z') + line('M5 19V11h3.2v8M10.4 19V7h3.2v12M15.8 19v-6H19v6')),
-    listen: g(line('M4 12h2.2l1.6-3.2 2.4 6.4 2-3.2H20')),
+    listen: g(soft('M12 4.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6z') + line('M12 4.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6z') + line('M7.2 12h1.5l1.1-2.2 1.8 3.8 1.4-1.6h3.8')),
     dromoi: g(line('M4 17c2.2-6 4-6 6.2 0s4 6 6.2 0 3.2-6 3.6-6') + '<circle cx="6" cy="15" r="1.3" fill="currentColor" stroke="none" opacity="0.35"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="9" r="1.3" fill="currentColor" stroke="none" opacity="0.35"/>'),
-    hand: g(line('M8 11V6.5M12 11V5M16 11V7M8 11v6.2a3 3 0 0 0 3 3h2.2a3 3 0 0 0 3-2.4L17.2 13')),
+    hand: g(soft('M8 10.5V6.2a1.3 1.3 0 0 1 2.6 0V10M12 10V4.8a1.3 1.3 0 0 1 2.6 0V10M15.2 10V6.6a1.3 1.3 0 0 1 2.6 0v5.2') + line('M8 10.5V6.2a1.3 1.3 0 0 1 2.6 0V11M12 10V4.8a1.3 1.3 0 0 1 2.6 0V11M15.2 10.2V6.6a1.3 1.3 0 0 1 2.6 0v5.2c0 3.2-2 5.6-5.2 5.6h-1.2C8.2 17.4 6.4 15 6.4 12.2V9.2')),
     cap: g(soft('M3.5 10 12 6l8.5 4L12 14z') + line('M3.5 10 12 6l8.5 4L12 14zM7 12.2V16c1.6 1.4 8.4 1.4 10 0v-3.8')),
     star: g(soft('m12 3.8 2.1 4.4 4.8.6-3.5 3.3.9 4.7L12 14.6 7.7 16.8l.9-4.7L5.1 8.8l4.8-.6z') + line('m12 3.8 2.1 4.4 4.8.6-3.5 3.3.9 4.7L12 14.6 7.7 16.8l.9-4.7L5.1 8.8l4.8-.6z')),
     book: g(soft('M5 5.5h6.2A2.8 2.8 0 0 1 14 8.3V19H7.2A2.2 2.2 0 0 0 5 16.8z') + line('M5 5.5h6.2A2.8 2.8 0 0 1 14 8.3V19M5 5.5A2.2 2.2 0 0 0 7.2 7.7H14M14 8.3A2.8 2.8 0 0 1 16.8 5.5H19V17h-5')),
@@ -53,7 +53,7 @@ const AppIcons = (() => {
     people: g(line('M8 11.2a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4zM4.8 18.2c.4-2.2 1.8-3.2 3.2-3.2s2.8 1 3.2 3.2M16 10.8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM13.6 18c.3-1.8 1.4-2.8 2.6-2.8 1.1 0 2.2.9 2.6 2.8')),
     steps: g(line('M5 18h4v-3.2h3.4V11H16V7.8H19')),
     quill: g(line('M5 19c6-1 8.5-4 11.5-9.5C18.2 6 16.5 4.5 14.8 4.8 10 8 7 12.5 5 19zM13 11.2l-2.2 2.2')),
-    waves: g(line('M4 9c1.4 1.2 2.2 1.2 3.6 0S9.8 7.8 11.2 9s2.2 1.2 3.6 0 2.2-1.2 3.6 0 2.2 1.2 1.6 1.2M4 15c1.4 1.2 2.2 1.2 3.6 0s2.2-1.2 3.6 0 2.2 1.2 3.6 0 2.2-1.2 3.6 0')),
+    waves: g(soft('M4 8h16v8H4z') + line('M4 9.2c1.6 1.6 2.6 1.6 4.2 0s2.6-1.6 4.2 0 2.6 1.6 4.2 0 2.4-1.4 3.4-1.4M4 14.8c1.6 1.6 2.6 1.6 4.2 0s2.6-1.6 4.2 0 2.6 1.6 4.2 0 2.4-1.4 3.4-1.4')),
     horn: g(line('M7 10.5h4.2l6-3.2v9.4l-6-3.2H7zM7 10.5v3') + soft('M7 10.5h4.2l6-3.2v9.4l-6-3.2H7z')),
     dice: g(soft('M5.5 5.5h13v13h-13z') + line('M5.5 5.5h13v13h-13zM9 9h.01M15 15h.01M15 9h.01M9 15h.01')),
     record: g(line('M12 4.8a7.2 7.2 0 1 1 0 14.4 7.2 7.2 0 0 1 0-14.4z') + '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" opacity="0.85"/>'),
@@ -63,7 +63,7 @@ const AppIcons = (() => {
     help: g(line('M12 4.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6zM9.6 9.4a2.4 2.4 0 1 1 3.2 2.3c-.7.3-1.2.9-1.2 1.6V14') + '<circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"/>'),
     glow: g(line('M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6') + soft('M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z') + line('M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z')),
     map: g(line('M9 5.2 4.5 7v12L9 17.2l6 2.2 4.5-1.8v-12L15 7.2zM9 5.2v12M15 7.2v12')),
-    dot: g('<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none" opacity="0.85"/>'),
+    dot: g(soft('M6 6h12v12H6z') + line('M6 6h12v12H6z') + '<circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>'),
   };
 
   const SCREEN = {
@@ -128,7 +128,7 @@ const AppIcons = (() => {
   ];
 
   function el(name) {
-    const markup = PATHS[name] || PATHS[SCREEN[name]] || PATHS.dot;
+    const markup = (name && (PATHS[name] || PATHS[SCREEN[name]])) || PATHS.dot;
     const holder = document.createElement('div');
     holder.innerHTML = '<svg viewBox="0 0 24 24" class="ui-ico" aria-hidden="true" focusable="false">' + markup + '</svg>';
     return holder.firstChild;
@@ -136,14 +136,18 @@ const AppIcons = (() => {
 
   function mountNav() {
     document.querySelectorAll('.nav-btn[data-screen]').forEach((btn) => {
-      const slot = btn.querySelector('.nav-ico');
-      if (!slot || slot.querySelector('svg')) return;
-      slot.textContent = '';
-      slot.appendChild(el(btn.dataset.screen));
+      let slot = btn.querySelector('.nav-ico');
+      if (!slot) {
+        slot = document.createElement('span');
+        slot.className = 'nav-ico';
+        btn.prepend(slot);
+      }
+      if (!slot.querySelector('svg')) {
+        slot.replaceChildren(el(btn.dataset.screen));
+      }
       if (btn.querySelector('.nav-label')) return;
       const text = [...btn.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ').replace(/\s+/g, ' ').trim();
       [...btn.childNodes].forEach((n) => { if (n.nodeType === 3) n.remove(); });
-      if (!text) return;
       const lab = document.createElement('span');
       lab.className = 'nav-label';
       lab.textContent = text;
