@@ -169,7 +169,8 @@ const AppHelper = (() => {
       + '<p class="neck-coach-text" id="app-helper-text" aria-live="polite"></p>'
       + '<div class="neck-coach-actions" id="app-helper-actions"></div>'
       + '</div>';
-    document.body.appendChild(help);
+    const slot = document.getElementById('chrome-tools');
+    (slot || document.body).appendChild(help);
     document.body.appendChild(coach);
     help.addEventListener('click', onHelp);
     coach.addEventListener('click', onCoachClick);

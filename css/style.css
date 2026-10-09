@@ -67,8 +67,22 @@ body {
   overflow: hidden;
 }
 
-.logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.logo-icon { width: 46px; height: 46px; }
+.sidebar-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.chrome-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  flex: none;
+}
+.logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; min-width: 0; }
+.logo-icon { width: 46px; height: 46px; flex: none; }
 .logo-title { font-size: 21px; font-weight: 900; color: var(--gold); letter-spacing: 0.5px; }
 .logo-sub { font-size: 11.5px; color: var(--text-dim); }
 
@@ -83,7 +97,6 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(227, 179, 65, 0.35) transparent;
   -webkit-overflow-scrolling: touch;
-  mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 18px), transparent 100%);
 }
 
 .nav-section-label {
@@ -106,14 +119,15 @@ body {
 .nav-btn {
   display: flex; align-items: center; gap: 11px;
   padding: 12px 14px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  min-height: 44px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(232, 197, 107, 0.28);
+  border-radius: 12px;
   color: var(--text-dim);
   font: inherit; font-size: 15px; font-weight: 500;
   cursor: pointer;
   text-align: right;
-  transition: all 0.18s;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 .nav-btn:hover { background: var(--bg-card); color: var(--text); }
 .nav-btn:active { background: var(--bg-card); color: var(--text); }
@@ -130,8 +144,9 @@ body {
   width: 24px;
   height: 24px;
   flex: none;
-  color: inherit;
+  color: #8fe7ff;
 }
+.nav-label { line-height: 1.25; }
 .ui-ico { width: 22px; height: 22px; display: block; }
 button .ui-ico {
   width: 18px;
@@ -980,17 +995,30 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
 @media (max-width: 860px) {
   .app { flex-direction: column; }
 
-  /* פס עליון דקיק עם הלוגו */
+  /* פס עליון דבוק — הלוגו, העזרה והזוהר בזרימה, בלי לכסות תוכן */
+  body { padding-top: 0; }
   .sidebar {
     width: 100%; height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-inline: max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-left));
     border-left: none;
     border-bottom: 1px solid var(--line);
-    gap: 10px;
+    gap: 0;
+    background: #0e1c2c;
+  }
+  .sidebar-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
   }
   .logo-icon { width: 34px; height: 34px; }
   .logo-title { font-size: 17px; }
@@ -1004,6 +1032,12 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
   }
   .sidebar-streak-mobile b { color: var(--gold); }
   .sidebar-foot { display: none; }
+  .logo > div { min-width: 0; }
+  .logo-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   /* רציף צף — זכוכית כהה, זהב וציאן, מעל פס הבית של האייפון */
   .nav {
@@ -1031,16 +1065,14 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
     overflow-y: hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
-    mask-image: linear-gradient(to left, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
   }
   .nav-section-label { display: none; }
+  .nav-btn { order: 10; }
   .nav-btn[data-nav-priority="0"] { order: 0; }
   .nav-btn[data-nav-priority="1"] { order: 1; }
   .nav-btn[data-nav-priority="2"] { order: 2; }
   .nav-btn[data-nav-priority="3"] { order: 3; }
   .nav-btn[data-nav-priority="4"] { order: 4; }
-  .nav-btn:not([data-nav-priority]) { order: 10; }
   .nav::-webkit-scrollbar { display: none; }
   .nav-btn {
     flex: 0 0 auto;
@@ -1056,14 +1088,21 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
     line-height: 1.15;
     text-align: center;
     border-radius: 18px;
-    color: rgba(214, 228, 242, 0.72);
+    color: rgba(232, 240, 248, 0.92);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(232, 197, 107, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .nav-btn.nav-featured {
+    background: rgba(227, 179, 65, 0.1);
+    border-color: rgba(232, 197, 107, 0.5);
   }
   .nav-label {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    max-width: 76px;
+    display: block;
+    white-space: nowrap;
+    overflow: visible;
+    max-width: none;
+    line-height: 1.15;
   }
   .nav-btn.active {
     background: linear-gradient(180deg, rgba(227, 179, 65, 0.28), rgba(70, 190, 220, 0.16));
@@ -1138,7 +1177,7 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
 
 /* מסכים צרים מאוד */
 @media (max-width: 400px) {
-  .nav-btn { min-width: 58px; min-height: 46px; font-size: 9.5px; }
+  .nav-btn { min-width: 64px; min-height: 48px; font-size: 11px; }
   .stroke-cell { width: 42px; height: 66px; }
   .stroke-arrow { font-size: 24px; }
   .stroke-cell.accent .stroke-arrow { font-size: 32px; }
@@ -2744,6 +2783,20 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
   cursor: pointer;
 }
 #app-helper { z-index: 85; }
+.chrome-tools .app-helper-help,
+.chrome-tools .bn-glow-toggle {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  inset: auto;
+  z-index: auto;
+  flex: none;
+  white-space: nowrap;
+}
+.chrome-tools .app-helper-help { width: 44px; height: 44px; }
+.chrome-tools .bn-glow-toggle { min-height: 44px; min-width: 44px; }
 .neck-help {
   position: absolute;
   top: 12px;
@@ -3277,6 +3330,19 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
   border-color: rgba(246, 226, 168, 0.35);
   color: rgba(246, 226, 168, 0.72);
   box-shadow: none;
+}
+.chrome-tools .app-helper-help,
+.chrome-tools .bn-glow-toggle {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  inset-inline-start: auto;
+  inset-inline-end: auto;
+  z-index: auto;
+  flex: none;
+  white-space: nowrap;
 }
 html.bn-glow-on .bn-active .neck-dot-plate {
   stroke: #7dffb0;
