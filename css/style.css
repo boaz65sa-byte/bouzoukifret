@@ -1005,6 +1005,7 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
   }
   .sidebar-streak-mobile b { color: var(--gold); }
   .sidebar-foot { display: none; }
+  .sidebar { padding-inline-start: 58px; }
 
   /* רציף צף — זכוכית כהה, זהב וציאן, מעל פס הבית של האייפון */
   .nav {
@@ -2750,6 +2751,14 @@ svg.bn-neck.bn-playing .fb-dot.mm-glow { opacity: 1; }
   cursor: pointer;
 }
 #app-helper { z-index: 85; }
+@media (max-width: 860px) {
+  .app-helper-help {
+    top: calc(8px + env(safe-area-inset-top));
+    bottom: auto;
+    inset-inline-end: auto;
+    inset-inline-start: 8px;
+  }
+}
 .neck-help {
   position: absolute;
   top: 12px;
